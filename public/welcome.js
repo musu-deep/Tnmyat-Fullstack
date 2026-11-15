@@ -1,7 +1,7 @@
 'use strict';
 
 function renderWelcome() {
-  document.title = 'مجتمع تنميات | مساحة عربية للتنمية والتواصل';
+  document.title = 'مجتمع تنميات | شبكة معرفة وعلاقات تنموية';
   main.innerHTML = `<section class="welcome-page" aria-labelledby="welcome-heading">
     <header class="welcome-topbar">
       <div class="welcome-topinner">
@@ -16,9 +16,9 @@ function renderWelcome() {
       <div class="welcome-landscape-shade" aria-hidden="true"></div>
       <div class="welcome-stage">
         <div class="welcome-hero-copy">
-          <p class="welcome-eyebrow">مساحة عربية للتنمية والتواصل</p>
+          <p class="welcome-eyebrow">شبكة معرفة وعلاقات تنموية</p>
           <h1 id="welcome-heading">مجتمع تنميات</h1>
-          <p class="welcome-description">مساحة عربية تجمع المهتمين بالتنمية لتبادل الخبرات، والتعريف بالمبادرات، وبناء علاقات مهنية.</p>
+          <p class="welcome-description">فضاء مهني يجمع خبرات وكفاءات ومبادرات، ويعزز تبادل المعرفة والتعاون المؤسسي وبناء شراكات ذات أثر تنموي.</p>
           <div class="welcome-hero-actions"><a href="#welcome-login" class="welcome-primary-link">انضم إلى تنميات <span aria-hidden="true">←</span></a><button type="button" class="welcome-secondary-link" data-act="register">إنشاء حساب جديد</button></div>
         </div>
         <section class="welcome-glass-card" id="welcome-login" aria-label="تسجيل الدخول إلى مجتمع تنميات">
