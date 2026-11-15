@@ -70,6 +70,7 @@ function updateWallNavState(){
  const banner=document.querySelector('#wallIdentity');
  const bottom=banner?.getBoundingClientRect().bottom ?? 0;
  document.body.classList.toggle('wallNavBeyond',enabled && bottom>0 && bottom<72);
+ if(typeof hubUpdateDock==='function')hubUpdateDock();
 }
 window.addEventListener('scroll',updateWallNavState,{passive:true});
 function go(url){history.pushState(null,'',url);route();window.scrollTo(0,0);}
