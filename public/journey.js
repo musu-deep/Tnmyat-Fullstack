@@ -139,7 +139,7 @@ async function renderJourney(token){
 async function journeyAction(el){
  if(!el?.hasAttribute('data-journey'))return false;
  const kind=el.dataset.journey;
- if(kind==='skip-onboarding'){go('/wall');return true;}
+ if(kind==='skip-onboarding'){try{const {preferences}=await api('journey/preferences');await api('journey/preferences','PATCH',{...preferences,onboarding_complete:true});notify('يمكنك استكمال تفضيلاتك لاحقاً من قائمة الحساب');go('/wall');}catch(e){notify('تعذّر حفظ اختيار التخطي: '+e.message);}return true;}
  const id=Number(el.dataset.id);
  try{
  if(kind==='join-project'){await api('journey/projects/'+id+'/join','POST');notify('أُرسل طلب المشاركة لصاحب المشروع');}
