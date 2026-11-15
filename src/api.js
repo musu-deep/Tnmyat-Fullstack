@@ -177,6 +177,7 @@ async function authenticate(request,db,register) {
 
 const postFields = `
   p.id,p.author_id,p.title,p.body,p.topic,p.created_at,p.version,p.post_kind,p.pinned,u.name AS author,
+  EXISTS(SELECT 1 FROM featured_member_posts f WHERE f.post_id=p.id AND f.status='published') AS gold_featured,
   EXISTS(SELECT 1 FROM post_bookmarks b WHERE b.post_id=p.id AND b.user_id=viewer.id) AS saved,
   p.image_mime AS legacy_mime,length(p.image_bytes) AS legacy_size,
   (SELECT json_group_array(json_object('id',id,'name',name,'mime',mime,'size',size,'url','/api/files/'||id))
@@ -198,7 +199,7 @@ function postView(row) {
   if(legacy_mime)attachments.unshift({id:'legacy',name:'صورة المنشور',mime:legacy_mime,size:legacy_size,url:post.image});
   post.image=attachments.find(file=>file.mime.startsWith('image/'))?.url??null;
   post.attachments=attachments;
-  return {...post,pinned:Boolean(post.pinned),saved:Boolean(post.saved),liked:Boolean(post.liked),reposted:Boolean(post.reposted),
+  return {...post,pinned:Boolean(post.pinned),gold_featured:Boolean(post.gold_featured),saved:Boolean(post.saved),liked:Boolean(post.liked),reposted:Boolean(post.reposted),
     repost_by:repost_user_id ? {id:repost_user_id,name:repost_name} : null,repost_at:post.repost_at ?? null};
 }
 async function getPost(db,id,user) {
