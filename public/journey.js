@@ -60,9 +60,11 @@ async function renderJourney(token){
    '<section class="journeyPanel journeyWide"><h2>فعاليات مقترحة من التقويم العام</h2>'+(suggestions.length?suggestions.map(e=>'<div class="journeyItem"><div><strong>'+esc(e.title)+'</strong><small>'+journeyDate(e.event_date)+'</small></div><button type="button" data-journey="save-event" data-id="'+e.id+'" data-title="'+esc(e.title)+'" data-date="'+e.event_date+'">أضف إلى تقويمي</button></div>').join(''):jempty('لا توجد فعاليات مطابقة في الفترة الحالية.'))+'</section></div>');
  }
  if(path==='/my-map'){
-  const {projects}=await api('journey/map');if(token!==version)return true;
+  const [saved,publicMap]=await Promise.all([api('journey/map'),api('hub/projects')]);if(token!==version)return true;
+  const projects=saved.projects,publicProjects=publicMap.projects.filter(p=>!projects.some(x=>x.id===p.id)).slice(0,16);
+  if(journeyMapInstance){try{journeyMapInstance.remove();}catch{}journeyMapInstance=null;}
   jShell('خارطتي','المشاريع والبرامج التنموية التي تتابعها، مع روابط إلى المواقع.',
-    '<section class="journeyPanel"><h2>خارطة مشاريعي</h2><div id="journeyMap"></div></section><section class="journeyPanel"><h2>مشاريع محفوظة</h2>'+(projects.length?projects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+esc(p.city+', '+p.country)+' · '+esc(p.category)+'</small></div><div><a href="https://www.google.com/maps/dir/?api=1&amp;destination='+encodeURIComponent(p.latitude+','+p.longitude)+'" target="_blank" rel="noopener noreferrer">الموقع</a> <button type="button" data-journey="toggle-project" data-id="'+p.id+'" data-saved="false">إزالة</button></div></div>').join(''):jempty('احفظ مشروعاً من الخارطة العامة ليظهر هنا.'))+jlink('/map','استعرض الخارطة العامة')+'</section>');
+    '<section class="journeyPanel"><h2>خارطة مشاريعي</h2><p>احفظ مشروعاً منشوراً لتتابعه هنا. لإضافة مشروع جديد إلى تنميات، أرسله للمراجعة أولاً.</p><button type="button" class="btn primary" data-hub="submit-project">＋ إضافة مشروعي إلى الخارطة العامة</button><div id="journeyMap"></div></section><section class="journeyPanel"><h2>مشاريع محفوظة</h2>'+(projects.length?projects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+esc(p.city+', '+p.country)+' · '+esc(p.category)+'</small></div><div><a href="https://www.google.com/maps/dir/?api=1&amp;destination='+encodeURIComponent(p.latitude+','+p.longitude)+'" target="_blank" rel="noopener noreferrer">الموقع</a> <button type="button" data-journey="toggle-project" data-id="'+p.id+'" data-saved="false">إزالة</button></div></div>').join(''):jempty('احفظ مشروعاً من الخارطة العامة ليظهر هنا.'))+jlink('/map','استعرض الخارطة العامة')+'</section><section class="journeyPanel journeyWide"><h2>مشاريع يمكنك حفظها</h2>'+(publicProjects.length?publicProjects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+esc(p.category)+' · '+esc(p.city||p.country)+'</small></div><button type="button" data-journey="save-project-from-map" data-id="'+p.id+'">＋ حفظ في خارطتي</button></div>').join(''):jempty('لا توجد مشاريع منشورة أخرى حالياً. يمكنك إضافة مشروع جديد وطلب اعتماده.'))+'</section>');
   if(typeof L!=='undefined'){
    if(journeyMapInstance){journeyMapInstance.remove();journeyMapInstance=null;}
    journeyMapInstance=L.map('journeyMap',{scrollWheelZoom:false}).setView([24,40],3);
@@ -89,13 +91,16 @@ async function renderJourney(token){
    }
   }
   jShell('مشاريعي وتعاوني','إدارة مشاركتك وطلبات التعاون ومهام المشاريع التنموية.',
-   '<section class="journeyPanel"><h2>المشاريع المرتبطة بي</h2>'+(projects.length?projects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+(p.owner?'مشروعي':p.participation==='approved'?'مشارك معتمد':'طلب انضمام: '+(p.participation==='pending'?'قيد المراجعة':'غير معتمد'))+'</small></div><a class="journeyLink" href="/my-projects?id='+p.id+'">التفاصيل</a></div>').join(''):jempty('لم تسجل مشاريع أو طلبات تعاون بعد.'))+'</section>'+details+jlink('/map','استكشف مشاريع المجتمع'));
+   '<section class="journeyPanel"><h2>إنشاء مشروع تنموي</h2><p>أضف بيانات مشروعك وموقعه. يظهر المشروع في «مشاريعي» فور إرساله، ويُنشر على الخارطة العامة بعد اعتماده.</p><button type="button" class="btn primary" data-hub="submit-project">＋ إنشاء مشروع جديد</button></section><section class="journeyPanel"><h2>المشاريع المرتبطة بي</h2>'+(projects.length?projects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+(p.owner?'مشروعي':p.participation==='approved'?'مشارك معتمد':'طلب انضمام: '+(p.participation==='pending'?'قيد المراجعة':'غير معتمد'))+'</small></div><a class="journeyLink" href="/my-projects?id='+p.id+'">التفاصيل</a></div>').join(''):jempty('لم تسجل مشاريع أو طلبات تعاون بعد.'))+'</section>'+details+jlink('/map','استكشف مشاريع المجتمع'));
  }
  if(path==='/my-news'){
-  const [{preferences},news]=await Promise.all([api('journey/preferences'),api('journey/news')]);if(token!==version)return true;
-  jShell('أخباري','نشرة مستقلة تتصل باهتماماتك، مع مصدر كل خبر وتاريخه.',
-   '<section class="journeyPanel"><h2>اهتمامات النشرة</h2><p>'+esc(preferences.sectors.join('، ')||'لم تختر مجالات بعد')+'</p>'+jlink('/onboarding','تعديل تفضيلاتي')+'</section>'+
-   '<section class="journeyPanel"><h2>آخر الأخبار المناسبة</h2>'+(news.disabled?jempty('الأخبار الشخصية معطلة من تفضيلاتك.'):news.news.length?news.news.map(n=>'<div class="journeyItem"><div><a href="'+esc(n.source_url)+'" rel="noopener noreferrer" target="_blank">'+esc(n.headline)+'</a><small>'+esc(n.source_name)+' · '+esc(n.published_at)+'</small></div></div>').join(''):jempty('لا توجد أخبار تطابق اهتماماتك حالياً.'))+'</section>');
+  const [{preferences},news,links]=await Promise.all([api('journey/preferences'),api('journey/news'),api('journey/news-links')]);if(token!==version)return true;
+  const options=JOURNEY_SECTORS.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
+  jShell('أخباري','الأخبار المناسبة لاهتماماتك، وروابط القراءة التي تحتفظ بها لنفسك.',
+   '<div class="journeyColumns"><section class="journeyPanel"><h2>اهتمامات النشرة</h2><p>'+esc(preferences.sectors.join('، ')||'لم تختر مجالات بعد')+'</p><p>الأخبار العامة ينشرها فريق التحرير. أما الروابط التي تضيفها أدناه فهي محفوظة في حسابك فقط ولا تنشر للعموم.</p>'+jlink('/onboarding','تعديل مجالات اهتمامي')+'</section>'+
+   '<section class="journeyPanel"><h2>أضف خبراً أو مرجعاً إلى مكتبتي</h2><form class="journeyForm" id="journeyNewsLinkForm"><label>عنوان الخبر أو المرجع<input name="headline" required minlength="5" maxlength="180"></label><label>الرابط الأصلي للمصدر<input name="source_url" type="url" required placeholder="https://example.org/news"></label><label>المجال<select name="category">'+options+'</select></label><label>ملاحظتي الخاصة<textarea name="note" maxlength="500"></textarea></label><div class="error" role="alert"></div><button type="submit" class="btn primary">حفظ في أخباري</button></form></section>'+
+   '<section class="journeyPanel"><h2>أخبار التنمية المناسبة</h2>'+(news.disabled?jempty('الأخبار الشخصية معطلة من تفضيلاتك.'):news.news.length?news.news.map(n=>'<div class="journeyItem"><div><a href="'+esc(n.source_url)+'" rel="noopener noreferrer" target="_blank">'+esc(n.headline)+'</a><small>'+esc(n.source_name)+' · '+esc(n.published_at)+'</small></div></div>').join(''):jempty('لا توجد أخبار منشورة تطابق اهتماماتك حتى الآن. يمكنك حفظ روابطك الخاصة أدناه.'))+'</section>'+
+   '<section class="journeyPanel"><h2>الروابط التي حفظتها</h2>'+(links.links.length?links.links.map(n=>'<div class="journeyItem"><div><a href="'+esc(n.source_url)+'" target="_blank" rel="noopener noreferrer">'+esc(n.headline)+'</a><small>'+esc(n.category)+' · '+esc(n.note||'رابط شخصي محفوظ')+'</small></div><button data-journey="delete-news-link" data-id="'+n.id+'" type="button">إزالة</button></div>').join(''):jempty('لم تحفظ روابط شخصية بعد.'))+'</section></div>');
  }
  if(path==='/my-impact'){
   const [goals,impact]=await Promise.all([api('journey/goals'),api('journey/impact')]);if(token!==version)return true;
@@ -117,6 +122,7 @@ async function journeyAction(el){
  if(kind==='join-project'){await api('journey/projects/'+id+'/join','POST');notify('أُرسل طلب المشاركة لصاحب المشروع');}
  if(kind==='review-member'){await api('journey/projects/'+Number(el.dataset.project)+'/members/'+Number(el.dataset.member),'PATCH',{status:el.dataset.status});notify('تم توثيق القرار');}
  if(kind==='complete-task'){await api('journey/tasks/'+id,'PATCH',{status:'done'});notify('سُجل إنجاز المهمة');}
+ if(kind==='delete-news-link'){await api('journey/news-links/'+id,'DELETE');notify('أُزيل الرابط من أخبارك');}
  if(kind==='delete-calendar'){await api('journey/calendar/'+id,'DELETE');notify('أُزيل الموعد');}
  if(kind==='save-event'){await api('journey/calendar','POST',{title:el.dataset.title,event_date:el.dataset.date,event_id:id});notify('أُضيفت الفعالية إلى تقويمك');}
  if(kind==='toggle-project'){await api('journey/map/'+id,'PUT',{saved:el.dataset.saved==='true'});notify(el.dataset.saved==='true'?'أُضيف المشروع إلى خارطتك':'أُزيل المشروع من خارطتك');}
@@ -128,11 +134,12 @@ async function journeyAction(el){
 }
 async function journeyForm(form,data){
  const id=form?.id;
- if(!['journeyPrefs','journeyCalendarForm','journeyGoalForm','journeyImpactForm','journeyTaskForm'].includes(id))return false;
+ if(!['journeyPrefs','journeyCalendarForm','journeyGoalForm','journeyImpactForm','journeyTaskForm','journeyNewsLinkForm'].includes(id))return false;
  const btn=form.querySelector('button[type=submit],button:not([type])'),err=form.querySelector('.error');
  if(!btn)return true;
  if(btn.disabled)return true;btn.disabled=true;if(err)err.textContent='';
  try{
+ if(id==='journeyNewsLinkForm'){await api('journey/news-links','POST',data);notify('حُفظ الرابط في أخبارك الخاصة');await route();}
  if(id==='journeyTaskForm'){await api('journey/projects/'+Number(form.dataset.project)+'/tasks','POST',{...data,assigned_to:data.assigned_to?Number(data.assigned_to):null});notify('أُضيفت المهمة');await route();}
  if(id==='journeyPrefs'){
   const payload={...data,sectors:[...form.querySelectorAll('[name=sectors]:checked')].map(x=>x.value),news_enabled:form.querySelector('[name=news_enabled]').checked,onboarding_complete:true};
