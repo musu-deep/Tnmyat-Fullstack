@@ -112,3 +112,15 @@ body.wallCoverView .rail,body.wallCoverView .latest{top:90px}
 [data-theme=dark] .sideMemberMetrics>div{background:#25394d}
 [data-theme=dark] .sideMemberMetrics b{color:#e0eefb}
 [data-theme=dark] .sideMemberMetrics span{color:#bdcfe0}
+
+/* Interactive cover calibration */
+.coverCropEditor{display:grid;gap:10px;margin:12px 0 14px}
+.coverCropEditor[hidden]{display:none}
+.coverCropEditor canvas{display:block;max-width:100%;width:100%;height:auto;aspect-ratio:25/8;border-radius:12px;border:1px solid #c9d6e3;background:#163e57;cursor:grab;touch-action:none;box-shadow:0 8px 25px #16365222}
+.coverCropEditor canvas:active{cursor:grabbing}
+.coverCropHint{color:#587085;font-size:.78rem}
+.coverCropControls{display:grid;gap:12px;border:1px solid #dbe5ec;background:#f7fafc;border-radius:12px;padding:12px}
+.coverCropControls label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 12px;font-size:.83rem}
+.coverCropControls input[type=range]{grid-column:1/-1;width:100%;accent-color:#2e6680}
+.coverCropControls output{font-variant-numeric:tabular-nums;color:#2d627c;font-weight:700}
+.coverCropReset{justify-self:start;border:1px solid #bfd1dd;background:#fff;border-radius:9px;padding:7px 13px;font-weight:700;color:#285774}

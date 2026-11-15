@@ -246,7 +246,54 @@ async function savePostDraft(form,data) {
     throw error;
   }finally{draft.busy=false;}
 }
-function editProfile(p){showModal('تخصيص الملف الشخصي','<form id="profileEdit" class="fields profileEditForm"><label>الاسم<input name="name" minlength="2" maxlength="60" required value="'+esc(p.name)+'"></label><label>نبذة شخصية<textarea name="bio" maxlength="500">'+esc(p.bio)+'</textarea></label><label>الصورة الشخصية<input type="file" name="picture" accept="image/jpeg,image/png,image/webp"></label><img class="uploadPreview" alt="معاينة الصورة الشخصية" hidden>'+(p.avatar?'<label class="check"><input type="checkbox" name="removeAvatar"> حذف الصورة الحالية</label>':'')+'<fieldset class="profileCoverSettings"><legend>صورة الغلاف</legend><p class="muted">اختر صورة أفقية تعبّر عنك. يمكنك تعديل موضع ظهورها.</p><label>تحميل غلاف<input type="file" name="coverPicture" accept="image/jpeg,image/png,image/webp"></label><img class="coverUploadPreview" alt="معاينة الغلاف الجديد" hidden><label>موضع الغلاف <output id="coverPositionValue">'+Number(p.cover_position??50)+'%</output><input type="range" name="cover_position" min="0" max="100" step="1" value="'+Number(p.cover_position??50)+'"></label>'+(p.cover?'<label class="check"><input type="checkbox" name="removeCover"> إزالة الغلاف الحالي</label>':'')+'</fieldset><div class="error" role="alert"></div><button class="btn primary" type="submit">حفظ الملف والغلاف</button></form>');}
+const coverEditors=new WeakMap();
+function editProfile(p){
+ showModal('تخصيص الملف الشخصي','<form id="profileEdit" class="fields profileEditForm"><label>الاسم<input name="name" minlength="2" maxlength="60" required value="'+esc(p.name)+'"></label><label>نبذة شخصية<textarea name="bio" maxlength="500">'+esc(p.bio)+'</textarea></label><label>الصورة الشخصية<input type="file" name="picture" accept="image/jpeg,image/png,image/webp"></label><img class="uploadPreview" alt="معاينة الصورة الشخصية" hidden>'+(p.avatar?'<label class="check"><input type="checkbox" name="removeAvatar"> حذف الصورة الحالية</label>':'')+'<fieldset class="profileCoverSettings"><legend>صورة الغلاف</legend><p class="muted">اختر الصورة، ثم اسحبها داخل إطار المعاينة وحدد الجزء الذي تريد ظهوره. يمكن أيضاً ضبط التكبير والموضع بدقة.</p><label>تحميل غلاف<input type="file" name="coverPicture" accept="image/jpeg,image/png,image/webp"></label><div class="coverCropEditor" hidden><canvas width="1000" height="320" aria-label="معاينة الجزء الذي سيظهر من الغلاف"></canvas><small class="coverCropHint">اسحب الصورة لتحديد الجزء الظاهر في البانر</small><div class="coverCropControls"><label>تكبير الصورة <output data-crop-out="zoom">100%</output><input type="range" name="coverZoom" min="100" max="300" value="100" step="5"></label><label>الموضع الأفقي <output data-crop-out="x">50%</output><input type="range" name="coverX" min="0" max="100" value="50"></label><label>الموضع العمودي <output data-crop-out="y">50%</output><input type="range" name="coverY" min="0" max="100" value="50"></label></div><button type="button" class="coverCropReset" data-act="resetcovercrop">إعادة ضبط المعايرة</button></div><label>موضع الغلاف في العرض <output id="coverPositionValue">'+Number(p.cover_position??50)+'%</output><input type="range" name="cover_position" min="0" max="100" step="1" value="'+Number(p.cover_position??50)+'"></label>'+(p.cover?'<label class="check"><input type="checkbox" name="removeCover"> إزالة الغلاف الحالي</label>':'')+'</fieldset><div class="error" role="alert"></div><button class="btn primary" type="submit">حفظ الملف والغلاف</button></form>');
+ const form=modal.querySelector('#profileEdit');
+ if(p.cover)loadCoverCrop(form,asset(p.cover)).catch(e=>{if(form.isConnected)form.querySelector('.error').textContent=e.message;});
+}
+function renderCoverCrop(form){
+ const state=coverEditors.get(form);if(!state||!form.isConnected)return;
+ const canvas=form.querySelector('.coverCropEditor canvas'),ctx=canvas.getContext('2d');
+ const W=canvas.width,H=canvas.height,im=state.image;
+ const scale=Math.max(W/im.naturalWidth,H/im.naturalHeight)*state.zoom/100;
+ const dw=im.naturalWidth*scale,dh=im.naturalHeight*scale;
+ const ox=-(dw-W)*state.x/100,oy=-(dh-H)*state.y/100;
+ ctx.clearRect(0,0,W,H);ctx.drawImage(im,ox,oy,dw,dh);
+ for(const key of ['zoom','x','y']){
+  const input=form.querySelector('[name=cover'+key[0].toUpperCase()+key.slice(1)+']');
+  if(input)input.value=state[key];
+  const output=form.querySelector('[data-crop-out="'+key+'"]');if(output)output.textContent=state[key]+'%';
+ }
+}
+async function loadCoverCrop(form,source){
+ const img=new Image();let revoke=false;
+ if(source instanceof File){
+  if(!['image/jpeg','image/png','image/webp'].includes(source.type)||source.size>15*1024*1024)throw Error('اختر صورة JPG أو PNG أو WebP بحجم لا يتجاوز 15 ميغابايت.');
+  img.src=URL.createObjectURL(source);revoke=true;
+ }else{img.src=source;}
+ try{await img.decode();if(!img.naturalWidth||!img.naturalHeight||img.naturalWidth*img.naturalHeight>64e6)throw Error('أبعاد الصورة غير مدعومة.');}
+ finally{if(revoke)URL.revokeObjectURL(img.src);}
+ if(!form.isConnected)return;
+ const x=50,y=50,zoom=100;
+ coverEditors.set(form,{image:img,x,y,zoom,dirty:source instanceof File,sourceIsFile:source instanceof File});
+ form.querySelector('.coverCropEditor').hidden=false;
+ renderCoverCrop(form);
+}
+function exportCoverCrop(form){
+ const state=coverEditors.get(form);if(!state||!state.dirty)return null;
+ const original=form.querySelector('.coverCropEditor canvas');
+ const target=document.createElement('canvas');
+ for(const scale of [1,.85,.7,.55]){
+  target.width=Math.round(original.width*scale);target.height=Math.round(original.height*scale);
+  target.getContext('2d').drawImage(original,0,0,target.width,target.height);
+  for(const quality of [.9,.8,.68,.55]){
+   const encoded=target.toDataURL('image/jpeg',quality);
+   if(encoded.length<460000)return encoded;
+  }
+ }
+ throw Error('تعذّر ضغط الغلاف بعد معايرته. اختر صورة أبسط.');
+}
 
 async function imageData(file,edge){
  if(!file||!file.size)return null;
@@ -266,11 +313,48 @@ async function imageData(file,edge){
 }
 document.addEventListener('change',async event=>{
  const input=event.target;if(!['picture','coverPicture'].includes(input.name)||input.form?.id!=='profileEdit')return;
- const preview=input.form.querySelector(input.name==='coverPicture'?'.coverUploadPreview':'.uploadPreview'),field=input.form.querySelector('.error'),file=input.files[0];preview.hidden=true;field.textContent='';
- try{const data=await imageData(file,input.name==='coverPicture'?1600:420);if(file!==input.files[0]||!data)return;preview.src=data;preview.hidden=false;}
+ const form=input.form,field=form.querySelector('.error'),file=input.files[0];field.textContent='';
+ if(input.name==='coverPicture'){
+  if(!file)return;
+  try{await loadCoverCrop(form,file);form.querySelector('[name=cover_position]').value='50';form.querySelector('#coverPositionValue').textContent='50%';}
+  catch(e){field.textContent=e.message;input.value='';}
+  return;
+ }
+ const preview=form.querySelector('.uploadPreview');preview.hidden=true;
+ try{const data=await imageData(file,420);if(file!==input.files[0]||!data)return;preview.src=data;preview.hidden=false;}
  catch(e){if(file===input.files[0]){field.textContent=e.message;input.value='';}}
 });
-document.addEventListener('input',event=>{if(event.target.name==='cover_position'&&event.target.form?.id==='profileEdit')event.target.form.querySelector('#coverPositionValue').textContent=event.target.value+'%';});
+document.addEventListener('input',event=>{
+ const input=event.target,form=input.form;if(form?.id!=='profileEdit')return;
+ if(input.name==='cover_position')form.querySelector('#coverPositionValue').textContent=input.value+'%';
+ const map={coverZoom:'zoom',coverX:'x',coverY:'y'};
+ if(map[input.name]){
+  const state=coverEditors.get(form);if(!state)return;
+  state[map[input.name]]=Number(input.value);state.dirty=true;renderCoverCrop(form);
+ }
+});
+document.addEventListener('pointerdown',event=>{
+ const canvas=event.target;if(!canvas.matches('.coverCropEditor canvas'))return;
+ const form=canvas.closest('form'),state=coverEditors.get(form);if(!state)return;
+ const start={x:event.clientX,y:event.clientY,px:state.x,py:state.y};
+ canvas.setPointerCapture(event.pointerId);
+ const move=e=>{
+  const W=canvas.width,H=canvas.height,im=state.image;
+  const scale=Math.max(W/im.naturalWidth,H/im.naturalHeight)*state.zoom/100;
+  const extraX=im.naturalWidth*scale-W,extraY=im.naturalHeight*scale-H;
+  if(extraX>0.1)state.x=Math.max(0,Math.min(100,Math.round(start.px-((e.clientX-start.x)*W/canvas.getBoundingClientRect().width)/extraX*100)));
+  if(extraY>0.1)state.y=Math.max(0,Math.min(100,Math.round(start.py-((e.clientY-start.y)*H/canvas.getBoundingClientRect().height)/extraY*100)));
+  state.dirty=true;renderCoverCrop(form);
+ };
+ const stop=()=>{canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerup',stop);canvas.removeEventListener('pointercancel',stop);};
+ canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);
+});
+document.addEventListener('click',event=>{
+ if(event.target.dataset.act!=='resetcovercrop')return;
+ const form=event.target.closest('#profileEdit'),state=coverEditors.get(form);if(!state)return;
+ state.x=50;state.y=50;state.zoom=100;state.dirty=true;renderCoverCrop(form);
+});
+
 function counts(p,full=false){
  const values=[['posts_count','منشورات'],['friends_count','أصدقاء'],['followers_count','متابعون']];
  if(full)values.push(['following_count','يتابعهم'],['reposts_count','إعادات نشر']);
@@ -399,8 +483,8 @@ async function socialForm(form,data){
  if(form.id==='composeSocial'){
   await savePostDraft(form,data);
  }else if(form.id==='profileEdit'){
-  if(data.coverPicture?.size && data.removeCover)throw Error('اختر إما رفع الغلاف أو إزالته.');
-  const avatar=await imageData(data.picture,420),cover=await imageData(data.coverPicture,1600);await api('me/profile','PATCH',{name:data.name.trim(),bio:data.bio.trim(),cover_position:Number(data.cover_position),...(avatar?{avatar}:data.removeAvatar?{avatar:null}:{}),...(cover?{cover}:data.removeCover?{cover:null}:{})});user=(await api('me')).user;account();dialog.close();await route();notify('تم حفظ الملف الشخصي');
+  if((data.coverPicture?.size || coverEditors.get(form)?.dirty) && data.removeCover)throw Error('اختر إما معايرة الغلاف أو إزالته.');
+  const avatar=await imageData(data.picture,420),cover=exportCoverCrop(form);await api('me/profile','PATCH',{name:data.name.trim(),bio:data.bio.trim(),cover_position:cover?50:Number(data.cover_position),...(avatar?{avatar}:data.removeAvatar?{avatar:null}:{}),...(cover?{cover}:data.removeCover?{cover:null}:{})});user=(await api('me')).user;account();dialog.close();await route();notify('تم حفظ الملف الشخصي');
  }else if(form.id==='sendMessage'){
   const id=form.dataset.id,token=version;if(!data.body.trim())throw Error('اكتب الرسالة أولًا.');await api('messages/'+id,'POST',{body:data.body.trim()});form.reset();await fetchMessages(id,token);await refreshInbox(id,token);const stream=document.querySelector('#stream');if(stream)stream.scrollTop=stream.scrollHeight;
  }
