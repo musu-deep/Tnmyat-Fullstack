@@ -123,6 +123,25 @@ export async function memberJourneyRoute(request,db,user,h){
    return response(json,{id:row.id,verification:'self_reported'},201);
   }
  }
+ if(path==='/api/journey/news-links'){
+  if(method==='GET'){
+   const {results}=await db.prepare('SELECT id,headline,source_url,note,category,created_at FROM member_news_links WHERE user_id=? ORDER BY id DESC LIMIT 150').bind(uid).all();
+   return response(json,{links:results});
+  }
+  if(method==='POST'){
+   await enforceLimit(db,'member-news-links',uid,40,3600);
+   const d=await parseBody(request),headline=clamp(d.headline,180),note=clamp(d.note,500),category=clamp(d.category,60),link=verifyUrl(d.source_url);
+   if(headline.length<5||!link||!sectors.includes(category))fail('أدخل عنواناً مناسباً ورابط HTTPS صحيحاً ومجالاً معتمداً.');
+   const row=await db.prepare('INSERT INTO member_news_links(user_id,headline,source_url,note,category) VALUES(?,?,?,?,?) RETURNING id').bind(uid,headline,link,note,category).first();
+   return response(json,{id:row.id},201);
+  }
+ }
+ let newsLinkId=idOf(/^\\/api\\/journey\\/news-links\\/(\\d+)$/);
+ if(newsLinkId&&method==='DELETE'){
+  const deleted=await db.prepare('DELETE FROM member_news_links WHERE id=? AND user_id=?').bind(newsLinkId,uid).run();
+  if(!deleted.meta.changes)throw new ApiError(404,'الرابط غير موجود');
+  return response(json,{ok:true});
+ }
  if(path==='/api/journey/news'&&method==='GET'){
   const pref=await prefs();
   if(!pref.news_enabled)return response(json,{news:[],disabled:true});
