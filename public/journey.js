@@ -32,13 +32,13 @@ async function renderJourney(token){
   jShell('ملفي المهني وتفضيلاتي','خدمات المجتمع تتكيف مع اهتماماتك المهنية.',jFields(preferences));
  }
  if(path==='/my-space'){
-  const [dash,recs]=await Promise.all([api('journey/dashboard'),api('journey/recommendations')]);if(token!==version)return true;
+  const [dash,recs,alerts]=await Promise.all([api('journey/dashboard'),api('journey/recommendations'),api('journey/alerts')]);if(token!==version)return true;
   const v=dash.summary,p=dash.preferences,metrics=[['المنشورات',v.posts],['أتابع',v.following],['المواعيد',v.calendar],['مشاريع محفوظة',v.saved_projects],['الأهداف النشطة',v.goals],['تقارير الإنجاز',v.impact]];
   const cards=metrics.map(([title,n])=>'<div class="journeyStat"><strong>'+Number(n).toLocaleString('ar')+'</strong><span>'+title+'</span></div>').join('');
   jShell('لوحتي التنموية','نظرة موحدة على اهتماماتك ونشاطك وأهدافك ومشاريعك.',
    '<div class="journeyStats">'+cards+'</div><div class="journeyColumns"><section class="journeyPanel"><h2>اهتماماتي</h2><p>'+(p.sectors.length?p.sectors.map(esc).join(' · '):'لم تحدد اهتماماتك بعد')+'</p><p>'+esc(p.goal||'أضف هدفك حتى نقدم لك محتوى أكثر ملاءمة.')+'</p>'+jlink('/onboarding','تعديل الاهتمامات')+'</section>'+
    '<section class="journeyPanel"><h2>أبرز المنشورات المناسبة لك</h2>'+(recs.posts.length?recs.posts.map(x=>'<p><a href="/post/'+x.id+'">'+esc(x.title||x.topic)+'</a><small> · '+esc(x.topic)+'</small></p>').join(''):jempty('ستظهر توصيات المحتوى بعد تحديد اهتماماتك.'))+'</section>'+
-   '<section class="journeyPanel"><h2>مجموعات مقترحة</h2>'+(recs.groups.length?recs.groups.map(g=>'<p><a href="/groups/'+g.id+'">'+esc(g.name)+'</a></p>').join(''):jempty('لا توجد مجموعات متطابقة حالياً.'))+'</section>'+
+   '<section class="journeyPanel"><h2>تنبيهات مواعيدي</h2>'+(alerts.alerts.length?alerts.alerts.map(a=>'<p><a href="'+a.url+'">'+esc(a.title)+'</a><small> · '+journeyDate(a.date)+'</small></p>').join(''):jempty('لا توجد مواعيد خلال الأسبوعين القادمين.'))+'</section>'+ '<section class="journeyPanel"><h2>مجموعات مقترحة</h2>'+(recs.groups.length?recs.groups.map(g=>'<p><a href="/groups/'+g.id+'">'+esc(g.name)+'</a></p>').join(''):jempty('لا توجد مجموعات متطابقة حالياً.'))+'</section>'+
    '<section class="journeyPanel"><h2>مؤشر الأثر المبلغ عنه</h2><strong class="journeyBigNumber">'+Number(v.beneficiaries).toLocaleString('ar')+'</strong><p>مستفيد ورد في تقارير الإنجاز الشخصية؛ لا يُعد رقماً معتمداً قبل التحقق.</p>'+jlink('/my-impact','إدارة الأهداف والإنجازات')+'</section></div>');
  }
  if(path==='/my-calendar'){
