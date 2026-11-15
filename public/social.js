@@ -252,8 +252,8 @@ function counts(p,full=false){
 function profileMini(p,latest){
  const summary=p.bio?'<p class="memberIntro">'+esc(p.bio)+'</p>':'';
  const activity=latest?'<a class="memberLatest" href="/post/'+latest.id+'"><small>آخر مشاركة</small><strong>'+esc(postLabel(latest))+'</strong></a>':'';
- return '<section class="memberPass memberPassCover"><div class="memberPassCoverImage"'+coverStyle(p)+'><button type="button" data-act="editprofile" aria-label="تخصيص غلافك">✎</button></div>'+
- '<div class="memberPassIdentity">'+memberSignature(p,'regular')+'</div>'+summary+(p.posts_count!==undefined?counts(p,true):'')+activity+'</section>';
+ // The main cover is displayed once above the wall; sidebar remains compact.
+ return '<section class="memberPass memberPassCompact"><div class="memberPassIdentity">'+memberSignature(p,'regular')+'</div>'+summary+activity+'</section>';
 }
 function peopleButtons(p){
  if(!user)return '<button class="btn" data-act="login">دخول للتواصل</button>';
