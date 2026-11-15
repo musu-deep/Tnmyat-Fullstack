@@ -174,7 +174,8 @@ async function authenticate(request,db,register) {
 }
 
 const postFields = `
-  p.id,p.author_id,p.title,p.body,p.topic,p.created_at,p.version,u.name AS author,
+  p.id,p.author_id,p.title,p.body,p.topic,p.created_at,p.version,p.post_kind,p.pinned,u.name AS author,
+  EXISTS(SELECT 1 FROM post_bookmarks b WHERE b.post_id=p.id AND b.user_id=viewer.id) AS saved,
   p.image_mime AS legacy_mime,length(p.image_bytes) AS legacy_size,
   (SELECT json_group_array(json_object('id',id,'name',name,'mime',mime,'size',size,'url','/api/files/'||id))
    FROM (SELECT id,name,mime,size FROM post_files WHERE post_id=p.id ORDER BY position)) AS file_list,
@@ -193,7 +194,7 @@ function postView(row) {
   if(legacy_mime)attachments.unshift({id:'legacy',name:'صورة المنشور',mime:legacy_mime,size:legacy_size,url:post.image});
   post.image=attachments.find(file=>file.mime.startsWith('image/'))?.url??null;
   post.attachments=attachments;
-  return {...post,liked:Boolean(post.liked),reposted:Boolean(post.reposted),
+  return {...post,pinned:Boolean(post.pinned),saved:Boolean(post.saved),liked:Boolean(post.liked),reposted:Boolean(post.reposted),
     repost_by:repost_user_id ? {id:repost_user_id,name:repost_name} : null,repost_at:post.repost_at ?? null};
 }
 async function getPost(db,id,user) {
@@ -243,6 +244,12 @@ async function route(request,db) {
     if (topic && !topics.has(topic)) throw new ApiError(400,'المجال غير معروف.');
     const page = Number(url.searchParams.get('page') || 1);
     if (!Number.isSafeInteger(page) || page < 1 || page > 1000000) throw new ApiError(400,'رقم الصفحة غير صالح.');
+    const view = url.searchParams.get('view') || 'latest';
+    if(!['latest','following','saved','trending'].includes(view)) throw new ApiError(400,'طريقة العرض غير معروفة.');
+    if(['following','saved'].includes(view)) requireUser(user);
+    const tag = textField(url.searchParams.get('tag') || '',0,40,'الوسم').replace(/^#/, '');
+    const kind = url.searchParams.get('kind') || '';
+    if (kind && !['post','article','initiative','question','announcement'].includes(kind)) throw new ApiError(400,'نوع المنشور غير صالح.');
     const member = Number(url.searchParams.get('user') || 0);
     if (!Number.isSafeInteger(member) || member<0) throw new ApiError(400,'معرف العضو غير صالح.');
     const {results} = await db.prepare(`WITH wall AS (
@@ -253,10 +260,40 @@ async function route(request,db) {
     SELECT `+postFields+`,w.repost_user_id,rep.name AS repost_name,
       CASE WHEN w.repost_user_id IS NOT NULL THEN w.event_time END AS repost_at`+postFrom+`
     JOIN wall w ON w.post_id=p.id LEFT JOIN users rep ON rep.id=w.repost_user_id
-    WHERE (p.moderation_status='visible' OR ?=1) AND (?='' OR p.topic=?) AND (?='' OR instr(lower(p.title),lower(?))>0 OR instr(lower(p.body),lower(?))>0 OR instr(lower(u.name),lower(?))>0)
-    ORDER BY w.event_time DESC,p.id DESC,COALESCE(w.repost_user_id,0) DESC LIMIT ? OFFSET ?
-    `).bind(member,member,member,member,user?.id ?? 0,user?.role==='admin'?1:0,topic,topic,q,q,q,q,pageSize+1,pageSize*(page-1)).all();
+    WHERE (p.moderation_status='visible' OR ?=1)
+      AND (?='' OR p.topic=?)
+      AND (?='' OR instr(lower(p.title),lower(?))>0 OR instr(lower(p.body),lower(?))>0 OR instr(lower(u.name),lower(?))>0)
+      AND (?='' OR p.post_kind=?)
+      AND (?='' OR instr(lower(p.body),lower('#'||?))>0 OR instr(lower(p.title),lower('#'||?))>0)
+      AND (?!='saved' OR EXISTS(SELECT 1 FROM post_bookmarks b WHERE b.post_id=p.id AND b.user_id=?))
+      AND (?!='following' OR p.author_id=? OR EXISTS(SELECT 1 FROM follows f WHERE f.follower=? AND f.followed=p.author_id))
+    ORDER BY CASE WHEN ?='trending' THEN (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id)*2+(SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id)*3+(SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id)*2 ELSE 0 END DESC,
+      CASE WHEN ?='latest' AND ?=0 THEN p.pinned ELSE 0 END DESC,
+      w.event_time DESC,p.id DESC,COALESCE(w.repost_user_id,0) DESC LIMIT ? OFFSET ?
+    `).bind(member,member,member,member,user?.id ?? 0,user?.role==='admin'?1:0,
+      topic,topic,q,q,q,q,kind,kind,tag,tag,tag,view,user?.id ?? 0,
+      view,user?.id ?? 0,user?.id ?? 0,view,view,member,pageSize+1,pageSize*(page-1)).all();
     return json({posts:results.slice(0,pageSize).map(postView),hasMore:results.length>pageSize});
+  }
+  if(path==='/api/trends' && method==='GET') {
+    const {results}=await db.prepare(`SELECT title,body FROM posts WHERE moderation_status='visible' ORDER BY id DESC LIMIT 180`).all();
+    const counts=new Map();
+    for(const row of results){
+      const tags=new Set((String(row.title||'')+' '+String(row.body||'')).match(/#[\p{L}\p{N}_]{2,40}/gu)||[]);
+      for(const tag of tags)counts.set(tag,(counts.get(tag)||0)+1);
+    }
+    return json({tags:[...counts].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'ar')).slice(0,8).map(([tag,count])=>({tag,count}))});
+  }
+  if(path==='/api/discover' && method==='GET') {
+    const {results:members}=await db.prepare(`SELECT u.id,u.name,u.bio,
+      CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar
+      FROM users u WHERE u.id<>? AND u.password_hash IS NOT NULL AND u.account_status='active'
+      AND NOT EXISTS(SELECT 1 FROM follows f WHERE f.follower=? AND f.followed=u.id)
+      ORDER BY (SELECT COUNT(*) FROM posts p WHERE p.author_id=u.id AND p.moderation_status='visible') DESC,u.id DESC LIMIT 4`).bind(user?.id??0,user?.id??0).all();
+    const {results:groups}=await db.prepare(`SELECT g.id,g.name,g.description,
+      (SELECT COUNT(*) FROM group_members m WHERE m.group_id=g.id AND m.status!='blocked')+1 AS members
+      FROM community_groups g WHERE g.moderation_status='visible' ORDER BY members DESC,g.id DESC LIMIT 4`).all();
+    return json({members,groups});
   }
   if (path === '/api/posts' && method === 'POST') {
     requireUser(user);
@@ -274,7 +311,17 @@ async function route(request,db) {
     await db.prepare('DELETE FROM reports WHERE id=?').bind(reportMatch[1]).run();
     return json({ok:true});
   }
-  const match = path.match(/^\/api\/posts\/(\d+)(?:\/(comments|like|report|repost))?$/);
+  const pinMatch=path.match(/^\/api\/posts\/(\d+)\/pin$/);
+  if(pinMatch && method==='PUT'){
+    requireAdmin(user);
+    const {pinned}=await parseBody(request);
+    if(typeof pinned!=='boolean')throw new ApiError(400,'قيمة التثبيت غير صالحة.');
+    const result=await db.prepare("UPDATE posts SET pinned=? WHERE id=? AND moderation_status='visible'").bind(pinned?1:0,pinMatch[1]).run();
+    if(!result.meta.changes)throw new ApiError(404,'المنشور غير متاح');
+    await db.prepare('INSERT INTO moderation_actions(actor_id,action,target_type,target_id,reason) VALUES(?,?,?,?,?)').bind(user.id,pinned?'pin':'unpin','post',Number(pinMatch[1]),pinned?'تثبيت منشور في الحائط':'إلغاء تثبيت منشور').run();
+    return json({ok:true});
+  }
+  const match = path.match(/^\/api\/posts\/(\d+)(?:\/(comments|like|report|repost|bookmark))?$/);
   if (match) {
     const [,id,action] = match;
     if (!action && method === 'GET') {
@@ -310,6 +357,12 @@ async function route(request,db) {
       await db.prepare(data.reposted
         ? 'INSERT INTO reposts(post_id,user_id) VALUES(?,?) ON CONFLICT DO NOTHING'
         : 'DELETE FROM reposts WHERE post_id=? AND user_id=?').bind(id,user.id).run();
+    } else if (action === 'bookmark' && method === 'PUT') {
+      const data=await parseBody(request);
+      if(typeof data.saved!=='boolean')throw new ApiError(400,'قيمة الحفظ غير صالحة.');
+      await db.prepare(data.saved ?
+        'INSERT INTO post_bookmarks(user_id,post_id) VALUES(?,?) ON CONFLICT DO NOTHING' :
+        'DELETE FROM post_bookmarks WHERE user_id=? AND post_id=?').bind(user.id,id).run();
     } else if (action === 'comments' && method === 'POST') {
       const data = await parseBody(request);
       const body = textField(data.body,1,1500,'التعليق');

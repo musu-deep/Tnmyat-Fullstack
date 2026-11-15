@@ -6,6 +6,18 @@ function face(person={},size=''){
  const photo=asset(person.avatar)||(String(person.id)==='1'?'/favicon.png':'');
  return '<span class="avatar '+size+'" aria-hidden="true">'+(photo?'<img src="'+photo+'" alt="" loading="lazy">':esc((person.name||'ت').trim().charAt(0)))+(person.online?'<i class="onlineDot"></i>':'')+'</span>';
 }
+const kindNames={post:'منشور',article:'مقال',initiative:'مبادرة',question:'سؤال',announcement:'إعلان مجموعة'};
+const kindIcons={post:'✍',article:'▤',initiative:'✦',question:'؟',announcement:'♧'};
+const topicIcons={'التعليم':'▤','البيئة':'❧','المجتمع':'♧','الاقتصاد':'▥'};
+function postThumbnail(p){
+  const img=attachmentsOf(p).find(f=>f.mime?.startsWith('image/') && asset(f.url));
+  return img?'<img loading="lazy" src="'+asset(img.url)+'" alt="">':
+    '<span class="topicThumb topicThumb-'+topics.indexOf(p.topic)+'" aria-hidden="true">'+(topicIcons[p.topic]||'✦')+'</span>';
+}
+function postTags(p){
+ const tags=[...new Set((String(p.title||'')+' '+String(p.body||'')).match(/#[\p{L}\p{N}_]{2,40}/gu)||[])].slice(0,8);
+ return tags.length?'<div class="postHashtags">'+tags.map(t=>'<a href="/wall?tag='+encodeURIComponent(t.slice(1))+'">'+esc(t)+'</a>').join('')+'</div>':'';
+}
 function postLabel(p){return p.title||String(p.body||'').slice(0,65)||'منشور مصوّر';}
 function meta(p){
  const author={id:p.author_id,name:p.author,avatar:p.author_avatar};
@@ -15,13 +27,16 @@ function meta(p){
 function card(p,detail=false){
  const id=encodeURIComponent(p.id),href='/post/'+id,own=user&&(String(user.id)===String(p.author_id)||user.role==='admin');
  const repost=p.repost_by?'<div class="originNote">↻ أعاد <a href="/profile/'+encodeURIComponent(p.repost_by.id)+'">'+esc(p.repost_by.name)+'</a> نشر هذه المشاركة</div>':'';
+ const kind=kindNames[p.post_kind]||'منشور';
  const heading=p.title?(detail?'<h1>'+esc(p.title)+'</h1>':'<h3><a href="'+href+'">'+esc(p.title)+'</a></h3>'):'';
- return '<article class="card">'+repost+meta(p)+heading+(p.body?'<p class="'+(detail?'bodycopy':'snippet')+'">'+esc(p.body)+'</p>':'')+
- postMedia(p)+
+ return '<article class="card feedCard">'+repost+meta(p)+'<div class="feedBadges"><span class="kindBadge">'+esc(kindIcons[p.post_kind]||'✍')+' '+esc(kind)+'</span>'+(p.pinned?'<span class="pinnedBadge">⌁ مثبّت</span>':'')+'</div>'+heading+(p.body?'<p class="'+(detail?'bodycopy':'snippet')+'">'+esc(p.body)+'</p>':'')+
+ postMedia(p)+postTags(p)+
  '<div class="actions"><button class="action" data-act="like" data-id="'+id+'" data-liked="'+Boolean(p.liked)+'" aria-pressed="'+Boolean(p.liked)+'" aria-label="إعجاب">'+icon('heart')+' '+esc(p.likes||0)+'</button><a class="action" href="'+href+'#comments" aria-label="التعليقات">'+icon('chat')+' '+esc(p.comments_count||0)+'</a>'+
  '<button class="action" data-act="repost" '+(user&&p.author_id===user.id?'disabled title="منشورك الأصلي"':'')+' data-id="'+id+'" data-on="'+Boolean(p.reposted)+'" aria-pressed="'+Boolean(p.reposted)+'">↻ '+(p.reposted?'أُعيد نشره':'إعادة نشر')+' '+Number(p.reposts_count||0)+'</button>'+
  (user&&String(user.id)===String(p.author_id)?'<button class="action editPost" data-act="editpost" data-id="'+id+'">تعديل</button>':'')+
- '<button class="action" data-act="share" data-id="'+id+'">'+icon('share')+' نسخ الرابط</button>'+
+ '<button class="action" data-act="bookmark" data-id="'+id+'" data-on="'+Boolean(p.saved)+'" aria-pressed="'+Boolean(p.saved)+'">'+(p.saved?'◆ محفوظ':'◇ حفظ')+'</button>'+
+ '<button class="action" data-act="share" data-id="'+id+'">'+icon('share')+' مشاركة</button>'+
+ (user?.role==='admin'?'<button class="action" data-act="pinpost" data-id="'+id+'" data-on="'+Boolean(p.pinned)+'">'+(p.pinned?'إلغاء التثبيت':'تثبيت')+'</button>':'')+
  (detail?(own?'<button class="action link" data-act="delete" data-id="'+id+'">حذف</button>':user?'<button class="action link" data-act="report" data-id="'+id+'">إبلاغ</button>':''):'<a class="action link" href="'+href+'">فتح المنشور '+icon('left')+'</a>')+'</div></article>';
 }
 function fieldUpload(label){return '<label>'+label+'<input type="file" name="picture" accept="image/jpeg,image/png,image/webp"></label><img class="uploadPreview" alt="معاينة الصورة" hidden>';}
@@ -57,9 +72,12 @@ function postMedia(post) {
 function composer(post) {
   const existing=post?.id ? post : null;
   const selectedTopic=existing?.topic || 'المجتمع';
+  const kindOptions=Object.entries(kindNames).map(([key,label])=>'<option value=+key+ '+((existing?.post_kind||'post')===key?'selected':'')+'>'+label+'</option>').join('');
   const options=topics.map(t=>'<option '+(t===selectedTopic?'selected':'')+'>'+esc(t)+'</option>').join('');
   showModal(existing?'تعديل المنشور':'مشاركة جديدة',
     '<form id="composeSocial" class="fields mediaEditor">'+
+    '<label>نوع المشاركة<select name="post_kind">'+kindOptions+'</select></label>'+
+    '<p class="composerHelp">يمكن إضافة وسوم داخل النص مثل #التعليم أو #المبادرات للبحث والوصول.</p>'+
     '<label>نص المشاركة<textarea name="body" maxlength="8000" rows="4" placeholder="ما الذي تودّ مشاركته؟">'+esc(existing?.body||'')+'</textarea></label>'+
     '<fieldset class="mediaField"><legend>المرفقات</legend><div class="draftMedia"></div>'+
     '<label class="mediaPicker">إضافة مرفقات<input type="file" name="mediaFiles" accept="'+postAccept+'" multiple></label>'+
@@ -146,7 +164,7 @@ function encodeFile(item) {
 async function savePostDraft(form,data) {
   const draft=drafts.get(form);
   if(!data.body.trim()&&!draft.items.length)throw Error('اكتب نصًا أو أرفق ملفًا.');
-  const payload={title:data.title.trim(),body:data.body.trim(),topic:data.topic};
+  const payload={title:data.title.trim(),body:data.body.trim(),topic:data.topic,post_kind:data.post_kind};
   draft.busy=true;
   try{
     payload.attachments=await Promise.all(draft.items.filter(i=>i.file).map(encodeFile));

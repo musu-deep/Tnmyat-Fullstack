@@ -12,7 +12,7 @@ const shapes = {
 };
 const icon = key => '<svg aria-hidden="true" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+shapes[key]+'</svg>';
 const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let user = null, feed = [], hasMore = false, currentPage = 1, version = 0, toastTimer, afterAuth = null, topic = '', query = '';
+let user = null, feed = [], hasMore = false, currentPage = 1, version = 0, toastTimer, afterAuth = null, topic = '', query = '', wallView = 'latest', wallKind = '', wallTag = '';
 async function api(path, method='GET', data) {
  const options={method,headers:{'Accept':'application/json'}};
  if(method!=='GET'){options.headers['Content-Type']='application/json';options.body=JSON.stringify(data||{});}
@@ -38,20 +38,31 @@ function homeShell(){
  const name=user?user.name:'زائر تنميات';
  const avatar=face(user||{name});
  const links=topics.map((t,i)=>'<button class="topic" data-act="filter" data-topic="'+t+'"><span class="symbol tone'+i+'">'+icon(keys[i])+'</span>'+t+'</button>').join('');
- main.innerHTML='<div class="wallGrid"><aside class="rail"><div id="myCard">'+(user?profileMini(user):'<div class="railUser">'+avatar+'<strong>'+esc(name)+'</strong></div>')+'</div><a class="railHome" href="/wall">⌂ &nbsp; الرئيسية</a><button class="topic" data-act="compose">'+icon('plus')+' مشاركة جديدة</button><a class="topic" href="/people">دليل الأعضاء</a><a class="topic" href="/people?filter=friends">الأصدقاء</a><a class="topic" href="/people?filter=followers">المتابعون</a><a class="topic" href="/groups">المجموعات</a><a class="topic" href="/messages">الرسائل الخاصة</a><h2>مجالات المجتمع</h2>'+links+'</aside>'+
- '<section class="wall" aria-label="الحائط التفاعلي"><div id="mobileCard"></div><div class="composeBox"><div class="composeRow">'+avatar+'<button data-act="compose">ما الفكرة التي تودّ مشاركتها؟</button></div><button class="plain" data-act="compose">'+icon('plus')+' كتابة مشاركة</button></div>'+
- '<div class="wallHead"><h1>الحائط التفاعلي</h1><div class="filters">'+['',...topics].map(t=>'<button class="pill '+(t===topic?'active':'')+'" aria-pressed="'+(t===topic)+'" data-act="filter" data-topic="'+t+'">'+(t||'الكل')+'</button>').join('')+'</div></div><div id="list"></div></section>'+
- '<aside class="latest"><section id="presence"></section><h2>آخر الموضوعات</h2><div id="recent"></div></aside></div>';
+ main.innerHTML='<div class="wallGrid"><aside class="rail"><div id="myCard">'+(user?profileMini(user):'<div class="railUser">'+avatar+'<strong>'+esc(name)+'</strong></div>')+'</div><a class="railHome" href="/wall">⌂ &nbsp; الرئيسية</a><button class="topic" data-act="compose">'+icon('plus')+' مشاركة جديدة</button><a class="topic" href="/people">دليل الأعضاء</a><a class="topic" href="/people?filter=friends">الأصدقاء</a><a class="topic" href="/people?filter=followers">المتابعون</a><a class="topic" href="/groups">المجموعات</a><a class="topic" href="/messages">الرسائل الخاصة</a><a class="topic" href="/wall?view=saved">◇ المنشورات المحفوظة</a><h2>مجالات المجتمع</h2>'+links+'</aside>'+
+ '<section class="wall" aria-label="الحائط التفاعلي"><div id="mobileCard"></div><div class="composeBox"><div class="composeRow">'+avatar+'<button data-act="compose">شارك فكرة أو تجربة أو مبادرة...</button></div><div class="composeShortcuts"><button type="button" data-act="compose">✍ منشور</button><button type="button" data-act="compose">▣ صورة أو ملف</button><button type="button" data-act="compose">✦ مبادرة أو سؤال</button></div></div>'+
+ '<div class="wallHead"><div class="feedHeading"><div><h1>حائط تنميات</h1><p>أفكار وخبرات ومبادرات المجتمع</p></div><button class="btn primary" data-act="compose">＋ مشاركة</button></div><div class="feedViews">'+[['latest','الأحدث'],['following','أتابعهم'],['trending','الأكثر تفاعلاً'],['saved','المحفوظات']].map(([key,label])=>'<button class="feedView '+(wallView===key?'active':'')+'" data-act="feedview" data-view="'+key+'" aria-pressed="'+(wallView===key)+'">'+label+'</button>').join('')+'</div><div class="kindFilters">'+[['','كل الأنواع'],...Object.entries(kindNames)].map(([key,label])=>'<button class="kindFilter '+(wallKind===key?'active':'')+'" data-act="feedkind" data-kind="'+key+'">'+label+'</button>').join('')+'</div>'+(wallTag?'<div class="activeTag">الوسم: #'+esc(wallTag)+' <button data-act="cleartag">× إزالة</button></div>':'')+'<div class="filters">'+['',...topics].map(t=>'<button class="pill '+(t===topic?'active':'')+'" aria-pressed="'+(t===topic)+'" data-act="filter" data-topic="'+t+'">'+(t||'الكل')+'</button>').join('')+'</div></div><div id="list"></div></section>'+
+ '<aside class="latest"><section id="presence"></section><section class="latestBox"><h2>آخر الموضوعات</h2><div id="recent"></div></section><section id="trends" class="trendsBox"></section><section id="discovery" class="discoveryBox"></section></aside></div>';
 }
 function recentPosts(posts){
  const recent=document.querySelector('#recent');
- if(recent)recent.innerHTML=posts.length?posts.slice(0,5).map(p=>'<a href="/post/'+encodeURIComponent(p.id)+'"><small>'+esc(p.topic)+'</small><strong>'+esc(postLabel(p))+'</strong></a>').join(''):'<p>لا توجد منشورات بعد.</p>';
+ if(recent)recent.innerHTML=posts.length?posts.slice(0,6).map(p=>'<a class="recentPost" href="/post/'+encodeURIComponent(p.id)+'"><span class="recentThumb">'+postThumbnail(p)+'</span><span class="recentCopy"><small>'+esc(p.topic)+' · '+esc(date(p.created_at))+'</small><strong>'+esc(postLabel(p))+'</strong><em>'+esc(p.author||'تنميات')+'</em></span></a>').join(''):'<p>لا توجد منشورات بعد.</p>';
 }
 function listRender(){const list=document.querySelector('#list');if(!list)return;
  list.innerHTML=feed.length?feed.map(p=>card(p)).join('')+(hasMore?'<button class="btn load" data-act="more">عرض المزيد</button>':''):
  '<div class="status"><h3>لا توجد منشورات'+(query||topic?' مطابقة':' حتى الآن')+'</h3><p>'+(query||topic?'يمكنك تغيير البحث أو استعراض جميع المجالات.':'أضف أول مشاركة في المجتمع.')+'</p><button class="btn" data-act="'+(query||topic?'clear':'compose')+'">'+(query||topic?'عرض جميع المنشورات':'اكتب مشاركة')+'</button></div>';}
-async function loadPage(page,token){const result=await api('posts?'+new URLSearchParams({q:query,topic,page:String(page)}));if(token!==version)return;currentPage=page;feed=page===1?result.posts:feed.concat(result.posts);hasMore=result.hasMore;listRender();if(page===1){if(!query&&!topic)recentPosts(result.posts);else {const latest=await api("posts?page=1");if(token===version)recentPosts(latest.posts);}}}
-function homeUrl(t='',q=''){const url=new URL('/wall',location.origin);if(t)url.searchParams.set('topic',t);if(q)url.searchParams.set('q',q);return url.pathname+url.search;}
+async function loadPage(page,token){const result=await api('posts?'+new URLSearchParams({q:query,topic,page:String(page),view:wallView,kind:wallKind,tag:wallTag}));if(token!==version)return;currentPage=page;feed=page===1?result.posts:feed.concat(result.posts);hasMore=result.hasMore;listRender();if(page===1){if(!query&&!topic&&wallView==='latest'&&!wallKind&&!wallTag)recentPosts(result.posts);else {const latest=await api("posts?page=1");if(token===version)recentPosts(latest.posts);}}}
+function homeUrl(t='',q=''){const url=new URL('/wall',location.origin);if(t)url.searchParams.set('topic',t);if(q)url.searchParams.set('q',q);if(wallView!=='latest')url.searchParams.set('view',wallView);if(wallKind)url.searchParams.set('kind',wallKind);if(wallTag)url.searchParams.set('tag',wallTag);return url.pathname+url.search;}
+function wallChange(name,value){const u=new URL(location.href);if(value)u.searchParams.set(name,value);else u.searchParams.delete(name);go('/wall'+u.search);}
+async function wallTrends(token){const el=document.getElementById('trends');if(!el)return;try{
+ const data=await api('trends');if(token!==version)return;
+ el.innerHTML=data.tags.length?'<h2>وسوم متداولة</h2><div class="trendingTags">'+data.tags.map(t=>'<a href="/wall?tag='+encodeURIComponent(t.tag.slice(1))+'">'+esc(t.tag)+' <small>'+Number(t.count)+'</small></a>').join('')+'</div>':'';
+ }catch{el.innerHTML='';}}
+async function wallDiscover(token){const el=document.getElementById('discovery');if(!el)return;try{
+ const data=await api('discover');if(token!==version)return;
+ el.innerHTML='<h2>اكتشف مجتمعك</h2>'+(data.members.length?'<h3>أعضاء مقترحون</h3>'+data.members.slice(0,3).map(p=>'<a href="/profile/'+encodeURIComponent(p.id)+'" class="discoverMember">'+face(p)+'<span><strong>'+esc(p.name)+'</strong><small>'+esc((p.bio||'عضو في المجتمع').slice(0,52))+'</small></span></a>').join(''):'')+
+ (data.groups.length?'<h3>مجموعات نشطة</h3>'+data.groups.slice(0,3).map(g=>'<a href="/groups/'+encodeURIComponent(g.id)+'" class="discoverGroup"><strong>'+esc(g.name)+'</strong><small>'+Number(g.members)+' عضو</small></a>').join(''):'');
+ }catch{el.innerHTML='';}}
+
 function go(url){history.pushState(null,'',url);route();window.scrollTo(0,0);}
 async function route(){const token=++version;let target=main;
  try{
@@ -74,8 +85,8 @@ async function route(){const token=++version;let target=main;
   document.title='البلاغات | تنميات';main.innerHTML='<div class="detail"><a href="/wall" class="plain back">← المجتمع</a><h1>بلاغات المنشورات</h1>'+
   (data.reports.length?data.reports.map(r=>'<div class="panel report"><a href="/post/'+encodeURIComponent(r.post_id)+'">'+esc(r.title)+'</a><button class="btn" data-act="dismiss" data-id="'+encodeURIComponent(r.id)+'">إغلاق البلاغ</button></div>').join(''):'<div class="status">لا توجد بلاغات مفتوحة.</div>')+'</div>';
  }else if(['/wall','/wall/'].includes(location.pathname)){
-  const params=new URLSearchParams(location.search);query=params.get('q')||'';topic=topics.includes(params.get('topic'))?params.get('topic'):'';
-  document.querySelector('#search input').value=query;document.title='تنميات | مجتمع التنمية';homeShell();refreshWallSide(token);target=document.querySelector('#list');target.innerHTML='<div class="status">جارٍ تحميل المنشورات…</div>';await loadPage(1,token);
+  const params=new URLSearchParams(location.search);query=params.get('q')||'';topic=topics.includes(params.get('topic'))?params.get('topic'):'';wallView=['latest','following','saved','trending'].includes(params.get('view'))?params.get('view'):'latest';wallKind=Object.hasOwn(kindNames,params.get('kind'))?params.get('kind'):'';wallTag=(params.get('tag')||'').slice(0,40);
+  document.querySelector('#search input').value=query;document.title='تنميات | مجتمع التنمية';homeShell();refreshWallSide(token);wallDiscover(token);wallTrends(token);target=document.querySelector('#list');target.innerHTML='<div class="status">جارٍ تحميل المنشورات…</div>';await loadPage(1,token);
  }else{main.innerHTML='<div class="status"><h2>الصفحة غير موجودة</h2><a class="btn" href="/wall">زيارة المجتمع</a></div>';}
  }catch(e){if(token===version)target.innerHTML='<div class="status"><p>'+esc(e.message)+'</p><button class="btn" data-act="retry">إعادة المحاولة</button> <a class="btn" href="/wall">المجتمع</a></div>';}
 }
@@ -103,6 +114,11 @@ document.addEventListener('click',async event=>{
  case 'reports':return go('/reports');
  case 'clear':return go('/wall');
  case 'filter':return go(homeUrl(el.dataset.topic,query));
+ case 'feedview':if(!user&&['following','saved'].includes(el.dataset.view)){auth('login');return;}return wallChange('view',el.dataset.view==='latest'?'':el.dataset.view);
+ case 'feedkind':return wallChange('kind',el.dataset.kind);
+ case 'cleartag':return wallChange('tag','');
+ case 'bookmark':if(!user){auth('login');return;}el.disabled=true;try{await api('posts/'+id+'/bookmark','PUT',{saved:el.dataset.on!=='true'});notify(el.dataset.on==='true'?'أُزيل من المحفوظات':'حُفظ المنشور');await route();}finally{el.disabled=false;}return;
+ case 'pinpost':if(user?.role!=='admin')return;el.disabled=true;try{await api('posts/'+id+'/pin','PUT',{pinned:el.dataset.on!=='true'});notify('تم تحديث تثبيت المنشور');await route();}finally{el.disabled=false;}return;
  case 'more':el.disabled=true;try{await loadPage(currentPage+1,version);}finally{el.disabled=false;}return;
  case 'like':if(!user){auth('login');return;}el.disabled=true;try{const liked=el.dataset.liked!=='true';await api('posts/'+id+'/like','PUT',{liked});el.dataset.liked=String(liked);el.setAttribute('aria-pressed',String(liked));el.innerHTML=icon('heart')+' '+Math.max(0,Number(el.textContent.trim())+(liked?1:-1));const p=feed.find(x=>String(x.id)===id);if(p){p.liked=liked;p.likes=Number(el.textContent.trim());}}finally{el.disabled=false;}return;
  case 'share':{const url=new URL('/post/'+id,location.origin).href;try{await navigator.clipboard.writeText(url);notify('تم نسخ رابط المنشور');}catch{showModal('رابط المنشور','<label class="fields">انسخ الرابط<input readonly dir="ltr" value="'+esc(url)+'"></label>');modal.querySelector('input').select();}return;}

@@ -37,6 +37,8 @@ export async function writePost(request,db,user,existing,helpers){
   const title=textField(data.title??existing?.title,0,160,'العنوان');
   const body=textField(data.body??existing?.body,0,8000,'نص المنشور');
   const topic=data.topic??existing?.topic??'المجتمع';
+  const postKind=data.post_kind??existing?.post_kind??'post';
+  if(!['post','article','initiative','question','announcement'].includes(postKind))throw new ApiError(400,'اختر نوع منشور صالحاً.');
   if(!topics.has(topic))throw new ApiError(400,'اختر مجالًا معتمدًا.');
   const old=existing?.attachments??[];
   const keep=data.keep??old.map(file=>file.id);
@@ -56,17 +58,17 @@ export async function writePost(request,db,user,existing,helpers){
   const mutations=[];
   if(existing){
     const keepLegacy=keep.includes('legacy')?1:0;
-    mutations.push(db.prepare(`UPDATE posts SET title=?,body=?,topic=?,version=version+1,edit_token=?,
+    mutations.push(db.prepare(`UPDATE posts SET title=?,body=?,topic=?,post_kind=?,version=version+1,edit_token=?,
       image_bytes=CASE WHEN ? THEN image_bytes END,image_mime=CASE WHEN ? THEN image_mime END
-      WHERE id=? AND author_id=? AND version=? RETURNING id`).bind(title,body,topic,token,keepLegacy,keepLegacy,existing.id,user.id,existing.version));
+      WHERE id=? AND author_id=? AND version=? RETURNING id`).bind(title,body,topic,postKind,token,keepLegacy,keepLegacy,existing.id,user.id,existing.version));
     for(const file of old){
       if(file.id!=='legacy'&&!keep.includes(file.id)){
         mutations.push(db.prepare('DELETE FROM post_files WHERE id=? AND post_id=(SELECT id FROM posts WHERE edit_token=?)').bind(file.id,token));
       }
     }
   }else{
-    mutations.push(db.prepare('INSERT INTO posts(author_id,title,body,topic,edit_token,image_bytes,image_mime) VALUES(?,?,?,?,?,?,?) RETURNING id')
-      .bind(user.id,title,body,topic,token,legacy?.bytes??null,legacy?.mime??null));
+    mutations.push(db.prepare('INSERT INTO posts(author_id,title,body,topic,post_kind,edit_token,image_bytes,image_mime) VALUES(?,?,?,?,?,?,?,?) RETURNING id')
+      .bind(user.id,title,body,topic,postKind,token,legacy?.bytes??null,legacy?.mime??null));
   }
   for(const file of additions){
     mutations.push(db.prepare(`INSERT INTO post_files(id,post_id,name,mime,size,position)
