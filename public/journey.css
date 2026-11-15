@@ -32,3 +32,9 @@
 .journeyFormActions{display:flex;gap:10px;flex-wrap:wrap}.journeyBigNumber{font-size:2rem;color:#24667c}
 @media(max-width:1050px){.journeyStats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:680px){.journeyColumns,.journeyFields{grid-template-columns:1fr}.journeyStats{grid-template-columns:repeat(2,1fr)}.journeyPanel,.journeyForm{padding:14px}.journeyHeader{padding:20px}.journeyNav{overflow-x:auto;flex-wrap:nowrap}.journeyNav a{white-space:nowrap}}
+
+.journeyCalNav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.journeyCalNav a{padding:7px 12px;border-radius:9px;background:#edf3f8;font-size:.78rem;text-decoration:none!important}
+.journeyCalNav strong{color:#214561}
+#journeyMap{height:440px;min-height:300px;border-radius:12px;background:#e6edf3;overflow:hidden}
+@media(max-width:680px){#journeyMap{height:340px}}
