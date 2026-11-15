@@ -136,7 +136,7 @@ export async function memberJourneyRoute(request,db,user,h){
    return response(json,{id:row.id},201);
   }
  }
- let newsLinkId=idOf(/^\\/api\\/journey\\/news-links\\/(\\d+)$/);
+ let newsLinkId=idOf(/^\/api\/journey\/news-links\/(\d+)$/);
  if(newsLinkId&&method==='DELETE'){
   const deleted=await db.prepare('DELETE FROM member_news_links WHERE id=? AND user_id=?').bind(newsLinkId,uid).run();
   if(!deleted.meta.changes)throw new ApiError(404,'الرابط غير موجود');
