@@ -199,7 +199,8 @@ async function savePostDraft(form,data) {
     throw error;
   }finally{draft.busy=false;}
 }
-function editProfile(p){showModal('تعديل الملف الشخصي','<form id="profileEdit" class="fields"><label>الاسم<input name="name" minlength="2" maxlength="60" required value="'+esc(p.name)+'"></label><label>نبذة شخصية<textarea name="bio" maxlength="500">'+esc(p.bio)+'</textarea></label>'+fieldUpload('الصورة الشخصية')+(p.avatar?'<label class="check"><input type="checkbox" name="removeAvatar"> حذف الصورة الحالية</label>':'')+'<div class="error" role="alert"></div><button class="btn primary">حفظ التعديلات</button></form>');}
+function editProfile(p){showModal('تخصيص الملف الشخصي','<form id="profileEdit" class="fields profileEditForm"><label>الاسم<input name="name" minlength="2" maxlength="60" required value="'+esc(p.name)+'"></label><label>نبذة شخصية<textarea name="bio" maxlength="500">'+esc(p.bio)+'</textarea></label><label>الصورة الشخصية<input type="file" name="picture" accept="image/jpeg,image/png,image/webp"></label><img class="uploadPreview" alt="معاينة الصورة الشخصية" hidden>'+(p.avatar?'<label class="check"><input type="checkbox" name="removeAvatar"> حذف الصورة الحالية</label>':'')+'<fieldset class="profileCoverSettings"><legend>صورة الغلاف</legend><p class="muted">اختر صورة أفقية تعبّر عنك. يمكنك تعديل موضع ظهورها.</p><label>تحميل غلاف<input type="file" name="coverPicture" accept="image/jpeg,image/png,image/webp"></label><img class="coverUploadPreview" alt="معاينة الغلاف الجديد" hidden><label>موضع الغلاف <output id="coverPositionValue">'+Number(p.cover_position??50)+'%</output><input type="range" name="cover_position" min="0" max="100" step="1" value="'+Number(p.cover_position??50)+'"></label>'+(p.cover?'<label class="check"><input type="checkbox" name="removeCover"> إزالة الغلاف الحالي</label>':'')+'</fieldset><div class="error" role="alert"></div><button class="btn primary" type="submit">حفظ الملف والغلاف</button></form>');}
+
 async function imageData(file,edge){
  if(!file||!file.size)return null;
  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>15*1024*1024)throw Error('اختر صورة JPEG أو PNG أو WebP بحجم أقصاه 15 ميغابايت.');
@@ -217,11 +218,12 @@ async function imageData(file,edge){
  throw Error('تعذّر ضغط الصورة. اختر صورة أصغر.');
 }
 document.addEventListener('change',async event=>{
- const input=event.target;if(input.name!=='picture'||input.form?.id!=='profileEdit')return;
- const preview=input.form.querySelector('.uploadPreview'),field=input.form.querySelector('.error'),file=input.files[0];preview.hidden=true;field.textContent='';
- try{const data=await imageData(file,input.form.id==='profileEdit'?420:1500);if(file!==input.files[0]||!data)return;preview.src=data;preview.hidden=false;}
+ const input=event.target;if(!['picture','coverPicture'].includes(input.name)||input.form?.id!=='profileEdit')return;
+ const preview=input.form.querySelector(input.name==='coverPicture'?'.coverUploadPreview':'.uploadPreview'),field=input.form.querySelector('.error'),file=input.files[0];preview.hidden=true;field.textContent='';
+ try{const data=await imageData(file,input.name==='coverPicture'?1600:420);if(file!==input.files[0]||!data)return;preview.src=data;preview.hidden=false;}
  catch(e){if(file===input.files[0]){field.textContent=e.message;input.value='';}}
 });
+document.addEventListener('input',event=>{if(event.target.name==='cover_position'&&event.target.form?.id==='profileEdit')event.target.form.querySelector('#coverPositionValue').textContent=event.target.value+'%';});
 function counts(p,full=false){
  const values=[['posts_count','منشورات'],['friends_count','أصدقاء'],['followers_count','متابعون']];
  if(full)values.push(['following_count','يتابعهم'],['reposts_count','إعادات نشر']);
@@ -269,7 +271,11 @@ async function peoplePage(page,token){
 }
 async function profile(token,id){
  const {profile:p}=await api('profiles/'+id);if(token!==version)return;profileRecord=p;profilePage=1;
- main.innerHTML='<div class="socialPage profilePage">'+pathTitle(p.name)+'<section class="profileHero"><div class="profileCover"></div><div class="profileInfo">'+face(p,'large')+'<div><h1>'+esc(p.name)+'</h1><small>'+(p.online?'متصل الآن':'عضو في تنميات')+'</small></div></div>'+(p.bio?'<p class="bodycopy">'+esc(p.bio)+'</p>':'')+'<div class="profileBtns">'+peopleButtons(p)+'</div>'+counts(p,true)+'</section><div class="socialHeading"><h2>منشورات العضو</h2>'+(user&&String(user.id)===id?'<button class="btn primary" data-act="compose">＋ مشاركة</button>':'')+'</div><div id="profilePosts"></div><div id="profileMore"></div></div>';
+ const own=Boolean(user&&String(user.id)===String(p.id));
+ const cover=asset(p.cover),position=Math.max(0,Math.min(100,Number(p.cover_position??50)));
+ const metrics=[['posts_count','المنشورات'],['comments_count','التعليقات'],['received_likes_count','الإعجابات المستلمة'],['followers_count','المتابعون'],['following_count','يتابع'],['friends_count','الأصدقاء']];
+ const metricsHtml=metrics.map(([field,label])=>'<button type="button" class="profileStat" data-act="profilemetric" data-key="'+field+'" aria-label="عرض تفاصيل '+label+'"><b>'+Number(p[field]||0).toLocaleString('ar')+'</b><span>'+label+'</span></button>').join('');
+ main.innerHTML='<div class="socialPage profilePage">'+pathTitle(p.name)+'<section class="profileHero profileHeroV2"><div class="profileCover profileCoverV2"'+(cover?' style="background-image:linear-gradient(0deg,rgba(4,22,44,.35),transparent 65%),url(\''+cover+'\');background-position:center '+position+'%"':'')+'><span class="coverBrand">مجتمع تنميات</span>'+(own?'<button type="button" class="coverEditBtn" data-act="editprofile">✎ تخصيص الغلاف</button>':'')+'</div><div class="profileIdentity"><div class="profilePortrait">'+face(p,'large')+(own?'<button type="button" data-act="editprofile" class="portraitEditBtn" aria-label="تعديل الصورة الشخصية">✎</button>':'')+'</div><div class="profileIdentityText"><h1>'+esc(p.name)+'</h1><small>'+(p.online?'● متصل الآن':'عضو في تنميات')+'</small>'+(p.bio?'<p class="bodycopy">'+esc(p.bio)+'</p>':'')+'</div><div class="profileBtns">'+peopleButtons(p)+'</div></div><div class="profileMetrics" aria-label="إحصاءات نشاط العضو">'+metricsHtml+'</div></section><div class="socialHeading"><h2>منشورات العضو</h2>'+(own?'<button class="btn primary" data-act="compose">＋ مشاركة</button>':'')+'</div><div id="profilePosts"></div><div id="profileMore"></div></div>';
  await profilePosts(id,1,token);
 }
 async function profilePosts(id,page,token){
@@ -318,9 +324,10 @@ async function socialRoute(token){
 }
 async function socialAction(action,el){
  const id=el.dataset.id,mode=el.dataset.mode;
- if(!['editpost','editprofile','follow','friend','repost','morepeople','profilemore','older'].includes(action))return false;
+ if(!['editpost','editprofile','profilemetric','follow','friend','repost','morepeople','profilemore','older'].includes(action))return false;
  el.disabled=true;
  try{
+ if(action==='profilemetric'){const p=profileRecord;if(!p)return true;const field=el.dataset.key;const map={posts_count:['المنشورات','إجمالي منشورات العضو المنشورة في المجتمع.'],comments_count:['التعليقات','التعليقات التي كتبها العضو على منشورات المجتمع.'],received_likes_count:['الإعجابات المستلمة','إجمالي الإعجابات التي حصلت عليها منشورات العضو.'],followers_count:['المتابعون','عدد الأعضاء الذين يتابعون هذا الحساب.'],following_count:['يتابع','عدد الحسابات التي يتابعها العضو.'],friends_count:['الأصدقاء','عدد علاقات الصداقة المؤكدة.']};if(!Object.hasOwn(map,field))return true;const [name,desc]=map[field];showModal(name,'<div class="profileMetricDetails"><strong>'+Number(p[field]||0).toLocaleString('ar')+'</strong><p>'+desc+'</p>'+(field==='posts_count'?'<a class="btn primary" href="#profilePosts" data-act="close">عرض المنشورات</a>':'')+'</div>');return true;}
  if(action==='editpost'){const {post}=await api('posts/'+id);composer(post);}
  else if(action==='editprofile'){const {profile}=await api('profiles/'+user.id);editProfile(profile);}
  else if(action==='repost'){if(!user){auth('login');return true;}await api('posts/'+id+'/repost','PUT',{reposted:el.dataset.on!=='true'});await route();}
@@ -343,7 +350,8 @@ async function socialForm(form,data){
  if(form.id==='composeSocial'){
   await savePostDraft(form,data);
  }else if(form.id==='profileEdit'){
-  const avatar=await imageData(data.picture,420);await api('me/profile','PATCH',{name:data.name.trim(),bio:data.bio.trim(),...(avatar?{avatar}:data.removeAvatar?{avatar:null}:{})});user=(await api('me')).user;account();dialog.close();await route();notify('تم حفظ الملف الشخصي');
+  if(data.coverPicture?.size && data.removeCover)throw Error('اختر إما رفع الغلاف أو إزالته.');
+  const avatar=await imageData(data.picture,420),cover=await imageData(data.coverPicture,1600);await api('me/profile','PATCH',{name:data.name.trim(),bio:data.bio.trim(),cover_position:Number(data.cover_position),...(avatar?{avatar}:data.removeAvatar?{avatar:null}:{}),...(cover?{cover}:data.removeCover?{cover:null}:{})});user=(await api('me')).user;account();dialog.close();await route();notify('تم حفظ الملف الشخصي');
  }else if(form.id==='sendMessage'){
   const id=form.dataset.id,token=version;if(!data.body.trim())throw Error('اكتب الرسالة أولًا.');await api('messages/'+id,'POST',{body:data.body.trim()});form.reset();await fetchMessages(id,token);await refreshInbox(id,token);const stream=document.querySelector('#stream');if(stream)stream.scrollTop=stream.scrollHeight;
  }

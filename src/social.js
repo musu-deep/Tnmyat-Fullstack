@@ -46,7 +46,8 @@ export function validateImage(value, ApiError, limit=250*1024) {
   return {bytes,mime:'image/'+match[1]};
 }
 
-const personFields = `u.id,u.name,u.bio,
+const personFields = `u.id,u.name,u.bio,u.cover_position,
+  CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS cover,
   CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar,
   COALESCE(u.last_seen>unixepoch()-180,0) AS online,
   (u.password_hash IS NOT NULL AND viewer.id>0 AND viewer.id<>u.id) AS can_message,
@@ -61,6 +62,8 @@ function personView(person) {
 async function profileFor(db,viewer,id) {
   const person = await db.prepare('SELECT '+personFields+`,
     (SELECT count(*) FROM posts p WHERE p.author_id=u.id) AS posts_count,
+    (SELECT count(*) FROM comments c WHERE c.author_id=u.id) AS comments_count,
+    (SELECT count(*) FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.author_id=u.id) AS received_likes_count,
     (SELECT count(*) FROM reposts r WHERE r.user_id=u.id) AS reposts_count,
     (SELECT count(*) FROM follows f WHERE f.followed=u.id) AS followers_count,
     (SELECT count(*) FROM follows f WHERE f.follower=u.id) AS following_count,
@@ -77,9 +80,9 @@ export async function socialRoute(request,db,user,helpers) {
   const path=url.pathname;
   const method=request.method;
   const viewer=user?.id ?? 0;
-  const media=path.match(/^\/api\/media\/(avatar|post)\/(\d+)$/);
+  const media=path.match(/^\/api\/media\/(avatar|cover|post)\/(\d+)$/);
   if (media && (method==='GET' || method==='HEAD')) {
-    const sql=media[1]==='avatar'?'SELECT avatar_bytes AS bytes,avatar_mime AS mime FROM users WHERE id=?':'SELECT image_bytes AS bytes,image_mime AS mime FROM posts WHERE id=?';
+    const sql=media[1]==='avatar'?'SELECT avatar_bytes AS bytes,avatar_mime AS mime FROM users WHERE id=?':media[1]==='cover'?'SELECT cover_bytes AS bytes,cover_mime AS mime FROM users WHERE id=?':'SELECT image_bytes AS bytes,image_mime AS mime FROM posts WHERE id=?';
     const image=await db.prepare(sql).bind(media[2]).first();
     if (!image?.bytes) throw new ApiError(404,'لم نعثر على الصورة.');
     return new Response(method==='HEAD'?null:(image.bytes instanceof ArrayBuffer ? new Uint8Array(image.bytes) : Uint8Array.from(image.bytes)),{headers:{
@@ -104,6 +107,16 @@ export async function socialRoute(request,db,user,helpers) {
       const image=validateImage(data.avatar,ApiError);
       updates.push('avatar_bytes=?','avatar_mime=?','avatar_version=?');
       args.push(image?.bytes ?? null,image?.mime ?? null,image?crypto.randomUUID():null);
+    }
+    if ('cover' in data) {
+      const image=validateImage(data.cover,ApiError,350*1024);
+      updates.push('cover_bytes=?','cover_mime=?','cover_version=?');
+      args.push(image?.bytes ?? null,image?.mime ?? null,image?crypto.randomUUID():null);
+    }
+    if ('cover_position' in data) {
+      const position=data.cover_position;
+      if (!Number.isInteger(position)||position<0||position>100) throw new ApiError(400,'موضع الغلاف يجب أن يكون بين 0 و100.');
+      updates.push('cover_position=?');args.push(position);
     }
     if (!updates.length) throw new ApiError(400,'حدد البيانات المطلوب تعديلها.');
     await db.prepare('UPDATE users SET '+updates.join(',')+' WHERE id=?').bind(...args,viewer).run();
