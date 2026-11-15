@@ -136,7 +136,7 @@ export async function memberJourneyRoute(request,db,user,h){
      WHERE p.moderation_status='visible' AND p.topic IN (${qs}) AND p.author_id<>? GROUP BY p.id
      ORDER BY likes DESC,p.id DESC LIMIT 8`).bind(...subjects,uid).all();posts=results;
   }
-  const {results:groups}=await db.prepare(`SELECT id,name,description FROM groups WHERE moderation_status='visible' ORDER BY id DESC LIMIT 8`).all();
+  const {results:groups}=await db.prepare(`SELECT id,name,description FROM community_groups WHERE moderation_status='visible' ORDER BY id DESC LIMIT 8`).all();
   return response(json,{posts,groups:groups.filter(g=>!pref.sectors.length||pref.sectors.some(t=>(g.name+' '+g.description).includes(t))).slice(0,5)});
  }
  return null;
