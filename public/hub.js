@@ -92,7 +92,8 @@ function hubFitVisibleMap(){if(!hubMap||!hubMapMarkers.length)return;const nodes
 async function hubReviewQueue(){const el=document.querySelector('#hubReviewQueue');if(!el)return;try{const {projects}=await api('hub/admin/queue');el.innerHTML=projects.length?projects.map(p=>'<div class="hubReviewCard"><strong>'+hubEscape(p.title)+'</strong><p>'+hubEscape(p.summary)+'</p><small>'+hubEscape(p.owner)+' · '+hubEscape(p.country)+'</small><div><button class="btn primary" data-hub="review-project" data-status="published" data-id="'+p.id+'">اعتماد</button><button class="btn" data-hub="review-project" data-status="rejected" data-id="'+p.id+'">رفض</button></div></div>').join(''):'لا توجد مشاريع بانتظار المراجعة.';}catch{el.textContent='تعذر تحميل طلبات المراجعة.';}}
 function hubField(name,label,more=''){return '<label>'+label+'<input name="'+name+'" '+more+' '+(more.includes('optional')?'':'required')+'></label>';}
 // A member selects a place visually; coordinates are internal implementation details.
-let hubProjectPicker=null,hubProjectPin=null;
+let hubProjectPicker=null,hubProjectPin=null,hubLastPlaceSearch=0;
+const hubPlaceCache=new Map();
 function hubProjectForm(){
  return '<form id="hubProjectForm" class="fields hubForm hubProjectEntry">'+
   '<p class="hubProjectIntro">عرّف بمشروعك وحدد موقعه على الخارطة بخطوة بسيطة. ستراجعه إدارة المجتمع قبل نشره.</p>'+
@@ -106,7 +107,7 @@ function hubProjectForm(){
   '<div id="hubProjectPlaceResults" class="hubPlaceResults" aria-live="polite"></div>'+
   '<div id="hubProjectPickerMap" aria-label="انقر على الموقع المناسب لتثبيت علامة المشروع"></div>'+
   '<input type="hidden" name="latitude" value=""><input type="hidden" name="longitude" value="">'+
-  '<small>الموقع للتعريف الجغرافي بالمبادرة فقط؛ لا يلزم تحديد المبنى أو النقطة الدقيقة. البحث يستخدم خدمة OpenStreetMap Nominatim.</small>'+
+  '<small>الموقع للتعريف الجغرافي بالمبادرة فقط؛ لا يلزم تحديد المبنى أو النقطة الدقيقة. يعتمد البحث على خدمة <a href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank" rel="noopener noreferrer">Nominatim من OpenStreetMap</a>، ويُرسل اسم المدينة والدولة فقط عند الضغط على زر البحث.</small>'+
   '</section>'+
   '<details class="hubProjectOptional"><summary>تفاصيل إضافية (اختيارية)</summary>'+
   '<label>اسم الجهة المنفذة<input name="entity_name" maxlength="120" placeholder="اتركه فارغاً إن لم توجد جهة محددة"></label>'+
@@ -151,10 +152,17 @@ async function hubFindProjectPlace(){
  try{
   // Explicit search only, never autocomplete: respects public geocoding request limits.
   const q=[city,country].filter(Boolean).join('، ');
-  const url='https://nominatim.openstreetmap.org/search?'+new URLSearchParams({q,format:'json',limit:'5',addressdetails:'1',accept_language:'ar'});
-  const response=await fetch(url,{headers:{'Accept':'application/json'}});
-  if(!response.ok)throw Error('خدمة البحث غير متاحة الآن؛ اختر الموقع بالضغط على الخارطة.');
-  const places=await response.json();
+  let places=hubPlaceCache.get(q);
+  if(!places){
+   if(Date.now()-hubLastPlaceSearch<1500)throw Error('يرجى الانتظار قليلاً قبل البحث مرة أخرى.');
+   hubLastPlaceSearch=Date.now();
+   const url='https://nominatim.openstreetmap.org/search?'+new URLSearchParams({q,format:'json',limit:'5',addressdetails:'1',accept_language:'ar'});
+   const response=await fetch(url,{headers:{'Accept':'application/json'}});
+   if(!response.ok)throw Error('خدمة البحث غير متاحة الآن؛ اختر الموقع بالضغط على الخارطة.');
+   places=await response.json();
+   if(hubPlaceCache.size>=40)hubPlaceCache.delete(hubPlaceCache.keys().next().value);
+   hubPlaceCache.set(q,places);
+  }
   if(!Array.isArray(places)||!places.length){status.textContent='لم نجد نتيجة مطابقة. حاول كتابة اسم المنطقة أو تحديدها على الخارطة.';return;}
   status.textContent='اختر المكان الأقرب إلى موقع المشروع:';
   results.innerHTML=places.map((p,i)=>'<button type="button" class="hubPlaceResult" data-hub="select-project-place" data-lat="'+Number(p.lat)+'" data-lng="'+Number(p.lon)+'" data-label="'+hubEscape((p.display_name||'').slice(0,170))+'"><span>◉</span><span>'+hubEscape((p.display_name||q).slice(0,170))+'</span></button>').join('');
