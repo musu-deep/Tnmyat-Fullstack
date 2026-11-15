@@ -1,4 +1,5 @@
 import { governanceRoute } from './governance.js';
+import { developmentHubRoute } from './development-hub.js';
 import { socialRoute, validateImage } from './social.js';
 import { writePost, serveFile } from './media.js';
 import { groupRoute } from './groups.js';
@@ -235,6 +236,8 @@ async function route(request,db) {
   const governance=await governanceRoute(request,db,user,helpers);
   if(governance)return governance;
   if(user&&(user.account_status==='banned'||(user.account_status==='suspended'&&(!user.status_until||user.status_until>Math.floor(Date.now()/1000)))))throw new ApiError(403,'الحساب موقوف؛ تواصل مع إدارة المجتمع.');
+  const hub=await developmentHubRoute(request,db,user,helpers);
+  if(hub)return hub;
   const file=path.match(/^\/api\/files\/([0-9a-f-]{36})$/);
   if(file&&['GET','HEAD'].includes(method))return serveFile(request,db,file[1],helpers);
   if (path.startsWith('/api/groups')) return groupRoute(request,db,user,helpers);

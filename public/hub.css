@@ -1,0 +1,58 @@
+/* Tnmyat development observatory: year calendar, project map and dual verified tickers */
+body.wallCoverView main.wrap{overflow:visible}
+.hubTickers{margin:0 0 20px;display:grid;gap:4px;overflow:hidden;border-radius:13px}
+.hubTicker{display:flex;align-items:center;min-height:38px;overflow:hidden;color:#fff;font-size:.83rem}
+.hubTicker-1{background:#143858}.hubTicker-2{background:#587c70}
+.hubTickerLabel{flex:none;padding:9px 14px;background:#0003;font-weight:800;white-space:nowrap;z-index:1}
+.hubTickerViewport{overflow:hidden;flex:1;direction:ltr;min-width:0}
+.hubTickerTrack{display:flex;align-items:center;gap:46px;white-space:nowrap;width:max-content;min-width:100%;direction:rtl;animation:hubNewsTravel 31s linear infinite}
+.hubTicker-2 .hubTickerTrack{animation-duration:65s}
+.hubTicker:hover .hubTickerTrack,.hubTicker:focus-within .hubTickerTrack{animation-play-state:paused}
+.hubTickerTrack[data-empty="true"]{animation:none;justify-content:center}
+.hubNewsItem{display:inline-flex;align-items:center;gap:10px;padding:7px 0;direction:rtl}
+.hubNewsItem a{color:#fff;text-decoration:none;font-weight:700}.hubNewsItem a:hover{text-decoration:underline}
+.hubNewsTag{background:#ffffff32;border:1px solid #ffffff24;border-radius:15px;padding:1px 8px;font-size:.71rem}
+.hubNewsItem small{color:#dce8f3;font-size:.72rem}
+.hubNewsEmpty{padding:8px 12px;opacity:.82}
+@keyframes hubNewsTravel{from{transform:translateX(-8%)}to{transform:translateX(42%)}}
+.hubSideCalendar{border:1px solid #dce4ee;background:#fff;border-radius:12px;padding:14px;margin-top:14px}
+.hubSideTitle{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:9px}
+.hubSideTitle h2{margin:0!important;font-size:1rem}.hubSideTitle a{color:#345984;font-size:.73rem;font-weight:700}
+.hubEventItem{padding:10px 0;border-bottom:1px solid #e8edf2;display:grid;gap:4px;font-size:.81rem}
+.hubEventItem:last-child{border:0}.hubEventItem strong{line-height:1.55;color:#223b58}.hubEventItem small{color:#6e7b8e}
+.hubEventItem>a{color:#29617b;font-weight:700;font-size:.73rem}
+.hubEventDate{color:#4f6d85;font-size:.73rem}
+.hubPage{max-width:1460px;margin:auto;display:grid;gap:22px;padding:25px 0 65px}
+.hubHead{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #e2e8ef;border-radius:19px;padding:23px}
+.hubHead h1{font-size:clamp(1.65rem,3vw,2.5rem);margin:4px 0;color:#203b57}.hubHead p{color:#61738a;margin:0;line-height:1.7}
+.hubKicker{font-size:.78rem;color:#4b7380;font-weight:800}.hubYearNav{display:flex;align-items:center;gap:15px;font-variant-numeric:tabular-nums}
+.hubYearNav a{background:#eff3f8;padding:7px 15px;border-radius:9px;font-size:1.1rem}
+.hubYearGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.hubMonth{background:#fff;border:1px solid #dce6ef;border-radius:15px;padding:16px;min-height:160px}
+.hubMonth h3{color:#223e59}.hubMonth>b{display:block;font-size:.75rem;color:#638196;margin:7px 0}.hubMonth .hubEventItem{font-size:.77rem}
+.hubMapKpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.hubMapKpis>div{background:#fff;border:1px solid #dce6ec;border-radius:13px;padding:15px;display:grid;text-align:center;gap:6px}
+.hubMapKpis b{font-size:1.6rem;color:#24516d}.hubMapKpis span{font-size:.8rem;color:#718092}
+.hubMapLayout{display:grid;grid-template-columns:minmax(0,2fr) minmax(250px,1fr);gap:18px;align-items:start}
+.hubMapLayout>section,.hubMapLayout>aside,.hubMine{background:#fff;border:1px solid #dce6ef;border-radius:15px;padding:15px}
+.hubMapLayout>aside{max-height:650px;overflow-y:auto}.hubMapLayout>aside h2{font-size:1.25rem;margin:0 0 12px}
+.hubMapControls{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:12px}
+.hubMapControls select{display:block;border:1px solid #d2dfe9;border-radius:8px;padding:7px;background:#fff;margin-top:3px}
+#hubMap{width:100%;height:560px;border-radius:10px;background:#dce9e7;overflow:hidden}
+.hubMapUnavailable{padding:40px;text-align:center;color:#4d6473}
+.hubMapAttribution{color:#798b9c;font-size:.68rem}
+.hubProjectCard{border-bottom:1px solid #e2e8ef;padding:12px 0;display:grid;gap:8px;line-height:1.65}
+.hubProjectCard:first-child{padding-top:0}.hubProjectCard p{margin:0;color:#5b6d7d;font-size:.82rem}
+.hubProjectCard small{color:#8a99a8}.hubProjectCard>a{color:#245b78;font-size:.76rem;font-weight:750}
+.hubProjectCardHead{display:flex;justify-content:space-between;align-items:center;gap:10px}.hubProjectCardHead span{background:#e9f1f5;color:#35647a;border-radius:12px;padding:2px 9px;font-size:.72rem}
+.hubProjectMeta{display:flex;justify-content:space-between;color:#436473;font-size:.77rem}
+.hubMine{display:grid;gap:12px}.hubMine h2{font-size:1.15rem}.hubMine p{margin:0}
+.hubReviewCard{border-bottom:1px solid #e1e7ed;padding:12px 0;display:grid;gap:8px}.hubReviewCard p{line-height:1.6}.hubReviewCard>div{display:flex;gap:8px}
+.hubFormPair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:1000px){.hubYearGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.hubMapLayout{grid-template-columns:1fr}.hubMapLayout>aside{max-height:none}}
+@media(max-width:650px){.hubYearGrid{grid-template-columns:1fr}.hubMapKpis{grid-template-columns:repeat(2,minmax(0,1fr))}.hubFormPair{grid-template-columns:1fr}.hubPage{padding-top:8px}.hubHead{padding:17px}#hubMap{height:400px}.hubTickerLabel{font-size:.68rem;padding:8px}.hubTickerTrack{animation-duration:24s}}
+@media(prefers-reduced-motion:reduce){.hubTickerTrack{animation:none!important}}
+
+.hubNewsManage{border:0;border-radius:10px;padding:8px 12px;background:#e8f1f6;color:#173e55;cursor:pointer;font-weight:800;font-size:.75rem;justify-self:end}
+
+.hubUnpublish{border:0;background:transparent;text-align:right;color:#8a4750;font-size:.72rem;cursor:pointer;padding:3px}
