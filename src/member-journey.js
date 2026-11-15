@@ -25,6 +25,12 @@ export async function memberJourneyRoute(request,db,user,h){
    return response(json,{preferences:await prefs()});
   }
  }
+ if(path==='/api/journey/alerts'&&method==='GET'){
+  const {results}=await db.prepare(`SELECT id,title,event_date FROM member_calendar
+    WHERE user_id=? AND event_date BETWEEN date('now') AND date('now','+14 days')
+    ORDER BY event_date ASC,id ASC LIMIT 30`).bind(uid).all();
+  return response(json,{alerts:results.map(x=>({type:'calendar',title:x.title,date:x.event_date,url:'/my-calendar'}))});
+ }
  if(path==='/api/journey/dashboard'&&method==='GET'){
   const [pref,posts,relations,calendar,goals,impact,saves]=await Promise.all([
    prefs(),
