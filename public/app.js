@@ -154,11 +154,39 @@ document.addEventListener('submit',async e=>{
  if(form.id==='search'){go(homeUrl(location.pathname==='/wall'?topic:'',data.q.trim()));return;}
  const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;const error=form.querySelector('.error');error.textContent='';
  try{
- if(form.id==='auth'){const isNew=form.dataset.mode==='register';await api(form.dataset.mode,'POST',data);user=(await api('me')).user;account();if(dialog.open)dialog.close();const next=afterAuth;afterAuth=null;await pulse();if(isNew){go('/onboarding');}else if(next&&user){await route();next();}else{go('/wall');}}
+ if(form.id==='auth'){
+  const isNew=form.dataset.mode==='register';
+  await api(form.dataset.mode,'POST',data);
+  user=(await api('me')).user;account();if(dialog.open)dialog.close();
+  const next=afterAuth;afterAuth=null;await pulse();
+  if(isNew){go('/onboarding');}
+  else {
+   let pendingSetup=false;
+   try{const r=await api('journey/preferences');pendingSetup=!r.preferences.onboarding_complete;}catch(e){notify('تعذّر التحقق من التفضيلات: '+e.message);}
+   if(pendingSetup)go('/onboarding');
+   else if(next&&user){await route();next();}
+   else go('/wall');
+  }
+ }
  else if(form.id==='compose'){const res=await api('posts','POST',data);dialog.close();go('/post/'+encodeURIComponent(res.post.id));notify('نُشرت مشاركتك');}
  else if(form.id==='comment'){await api('posts/'+form.dataset.id+'/comments','POST',data);await route();notify('نُشر تعليقك');}
  else if(form.id==='confirm'){const removing=form.dataset.action==='delete';await api('posts/'+form.dataset.id+(removing?'':'/report'),removing?'DELETE':'POST');dialog.close();if(removing)go('/wall');notify(removing?'حُذف المنشور':'أُرسل البلاغ إلى الإدارة');}
  }catch(ex){error.textContent=ex.message;}finally{button.disabled=false;}
 });
 window.addEventListener('popstate',route);
-(async()=>{try{user=(await api('me')).user;}catch(e){notify(e.message);}account();await pulse();await route();})();
+(async()=>{
+ const startVersion=version;
+ try{user=(await api('me')).user;}catch(e){notify(e.message);}
+ account();await pulse();
+ // A first-time member must be able to finish the professional setup after a refresh or a fresh login.
+ // Only inspect the initial route; deliberate navigation after choosing "skip" remains possible.
+ if(user&&version===startVersion&&['/','/welcome','/welcome/','/wall','/wall/'].includes(location.pathname)){
+  try{
+   const {preferences}=await api('journey/preferences');
+   if(version===startVersion&&!preferences.onboarding_complete){
+    history.replaceState(null,'','/onboarding');
+   }
+  }catch(e){notify('تعذّر فحص تهيئة العضوية: '+e.message);}
+ }
+ if(version===startVersion)await route();
+})();
