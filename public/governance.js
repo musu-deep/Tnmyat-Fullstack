@@ -1,7 +1,7 @@
 'use strict';
 const govEsc = s => esc(s);
 let governanceTab='overview';
-const govTabs=[['overview','المؤشرات'],['users','الأعضاء'],['posts','المحتوى'],['groups','المجموعات'],['reports','البلاغات'],['appeals','التظلمات'],['audit','سجل الإجراءات']];
+const govTabs=[['overview','المؤشرات'],['users','الأعضاء'],['posts','المحتوى'],['groups','المجموعات'],['reports','البلاغات'],['appeals','التظلمات'],['editorial','الأخبار والتحرير'],['audit','سجل الإجراءات']];
 async function renderGovernance(token){
   if(!user||user.role!=='admin'){go('/wall');return;}
   document.title='مركز إدارة تنميات';
@@ -14,7 +14,7 @@ async function governanceLoad(){
  const target=document.querySelector('#govContent');if(!target)return;
  target.textContent='جارٍ تحميل البيانات…';
  const key=governanceTab;
- const data=await api('admin/'+key);
+ const data=await api(key==='editorial'?'hub/admin/editorial':'admin/'+key);
  if(!target.isConnected||governanceTab!==key)return;
  if(key==='overview'){
   const labels={members:'الأعضاء',restricted:'الحسابات المقيدة',posts:'المنشورات الظاهرة',groups:'المجموعات الظاهرة',reports:'بلاغات مفتوحة',appeals:'تظلمات مفتوحة'};
@@ -31,11 +31,29 @@ async function governanceLoad(){
   target.innerHTML=govTable(['المبلّغ','الهدف','السبب','الحالة','إجراء'],data.reports.map(r=>'<tr><td>'+govEsc(r.reporter)+'</td><td>'+govEsc(r.target_type)+' #'+r.target_id+'</td><td>'+govEsc(r.reason)+'</td><td>'+govEsc(r.status)+'</td><td>'+govButton('reports',r.id,'reviewing','بدء المراجعة')+' '+govButton('reports',r.id,'resolved','معالجة')+' '+govButton('reports',r.id,'dismissed','رفض البلاغ')+'</td></tr>'));
  }else if(key==='appeals'){
   target.innerHTML=govTable(['العضو','القرار','الاعتراض','الحالة','إجراء'],data.appeals.map(a=>'<tr><td>'+govEsc(a.appellant)+'</td><td>#'+a.action_id+'</td><td>'+govEsc(a.statement)+'</td><td>'+govEsc(a.status)+'</td><td>'+govButton('appeals',a.id,'reviewing','قيد المراجعة')+' '+govButton('appeals',a.id,'upheld','تأييد القرار')+'</td></tr>'));
+ }else if(key==='editorial'){
+  target.innerHTML='<div class="gov-editorial-head"><h2>الأخبار والتحرير</h2><p>تُرشّح المشاركات وفق التفاعل والإعجابات وإعادة النشر والتثبيت. الشارة الذهبية ونشر الخبر قرار إداري موثق، ولا يمنح التفاعل وحده أي اعتماد.</p><div class="gov-editorial-actions"><button type="button" class="btn primary" data-act="gov-new-news">+ إضافة خبر موثّق</button><button type="button" class="btn" data-act="gov-new-event">+ إضافة فعالية</button></div></div>'+
+   govTable(['المشاركة','صاحبها','التفاعل','الحالة','تحرير'],data.posts.map(p=>'<tr><td><a href="/post/'+p.id+'">'+govEsc(p.title||p.excerpt||'منشور')+'</a></td><td>'+govEsc(p.author)+'</td><td>★ '+Number(p.score)+' · إعجاب '+Number(p.likes)+' · تعليق '+Number(p.comments)+' · إعادة نشر '+Number(p.reposts)+'</td><td>'+(p.featured?'★ شارة ذهبية':'مرشح')+'</td><td><button type="button" class="gov-small" data-act="gov-feature" data-id="'+p.id+'" data-status="'+(p.featured?'withdrawn':'published')+'">'+(p.featured?'سحب الإشادة':'منح شارة ذهبية')+'</button></td></tr>'));
  }else if(key==='audit'){
   target.innerHTML=govTable(['التاريخ','المدير','الهدف','القرار','السبب'],data.actions.map(a=>'<tr><td>'+govEsc(a.created_at)+'</td><td>'+govEsc(a.actor)+'</td><td>'+govEsc(a.target_type)+' #'+a.target_id+'</td><td>'+govEsc(a.action)+'</td><td>'+govEsc(a.reason)+'</td></tr>'));
  }
 }
 async function governanceAction(action,el){
+ if(action==='gov-new-news'){showModal('إضافة خبر موثق المصدر',hubAdminNewsForm());return true;}
+ if(action==='gov-new-event'){showModal('إضافة فعالية موثقة',hubAdminEventForm());return true;}
+ if(action==='gov-feature'){
+  if(!user||user.role!=='admin')return true;
+  const status=el.dataset.status;
+  const reason=prompt(status==='published'?'سبب منح الإشادة الذهبية (8 أحرف على الأقل):':'سبب سحب الإشادة (8 أحرف على الأقل):');
+  if(reason===null)return true;
+  if(reason.trim().length<8){notify('دوّن مبرراً واضحاً للقرار');return true;}
+  const lane=2;
+  if(!confirm('هل تؤكد هذا القرار وتوثيقه في سجل الرقابة؟'))return true;
+  el.disabled=true;
+  try{await api('hub/admin/featured/'+el.dataset.id,'PATCH',{status,lane,reason:reason.trim()});notify(status==='published'?'مُنحت الإشادة الذهبية':'سُحبت الإشادة');await governanceLoad();}
+  catch(e){notify(e.message);}finally{el.disabled=false;}return true;
+ }
+
  if(action==='gov-tab'){
   governanceTab=el.dataset.tab;
   document.querySelectorAll('.gov-tabs button').forEach(b=>b.classList.toggle('active',b===el));
