@@ -1,9 +1,10 @@
 // Member-centered services: server-enforced ownership for all private data.
+const participations=['تطوع','خبرة واستشارات','بحث علمي','شراكات','استثمار','تدريب','تنفيذ مشاريع'];
 const sectors=['التعليم','البيئة','المجتمع','الاقتصاد','الصحة','الإغاثة','البنية التحتية','المياه','الطاقة','التقنية'];
 const checkDate=(s)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().startsWith(s);
 const clamp=(s,n)=>typeof s==='string'?s.trim().slice(0,n):'';
 const verifyUrl=(s)=>{if(!s)return '';try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password&&u.href.length<=1200?u.href:null;}catch{return null;}};
-const selectPreferences="SELECT professional_role,organization,country,city,goal,sectors,news_enabled,onboarding_complete FROM member_preferences WHERE user_id=?";
+const selectPreferences="SELECT professional_role,organization,country,city,goal,sectors,skills,participation,profile_visibility,notification_window,news_enabled,onboarding_complete FROM member_preferences WHERE user_id=?";
 function response(json,data,status=200){return json(data,status);}
 export async function memberJourneyRoute(request,db,user,h){
  const {json,parseBody,ApiError,requireUser,enforceLimit}=h;
@@ -13,23 +14,66 @@ export async function memberJourneyRoute(request,db,user,h){
  const uid=user.id;
  const idOf=(regex)=>{const match=path.match(regex);if(!match)return null;const id=Number(match[1]);if(!Number.isSafeInteger(id)||id<1)throw new ApiError(400,'معرف غير صالح');return id;};
  const fail=(msg)=>{throw new ApiError(400,msg);};
- const prefs=async()=>{const r=await db.prepare(selectPreferences).bind(uid).first();return r?{...r,sectors:JSON.parse(r.sectors),news_enabled:Boolean(r.news_enabled),onboarding_complete:Boolean(r.onboarding_complete)}:{professional_role:'',organization:'',country:'',city:'',goal:'',sectors:[],news_enabled:true,onboarding_complete:false};};
+ const prefs=async()=>{const r=await db.prepare(selectPreferences).bind(uid).first();return r?{...r,sectors:JSON.parse(r.sectors),skills:JSON.parse(r.skills),participation:JSON.parse(r.participation),news_enabled:Boolean(r.news_enabled),onboarding_complete:Boolean(r.onboarding_complete)}:{professional_role:'',organization:'',country:'',city:'',goal:'',sectors:[],skills:[],participation:[],profile_visibility:'members',notification_window:14,news_enabled:true,onboarding_complete:false};};
  if(path==='/api/journey/preferences'){
   if(method==='GET')return response(json,{preferences:await prefs()});
   if(method==='PATCH'){
    const d=await parseBody(request);
    if(!Array.isArray(d.sectors)||d.sectors.length>10||d.sectors.some(x=>!sectors.includes(x)))fail('اختر مجالات اهتمام معروفة.');
-   const values=[clamp(d.professional_role,80),clamp(d.organization,120),clamp(d.country,80),clamp(d.city,80),clamp(d.goal,400),JSON.stringify([...new Set(d.sectors)]),d.news_enabled===false?0:1,d.onboarding_complete===true?1:0];
-   await db.prepare(`INSERT INTO member_preferences(user_id,professional_role,organization,country,city,goal,sectors,news_enabled,onboarding_complete) VALUES(?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(user_id) DO UPDATE SET professional_role=excluded.professional_role,organization=excluded.organization,country=excluded.country,city=excluded.city,goal=excluded.goal,sectors=excluded.sectors,news_enabled=excluded.news_enabled,onboarding_complete=excluded.onboarding_complete,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).bind(uid,...values).run();
+   const skills=Array.isArray(d.skills)?d.skills:[];
+   if(skills.length>12||skills.some(x=>typeof x!=='string'||!x.trim()||x.trim().length>65))fail('المهارات غير صالحة.');
+   const participation=Array.isArray(d.participation)?d.participation:[];
+   if(participation.some(x=>!participations.includes(x)))fail('مجالات المشاركة غير صالحة.');
+   const visibility=['private','members'].includes(d.profile_visibility)?d.profile_visibility:'members';
+   const windowDays=[3,7,14,30].includes(Number(d.notification_window))?Number(d.notification_window):14;
+   const values=[clamp(d.professional_role,80),clamp(d.organization,120),clamp(d.country,80),clamp(d.city,80),clamp(d.goal,400),JSON.stringify([...new Set(d.sectors)]),JSON.stringify([...new Set(skills.map(x=>x.trim()))]),JSON.stringify([...new Set(participation)]),visibility,windowDays,d.news_enabled===false?0:1,d.onboarding_complete===true?1:0];
+   await db.prepare(`INSERT INTO member_preferences(user_id,professional_role,organization,country,city,goal,sectors,skills,participation,profile_visibility,notification_window,news_enabled,onboarding_complete) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(user_id) DO UPDATE SET professional_role=excluded.professional_role,organization=excluded.organization,country=excluded.country,city=excluded.city,goal=excluded.goal,sectors=excluded.sectors,skills=excluded.skills,participation=excluded.participation,profile_visibility=excluded.profile_visibility,notification_window=excluded.notification_window,news_enabled=excluded.news_enabled,onboarding_complete=excluded.onboarding_complete,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).bind(uid,...values).run();
    return response(json,{preferences:await prefs()});
   }
  }
  if(path==='/api/journey/alerts'&&method==='GET'){
-  const {results}=await db.prepare(`SELECT id,title,event_date FROM member_calendar
-    WHERE user_id=? AND event_date BETWEEN date('now') AND date('now','+14 days')
-    ORDER BY event_date ASC,id ASC LIMIT 30`).bind(uid).all();
-  return response(json,{alerts:results.map(x=>({type:'calendar',title:x.title,date:x.event_date,url:'/my-calendar'}))});
+  const pref=await prefs(),window=Number(pref.notification_window);
+  const [calendar,tasks,requests]=await Promise.all([
+   db.prepare(`SELECT title,event_date FROM member_calendar WHERE user_id=?
+     AND event_date BETWEEN date('now') AND date('now','+'||?||' days') ORDER BY event_date LIMIT 40`).bind(uid,window).all(),
+   db.prepare(`SELECT t.title,t.due_date,p.title AS project_title FROM project_work_items t
+     JOIN development_projects p ON p.id=t.project_id WHERE t.assigned_to=? AND t.status='open'
+     AND t.due_date BETWEEN date('now') AND date('now','+'||?||' days')
+     ORDER BY t.due_date LIMIT 30`).bind(uid,window).all(),
+   db.prepare(`SELECT p.id,p.title,u.name AS applicant FROM project_collaborators c
+     JOIN development_projects p ON p.id=c.project_id JOIN users u ON u.id=c.user_id
+     WHERE p.owner_id=? AND c.status='pending' ORDER BY c.applied_at DESC LIMIT 20`).bind(uid).all()
+  ]);
+  const alerts=[
+    ...calendar.results.map(x=>({type:'calendar',title:x.title,date:x.event_date,url:'/my-calendar'})),
+    ...tasks.results.map(x=>({type:'task',title:'مهمة: '+x.title,date:x.due_date,url:'/my-projects'})),
+    ...requests.results.map(x=>({type:'request',title:'طلب مشاركة: '+x.applicant+' — '+x.title,date:null,url:'/my-projects?id='+x.id}))
+  ];
+  return response(json,{alerts,window_days:window});
+ }
+ if(path==='/api/journey/professional'&&method==='GET'){
+  const id=Number(url.searchParams.get('id')||uid);
+  if(!Number.isSafeInteger(id)||id<1)fail('معرف عضو غير صالح');
+  const row=await db.prepare(`SELECT p.user_id,u.name,p.professional_role,p.organization,p.city,p.country,p.skills,p.participation,p.sectors,p.profile_visibility
+    FROM member_preferences p JOIN users u ON u.id=p.user_id WHERE p.user_id=? AND u.account_status='active'`).bind(id).first();
+  if(!row)return response(json,{profile:null});
+  if(id!==uid && row.profile_visibility!=='members')return response(json,{profile:null});
+  return response(json,{profile:{...row,skills:JSON.parse(row.skills),participation:JSON.parse(row.participation),sectors:JSON.parse(row.sectors)}});
+ }
+ if(path==='/api/journey/people'&&method==='GET'){
+  const pref=await prefs(),{results}=await db.prepare(`SELECT u.id,u.name,p.professional_role,p.organization,p.country,p.city,p.skills,p.sectors
+    FROM member_preferences p JOIN users u ON u.id=p.user_id
+    WHERE p.user_id<>? AND p.profile_visibility='members' AND u.account_status='active'
+    ORDER BY p.updated_at DESC LIMIT 100`).bind(uid).all();
+  const q=clamp(url.searchParams.get('q'),100).toLowerCase();
+  const ranked=results.map(x=>{
+   let tags=[];try{tags=JSON.parse(x.sectors)}catch{}
+   let skills=[];try{skills=JSON.parse(x.skills)}catch{}
+   const score=tags.filter(t=>pref.sectors.includes(t)).length*3+skills.filter(t=>pref.skills.includes(t)).length*2+(x.country&&x.country===pref.country?1:0);
+   return {...x,sectors:tags,skills,score};
+  }).filter(x=>!q||(x.name+' '+x.professional_role+' '+x.organization+' '+x.country+' '+x.skills.join(' ')).toLowerCase().includes(q)).sort((a,b)=>b.score-a.score).slice(0,30);
+  return response(json,{people:ranked});
  }
  if(path==='/api/journey/dashboard'&&method==='GET'){
   const [pref,posts,relations,calendar,goals,impact,saves]=await Promise.all([
@@ -239,6 +283,27 @@ export async function memberJourneyRoute(request,db,user,h){
   }
   await db.prepare('UPDATE project_work_items SET status=? WHERE id=?').bind(d.status,tid).run();
   return response(json,{ok:true});
+ }
+ if(path==='/api/journey/impact-review'&&method==='GET'){
+  if(user.role!=='admin')throw new ApiError(403,'المراجعة مخصصة للإدارة');
+  const {results}=await db.prepare(`SELECT i.id,i.title,i.outcome,i.evidence_url,i.beneficiaries,i.verification,i.reviewer_note,
+    i.created_at,u.name AS member FROM member_impact i JOIN users u ON u.id=i.user_id ORDER BY
+    CASE WHEN i.verification='self_reported' THEN 0 ELSE 1 END,i.id DESC LIMIT 100`).all();
+  return response(json,{reports:results});
+ }
+ let reviewId=idOf(/^\/api\/journey\/impact-review\/(\d+)$/);
+ if(reviewId&&method==='PATCH'){
+  if(user.role!=='admin')throw new ApiError(403,'المراجعة مخصصة للإدارة');
+  await enforceLimit(db,'impact-review',uid,60,3600);
+  const d=await parseBody(request),status=d.decision,note=clamp(d.note,700);
+  if(!['reviewed','self_reported'].includes(status)||note.length<12)fail('أدخل قرار مراجعة واضحاً ومبرراً مناسباً.');
+  const item=await db.prepare('SELECT id FROM member_impact WHERE id=?').bind(reviewId).first();
+  if(!item)throw new ApiError(404,'تقرير الإنجاز غير موجود');
+  await db.batch([
+   db.prepare("UPDATE member_impact SET verification=?,reviewer_id=?,reviewed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),reviewer_note=? WHERE id=?").bind(status,uid,note,reviewId),
+   db.prepare('INSERT INTO member_impact_reviews(impact_id,reviewer_id,decision,note) VALUES(?,?,?,?)').bind(reviewId,uid,status,note)
+  ]);
+  return response(json,{ok:true,verification:status});
  }
  return null;
 }
