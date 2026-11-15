@@ -58,7 +58,7 @@ async function route(){const token=++version;let target=main;
  closeAccountMenu();
  const isLanding=['/','/welcome','/welcome/'].includes(location.pathname);
  document.body.classList.toggle('landingView',isLanding);
- if(isLanding){renderWelcome();return;}
+ if(isLanding){if(user){history.replaceState(null,'','/wall');await route();return;}renderWelcome();return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}
  if(await socialRoute(token))return;
  const post=location.pathname.match(/^\/post\/(\d+)\/?$/);if(post){
@@ -69,7 +69,7 @@ async function route(){const token=++version;let target=main;
   (user?'<form class="fields" id="comment" data-id="'+post[1]+'"><label>تعليقك<textarea name="body" required maxlength="1500"></textarea></label><div role="alert" class="error"></div><button class="btn primary">نشر التعليق</button></form>':'<button class="btn" data-act="login">سجّل الدخول للتعليق</button>')+'</section></div>';
   if(location.hash==='#comments')document.querySelector('#comments').scrollIntoView();
  }else if(location.pathname==='/reports'){
-  if(!user||user.role!=='admin'){go('/');return;}main.innerHTML='<div class="status">جارٍ تحميل البلاغات…</div>';const data=await api('reports');if(token!==version)return;
+  if(!user||user.role!=='admin'){go('/wall');return;}main.innerHTML='<div class="status">جارٍ تحميل البلاغات…</div>';const data=await api('reports');if(token!==version)return;
   document.title='البلاغات | تنميات';main.innerHTML='<div class="detail"><a href="/wall" class="plain back">← المجتمع</a><h1>بلاغات المنشورات</h1>'+
   (data.reports.length?data.reports.map(r=>'<div class="panel report"><a href="/post/'+encodeURIComponent(r.post_id)+'">'+esc(r.title)+'</a><button class="btn" data-act="dismiss" data-id="'+encodeURIComponent(r.id)+'">إغلاق البلاغ</button></div>').join(''):'<div class="status">لا توجد بلاغات مفتوحة.</div>')+'</div>';
  }else if(['/wall','/wall/'].includes(location.pathname)){
@@ -117,7 +117,7 @@ document.addEventListener('submit',async e=>{
  if(form.id==='search'){go(homeUrl(location.pathname==='/wall'?topic:'',data.q.trim()));return;}
  const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;const error=form.querySelector('.error');error.textContent='';
  try{
- if(form.id==='auth'){await api(form.dataset.mode,'POST',data);user=(await api('me')).user;account();if(dialog.open)dialog.close();const next=afterAuth;afterAuth=null;await pulse();if(form.dataset.mode==='register'){go('/welcome');}else if(!next&&document.body.classList.contains('landingView')){go('/wall');}else{await route();if(next&&user)next();}}
+ if(form.id==='auth'){await api(form.dataset.mode,'POST',data);user=(await api('me')).user;account();if(dialog.open)dialog.close();const next=afterAuth;afterAuth=null;await pulse();if(next&&user){await route();next();}else{go('/wall');}}
  else if(form.id==='compose'){const res=await api('posts','POST',data);dialog.close();go('/post/'+encodeURIComponent(res.post.id));notify('نُشرت مشاركتك');}
  else if(form.id==='comment'){await api('posts/'+form.dataset.id+'/comments','POST',data);await route();notify('نُشر تعليقك');}
  else if(form.id==='confirm'){const removing=form.dataset.action==='delete';await api('posts/'+form.dataset.id+(removing?'':'/report'),removing?'DELETE':'POST');dialog.close();if(removing)go('/wall');notify(removing?'حُذف المنشور':'أُرسل البلاغ إلى الإدارة');}
