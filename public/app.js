@@ -63,6 +63,15 @@ async function wallDiscover(token){const el=document.getElementById('discovery')
  (data.groups.length?'<h3>مجموعات نشطة</h3>'+data.groups.slice(0,3).map(g=>'<a href="/groups/'+encodeURIComponent(g.id)+'" class="discoverGroup"><strong>'+esc(g.name)+'</strong><small>'+Number(g.members)+' عضو</small></a>').join(''):'');
  }catch{el.innerHTML='';}}
 
+function updateWallNavState(){
+ const enabled=['/wall','/wall/'].includes(location.pathname);
+ const y=window.scrollY||0;
+ document.body.classList.toggle('wallNavScrolled',enabled && y>55);
+ const banner=document.querySelector('#wallIdentity');
+ const bottom=banner?.getBoundingClientRect().bottom ?? 0;
+ document.body.classList.toggle('wallNavBeyond',enabled && bottom>0 && bottom<72);
+}
+window.addEventListener('scroll',updateWallNavState,{passive:true});
 function go(url){history.pushState(null,'',url);route();window.scrollTo(0,0);}
 async function route(){const token=++version;let target=main;
  try{
@@ -70,6 +79,7 @@ async function route(){const token=++version;let target=main;
  const isLanding=['/','/welcome','/welcome/'].includes(location.pathname);
  document.body.classList.toggle('landingView',isLanding);
  document.body.classList.toggle('wallCoverView', ['/wall','/wall/'].includes(location.pathname));
+ updateWallNavState();
  if(isLanding){if(user){history.replaceState(null,'','/wall');await route();return;}renderWelcome();return;}
  if(location.pathname==='/admin'){await renderGovernance(token);return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}

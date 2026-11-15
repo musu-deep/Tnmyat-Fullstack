@@ -20,11 +20,38 @@ function memberSignature(member,mode='regular') {
   '<span class="identityCopy"><strong>'+esc(member.name)+'</strong>'+
   (mode==='regular'?'<small>'+esc(member.bio||'عضو في مجتمع تنميات')+'</small>':'')+'</span></a>';
 }
+function memberRank(p) {
+ const posts=Math.max(0,Number(p?.posts_count)||0);
+ const comments=Math.max(0,Number(p?.comments_count)||0);
+ const likes=Math.max(0,Number(p?.received_likes_count)||0);
+ const followers=Math.max(0,Number(p?.followers_count)||0);
+ const points=posts*5+comments*2+likes*3+followers*2;
+ const levels=[
+  {min:0,name:'عضو جديد'},
+  {min:20,name:'عضو مشارك'},
+  {min:70,name:'عضو نشط'},
+  {min:180,name:'عضو مؤثر'},
+  {min:400,name:'رائد تنميات'}
+ ];
+ const index=levels.reduce((value,item,i)=>points>=item.min?i:value,0);
+ return {points,stars:index+1,name:levels[index].name};
+}
+function rankBadge(p) {
+ const rank=memberRank(p);
+ return '<span class="memberRank" title="رتبة تشجيعية محسوبة من نشاطك وتفاعلاتك؛ لا تمنح صلاحيات إدارية"><span class="rankStars" aria-hidden="true">'+('★'.repeat(rank.stars))+'</span><span>'+rank.name+'</span><small>'+rank.points.toLocaleString('ar')+' نقطة</small></span>';
+}
 function wallIdentityHero(p){
- const id=encodeURIComponent(p.id),posts=Number(p.posts_count||0),followers=Number(p.followers_count||0),friends=Number(p.friends_count||0);
- return '<section class="wallIdentityHero"><div class="wallIdentityCover"'+coverStyle(p)+'><span>مساحتك في مجتمع تنميات</span><button type="button" data-act="editprofile" class="wallCoverEdit">✎ تخصيص الغلاف</button></div>'+
- '<div class="wallIdentityMain"><a href="/profile/'+id+'" class="wallIdentityPortrait">'+face(p,'large')+'</a><div class="wallIdentityInfo"><h2>'+esc(p.name)+'</h2><p>'+esc(p.bio||'تواصل، وشارك خبراتك ومبادراتك مع مجتمعك.')+'</p></div><a class="wallIdentityLink" href="/profile/'+id+'">عرض الملف الشخصي ←</a></div>'+
- '<div class="wallIdentityStats"><a href="/profile/'+id+'"><b>'+posts.toLocaleString('ar')+'</b><span>منشورات</span></a><a href="/people?filter=followers"><b>'+followers.toLocaleString('ar')+'</b><span>متابعون</span></a><a href="/people?filter=friends"><b>'+friends.toLocaleString('ar')+'</b><span>أصدقاء</span></a></div></section>';
+ const id=encodeURIComponent(p.id);
+ const stats=[
+  {label:'منشورات',value:Number(p.posts_count||0),href:'/profile/'+id,icon:'▤'},
+  {label:'متابعون',value:Number(p.followers_count||0),href:'/people?filter=followers',icon:'♧'},
+  {label:'أصدقاء',value:Number(p.friends_count||0),href:'/people?filter=friends',icon:'✧'},
+  {label:'تفاعلات',value:Number(p.received_likes_count||0)+Number(p.comments_count||0),href:'/profile/'+id,icon:'♡'}
+ ];
+ return '<section class="wallIdentityHero"><div class="wallIdentityCover"'+coverStyle(p)+'>'+ 
+ '<span class="wallCoverCaption">مساحتك في مجتمع تنميات</span><button type="button" data-act="editprofile" class="wallCoverEdit">✎ تخصيص الغلاف</button>'+ 
+ '<div class="wallIdentityStats" aria-label="مؤشرات نشاط العضو">'+stats.map(st=>'<a class="glassStat" href="'+st.href+'" title="'+st.label+'"><span class="statIcon" aria-hidden="true">'+st.icon+'</span><b>'+st.value.toLocaleString('ar')+'</b><span>'+st.label+'</span></a>').join('')+'</div></div>'+ 
+ '<div class="wallIdentityMain"><a href="/profile/'+id+'" class="wallIdentityPortrait">'+face(p,'large')+'</a><div class="wallIdentityInfo"><h2>'+esc(p.name)+'</h2><p>'+esc(p.bio||'تواصل، وشارك خبراتك ومبادراتك مع مجتمعك.')+'</p>'+rankBadge(p)+'</div><a class="wallIdentityLink" href="/profile/'+id+'">عرض الملف الشخصي ←</a></div></section>';
 }
 const kindNames={post:'منشور',article:'مقال',initiative:'مبادرة',question:'سؤال',announcement:'إعلان مجموعة'};
 const kindIcons={post:'✍',article:'▤',initiative:'✦',question:'؟',announcement:'♧'};
@@ -252,8 +279,9 @@ function counts(p,full=false){
 function profileMini(p,latest){
  const summary=p.bio?'<p class="memberIntro">'+esc(p.bio)+'</p>':'';
  const activity=latest?'<a class="memberLatest" href="/post/'+latest.id+'"><small>آخر مشاركة</small><strong>'+esc(postLabel(latest))+'</strong></a>':'';
- // The main cover is displayed once above the wall; sidebar remains compact.
- return '<section class="memberPass memberPassCompact"><div class="memberPassIdentity">'+memberSignature(p,'regular')+'</div>'+summary+activity+'</section>';
+ const metricItems=[['posts_count','منشورات'],['followers_count','متابعون'],['friends_count','أصدقاء'],['received_likes_count','إعجابات']];
+ return '<section class="memberPass memberPassCompact"><div class="memberPassIdentity">'+memberSignature(p,'regular')+'</div>'+ 
+ rankBadge(p)+summary+'<div class="sideMemberMetrics">'+metricItems.map(([key,label])=>'<div><b>'+Number(p[key]||0).toLocaleString('ar')+'</b><span>'+label+'</span></div>').join('')+'</div>'+activity+'</section>';
 }
 function peopleButtons(p){
  if(!user)return '<button class="btn" data-act="login">دخول للتواصل</button>';
@@ -273,7 +301,7 @@ async function wallPresence(token){
 }
 async function refreshWallSide(token){
  const presence=wallPresence(token).catch(()=>{});
- if(user)try{const [{profile},activity]=await Promise.all([api('profiles/'+user.id),api('posts?user='+user.id)]);if(token===version){const hero=document.getElementById('wallIdentity');if(hero)hero.innerHTML=wallIdentityHero(profile);for(const key of ['myCard','mobileCard']){const node=document.getElementById(key);if(node)node.innerHTML=profileMini(profile,activity.posts[0]);}}}catch{/* Profile remains reachable via the initial card. */}
+ if(user)try{const [{profile},activity]=await Promise.all([api('profiles/'+user.id),api('posts?user='+user.id)]);if(token===version){const hero=document.getElementById('wallIdentity');if(hero){hero.innerHTML=wallIdentityHero(profile);updateWallNavState();}for(const key of ['myCard','mobileCard']){const node=document.getElementById(key);if(node)node.innerHTML=profileMini(profile,activity.posts[0]);}}}catch{/* Profile remains reachable via the initial card. */}
  await presence;
 }
 async function directory(token){
@@ -296,7 +324,7 @@ async function profile(token,id){
  const cover=asset(p.cover),position=Math.max(0,Math.min(100,Number(p.cover_position??50)));
  const metrics=[['posts_count','المنشورات'],['comments_count','التعليقات'],['received_likes_count','الإعجابات المستلمة'],['followers_count','المتابعون'],['following_count','يتابع'],['friends_count','الأصدقاء']];
  const metricsHtml=metrics.map(([field,label])=>'<button type="button" class="profileStat" data-act="profilemetric" data-key="'+field+'" aria-label="عرض تفاصيل '+label+'"><b>'+Number(p[field]||0).toLocaleString('ar')+'</b><span>'+label+'</span></button>').join('');
- main.innerHTML='<div class="socialPage profilePage">'+pathTitle(p.name)+'<section class="profileHero profileHeroV2"><div class="profileCover profileCoverV2"'+(cover?' style="background-image:linear-gradient(0deg,rgba(4,22,44,.35),transparent 65%),url(\''+cover+'\');background-position:center '+position+'%"':'')+'><span class="coverBrand">مجتمع تنميات</span>'+(own?'<button type="button" class="coverEditBtn" data-act="editprofile">✎ تخصيص الغلاف</button>':'')+'</div><div class="profileIdentity"><div class="profilePortrait">'+face(p,'large')+(own?'<button type="button" data-act="editprofile" class="portraitEditBtn" aria-label="تعديل الصورة الشخصية">✎</button>':'')+'</div><div class="profileIdentityText"><h1>'+esc(p.name)+'</h1><small>'+(p.online?'● متصل الآن':'عضو في تنميات')+'</small>'+(p.bio?'<p class="bodycopy">'+esc(p.bio)+'</p>':'')+'</div><div class="profileBtns">'+peopleButtons(p)+'</div></div><div class="profileMetrics" aria-label="إحصاءات نشاط العضو">'+metricsHtml+'</div></section><div class="socialHeading"><h2>منشورات العضو</h2>'+(own?'<button class="btn primary" data-act="compose">＋ مشاركة</button>':'')+'</div><div id="profilePosts"></div><div id="profileMore"></div></div>';
+ main.innerHTML='<div class="socialPage profilePage">'+pathTitle(p.name)+'<section class="profileHero profileHeroV2"><div class="profileCover profileCoverV2"'+(cover?' style="background-image:linear-gradient(0deg,rgba(4,22,44,.35),transparent 65%),url(\''+cover+'\');background-position:center '+position+'%"':'')+'><span class="coverBrand">مجتمع تنميات</span>'+(own?'<button type="button" class="coverEditBtn" data-act="editprofile">✎ تخصيص الغلاف</button>':'')+'</div><div class="profileIdentity"><div class="profilePortrait">'+face(p,'large')+(own?'<button type="button" data-act="editprofile" class="portraitEditBtn" aria-label="تعديل الصورة الشخصية">✎</button>':'')+'</div><div class="profileIdentityText"><h1>'+esc(p.name)+'</h1>'+rankBadge(p)+'<small>'+(p.online?'● متصل الآن':'عضو في تنميات')+'</small>'+(p.bio?'<p class="bodycopy">'+esc(p.bio)+'</p>':'')+'</div><div class="profileBtns">'+peopleButtons(p)+'</div></div><div class="profileMetrics" aria-label="إحصاءات نشاط العضو">'+metricsHtml+'</div></section><div class="socialHeading"><h2>منشورات العضو</h2>'+(own?'<button class="btn primary" data-act="compose">＋ مشاركة</button>':'')+'</div><div id="profilePosts"></div><div id="profileMore"></div></div>';
  await profilePosts(id,1,token);
 }
 async function profilePosts(id,page,token){

@@ -40,36 +40,75 @@
 
 .accountSummaryCover{position:relative;overflow:hidden;padding-top:14px!important}.accountCoverRibbon{position:absolute;top:0;inset-inline:0;height:14px;background:linear-gradient(100deg,#21465e,#91a69d);background-size:cover;background-position:center}.accountSummaryCover>.avatar{position:relative;border:2px solid white;flex-shrink:0}
 
-/* Wall: one panoramic member cover replaces the blue navigation strip.
-   The sidebar does not duplicate the image or statistics. */
+/* Tnmyat wall redesign: cinematic cover, glass analytics and compact sidebar. */
+body.wallCoverView main.wrap{width:min(1460px,calc(100% - 48px));padding-top:0}
 body.wallCoverView > header{
- position:fixed;inset-block-start:0;inset-inline:0;z-index:30;
- background:rgba(18,37,54,.38);border-bottom:1px solid rgba(255,255,255,.18);
- -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+ position:sticky;top:0;z-index:30;
+ background:#152b43!important;
+ border-color:#ffffff26;
+ transition:background-color .32s ease,box-shadow .32s ease,backdrop-filter .32s ease;
 }
-body.wallCoverView main.wrap{padding-top:0}
-.wallBannerSlot{margin:0 0 20px}
-.wallBannerSlot:empty{min-height:0;margin:0}
-.wallBannerSlot .wallIdentityHero{border-radius:0 0 18px 18px;margin:0;box-shadow:0 10px 30px #1e3c5617}
-.wallBannerSlot .wallIdentityCover{height:clamp(235px,30vw,390px);background-color:#16435a}
-.wallBannerSlot .wallIdentityCover>span{top:90px;inset-inline-start:25px;font-size:.85rem}
-.wallBannerSlot .wallCoverEdit{bottom:20px;inset-inline-end:22px}
-.wallBannerSlot .wallIdentityMain{padding:0 24px 18px;min-height:78px}
-.wallBannerSlot .wallIdentityPortrait{margin-top:-55px}
-.wallBannerSlot .wallIdentityPortrait .avatar.large{height:112px;width:112px}
-.wallBannerSlot .wallIdentityInfo h2{font-size:1.4rem}
-.wallBannerSlot .wallIdentityStats{background:#f7f9fc}
-.memberPassCompact{padding:14px 10px 12px}
+body.wallCoverView.wallNavScrolled:not(.wallNavBeyond) > header{
+ background:rgba(19,40,60,.59)!important;
+ backdrop-filter:blur(18px) saturate(1.25);
+ -webkit-backdrop-filter:blur(18px) saturate(1.25);
+ box-shadow:0 6px 23px #07192c33;
+}
+body.wallCoverView.wallNavBeyond > header{background:#142d47!important;box-shadow:0 4px 20px #0b213023}
+body.wallCoverView .topbar{width:min(1460px,calc(100% - 48px))}
+.wallBannerSlot{width:100%;margin:0 0 20px}
+.wallBannerSlot:empty{display:none}
+.wallBannerSlot .wallIdentityHero{border-radius:0 0 20px 20px;margin-bottom:0;box-shadow:0 12px 35px #193d5515}
+.wallBannerSlot .wallIdentityCover{height:clamp(270px,31vw,430px);position:relative;background-color:#224e68}
+.wallBannerSlot .wallIdentityCover::before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#071d3077 0%,transparent 58%);pointer-events:none}
+.wallBannerSlot .wallCoverCaption{position:absolute;top:21px;inset-inline-start:25px;color:#fff;font-size:.85rem;z-index:1;text-shadow:0 1px 7px #000a}
+.wallBannerSlot .wallCoverEdit{bottom:auto;top:19px;inset-inline-end:21px;z-index:2}
+.wallBannerSlot .wallIdentityStats{position:absolute;left:20px;right:20px;bottom:18px;z-index:2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border:0;background:transparent}
+.wallBannerSlot .glassStat{min-width:0;padding:12px 7px;background:rgba(245,250,255,.15);border:1px solid rgba(255,255,255,.35)!important;color:white;border-radius:16px;backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-filter:blur(18px) saturate(1.25);box-shadow:inset 0 1px 0 #fff4,0 5px 18px #051e3440;display:grid;justify-items:center;gap:2px;transition:background .18s ease,transform .18s ease}
+.wallBannerSlot .glassStat:hover{background:rgba(255,255,255,.24);transform:translateY(-2px)}
+.wallBannerSlot .glassStat b{color:white;font-size:1.15rem;line-height:1.2}
+.wallBannerSlot .glassStat span{color:#fff;font-size:.76rem}
+.wallBannerSlot .glassStat .statIcon{font-size:1rem;opacity:.85}
+.wallBannerSlot .wallIdentityMain{padding:0 24px 21px;min-height:104px;gap:16px}
+.wallBannerSlot .wallIdentityPortrait{margin-top:-47px}
+.wallBannerSlot .wallIdentityPortrait .avatar.large{height:110px;width:110px}
+.wallBannerSlot .wallIdentityInfo h2{font-size:1.45rem}
+body.wallCoverView .wallGrid{width:100%;grid-template-columns:minmax(205px,1.03fr) minmax(0,3.25fr) minmax(220px,1.05fr);gap:clamp(15px,2vw,32px);margin:0}
+body.wallCoverView .rail,body.wallCoverView .latest{top:90px}
+.memberPassCompact{padding:15px 12px 12px;border:0;background:transparent;box-shadow:none}
 .memberPassCompact .memberPassIdentity{padding:0}
-.memberPassCompact .memberPassIdentity .identityLink{margin-top:0}
-.memberPassCompact .memberPassIdentity .identityCover{display:none}
-.memberPassCompact .memberPassIdentity .avatar{margin-top:0}
+.memberPassCompact .identityLink{margin-top:0}
+.memberPassCompact .identityCover{display:none!important}
+.memberPassCompact .identityLink .avatar{margin-top:0}
+.sideMemberMetrics{margin-top:14px;padding-top:12px;border-top:1px solid #e2e8ef;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sideMemberMetrics>div{background:#f0f4f9;border-radius:10px;text-align:center;padding:9px 3px}
+.sideMemberMetrics b{display:block;font-size:1.1rem;color:#214567}
+.sideMemberMetrics span{display:block;color:#61738b;font-size:.68rem;margin-top:2px}
+.memberRank{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;padding:5px 10px;border-radius:999px;color:#6b4b16;background:#fff5df;border:1px solid #eed8a0;font-size:.75rem;font-weight:800;line-height:1.5;max-width:100%}
+.memberRank .rankStars{color:#bb861d;letter-spacing:1px;white-space:nowrap}
+.memberRank small{color:#8f702f;font-size:.67rem}
+.memberPassCompact>.memberRank{margin-top:10px}
+.wallBannerSlot .wallIdentityInfo .memberRank{margin-top:7px}
+.profileIdentityText .memberRank{margin:6px 0}
+@media(max-width:1050px){body.wallCoverView .wallGrid{grid-template-columns:190px minmax(0,1fr)}body.wallCoverView .latest{grid-column:2;position:static}}
 @media(max-width:680px){
- body.wallCoverView .topbar{min-height:62px}
- .wallBannerSlot .wallIdentityCover{height:225px}
- .wallBannerSlot .wallIdentityCover>span{top:100px;inset-inline-start:14px}
- .wallBannerSlot .wallIdentityMain{padding:0 14px 14px}
- .wallBannerSlot .wallIdentityPortrait{margin-top:-38px}
- .wallBannerSlot .wallIdentityPortrait .avatar.large{height:82px;width:82px}
+ body.wallCoverView main.wrap,body.wallCoverView .topbar{width:calc(100% - 20px)}
+ body.wallCoverView .wallGrid{display:flex;flex-direction:column;gap:14px}
+ body.wallCoverView .wallGrid>.rail{display:none}
+ body.wallCoverView .wallGrid>.wall,body.wallCoverView .wallGrid>.latest{width:100%}
+ .wallBannerSlot .wallIdentityCover{height:275px}
+ .wallBannerSlot .wallIdentityStats{left:9px;right:9px;bottom:10px;gap:6px}
+ .wallBannerSlot .glassStat{padding:7px 2px;border-radius:11px}
+ .wallBannerSlot .glassStat b{font-size:.98rem}
+ .wallBannerSlot .glassStat span{font-size:.62rem}
+ .wallBannerSlot .glassStat .statIcon{display:none}
+ .wallBannerSlot .wallIdentityMain{padding:0 12px 13px;gap:8px}
+ .wallBannerSlot .wallIdentityPortrait{margin-top:-32px}
+ .wallBannerSlot .wallIdentityPortrait .avatar.large{height:83px;width:83px}
  .wallBannerSlot .wallIdentityInfo h2{font-size:1.15rem}
+ .wallBannerSlot .wallCoverCaption{inset-inline-start:12px;top:15px}
+ .wallBannerSlot .wallCoverEdit{inset-inline-end:10px;top:10px;padding:6px 8px}
 }
+[data-theme=dark] .sideMemberMetrics>div{background:#25394d}
+[data-theme=dark] .sideMemberMetrics b{color:#e0eefb}
+[data-theme=dark] .sideMemberMetrics span{color:#bdcfe0}
