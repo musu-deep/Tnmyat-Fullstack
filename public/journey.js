@@ -2,27 +2,33 @@
 // Member journey UI. Profiles, personal calendars and project selections are scoped to the signed-in member.
 const JOURNEY_SECTORS=['التعليم','البيئة','المجتمع','الاقتصاد','الصحة','الإغاثة','البنية التحتية','المياه','الطاقة','التقنية'];
 let journeyMapInstance=null;
+const JOURNEY_PARTICIPATION=['تطوع','خبرة واستشارات','بحث علمي','شراكات','استثمار','تدريب','تنفيذ مشاريع'];
 const JOURNEY_MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const journeyDate=s=>new Date(s+'T12:00:00Z').toLocaleDateString('ar',{year:'numeric',month:'long',day:'numeric'});
 const jlink=(url,label)=>'<a class="journeyLink" href="'+url+'">'+label+'</a>';
 const jempty=t=>'<p class="journeyEmpty">'+t+'</p>';
 const jNav=()=>'<nav class="journeyNav" aria-label="مساحتي التنموية">'+[
- ['/my-space','لوحتي'],['/my-calendar','تقويمي'],['/my-map','خارطتي'],['/my-projects','مشاريعي'],['/my-news','أخباري'],['/my-impact','أهدافي وأثري'],['/onboarding','تفضيلاتي']
+ ['/my-space','لوحتي'],['/my-people','شبكتي المهنية'],['/my-alerts','تنبيهاتي'],['/my-calendar','تقويمي'],['/my-map','خارطتي'],['/my-projects','مشاريعي'],['/my-news','أخباري'],['/my-impact','أهدافي وأثري'],['/onboarding','تفضيلاتي'],...(user?.role==='admin'?[['/impact-review','مراجعة الأثر']]:[])
 ].map(([url,label])=>'<a href="'+url+'" class="'+(location.pathname===url?'active':'')+'">'+label+'</a>').join('')+'</nav>';
 function jShell(title,subtitle,body){document.title=title+' | تنميات';main.innerHTML='<div class="journeyPage"><div class="journeyHeader"><span>مساحتي التنموية</span><h1>'+title+'</h1><p>'+subtitle+'</p></div>'+jNav()+body+'</div>';}
 function jFields(p){
+ const skills=Array.isArray(p.skills)?p.skills:[];
+ const participation=Array.isArray(p.participation)?p.participation:[];
  const inputs=(key,label,max=100)=>'<label>'+label+'<input name="'+key+'" maxlength="'+max+'" value="'+esc(p[key]||'')+'"></label>';
  return '<form id="journeyPrefs" class="journeyForm">'+
  '<h2>لماذا انضممت إلى مجتمع تنميات؟</h2><p>خصص تجربتك بما يناسب مجالاتك واحتياجاتك. يمكنك تعديل هذه البيانات أو تجاوزها في أي وقت.</p>'+
  '<div class="journeyFields">'+inputs('professional_role','الصفة المهنية',80)+inputs('organization','الجهة أو المؤسسة',120)+inputs('country','الدولة',80)+inputs('city','المدينة',80)+'</div>'+
  '<label>هدفك من الانضمام<textarea name="goal" maxlength="400" placeholder="مثلاً: تطوير مبادرات تعليمية وبناء شراكات مهنية">'+esc(p.goal||'')+'</textarea></label>'+
  '<fieldset><legend>مجالات اهتمامك (اختر ما يناسبك)</legend><div class="journeySectors">'+JOURNEY_SECTORS.map(s=>'<label><input type="checkbox" name="sectors" value="'+s+'" '+(p.sectors.includes(s)?'checked':'')+'><span>'+s+'</span></label>').join('')+'</div></fieldset>'+
+ '<label>المهارات والخبرات (افصل بينها بفاصلة)<input name="skills_text" maxlength="700" value="'+esc(skills.join('، '))+'" placeholder="إدارة المشاريع، البحث، التخطيط الاستراتيجي"></label>'+
+ '<fieldset><legend>مجالات المشاركة التي تفضلها</legend><div class="journeySectors">'+JOURNEY_PARTICIPATION.map(s=>'<label><input type="checkbox" name="participation" value="'+s+'" '+(participation.includes(s)?'checked':'')+'><span>'+s+'</span></label>').join('')+'</div></fieldset>'+
+ '<div class="journeyFields"><label>ظهور بياناتي المهنية<select name="profile_visibility"><option value="members" '+(p.profile_visibility==='members'?'selected':'')+'>للأعضاء المسجلين</option><option value="private" '+(p.profile_visibility==='private'?'selected':'')+'>خاصة بي فقط</option></select></label><label>تنبيه المواعيد القادمة<select name="notification_window">'+[3,7,14,30].map(n=>'<option value="'+n+'" '+(p.notification_window===n?'selected':'')+'>'+n+' أيام</option>').join('')+'</select></label></div>'+
  '<label class="journeyCheck"><input type="checkbox" name="news_enabled" '+(p.news_enabled?'checked':'')+'> تفعيل شريط «أخباري» الشخصي</label>'+
  '<div class="error" role="alert"></div><div class="journeyFormActions"><button type="submit" class="btn primary">حفظ تفضيلاتي ومتابعة المجتمع</button><button type="button" class="btn" data-journey="skip-onboarding">تخطي الآن</button></div></form>';
 }
 async function renderJourney(token){
  const path=location.pathname.replace(/\/$/,'');
- const supported=['/onboarding','/my-space','/my-calendar','/my-map','/my-projects','/my-news','/my-impact'];
+ const supported=['/onboarding','/my-space','/my-people','/my-alerts','/my-calendar','/my-map','/my-projects','/my-news','/my-impact','/impact-review'];
  if(!supported.includes(path))return false;
  if(!user){go('/welcome');return true;}
  main.innerHTML='<div class="status">جارٍ تحميل مساحتك التنموية...</div>';
@@ -40,6 +46,23 @@ async function renderJourney(token){
    '<section class="journeyPanel"><h2>أبرز المنشورات المناسبة لك</h2>'+(recs.posts.length?recs.posts.map(x=>'<p><a href="/post/'+x.id+'">'+esc(x.title||x.topic)+'</a><small> · '+esc(x.topic)+'</small></p>').join(''):jempty('ستظهر توصيات المحتوى بعد تحديد اهتماماتك.'))+'</section>'+
    '<section class="journeyPanel"><h2>تنبيهات مواعيدي</h2>'+(alerts.alerts.length?alerts.alerts.map(a=>'<p><a href="'+a.url+'">'+esc(a.title)+'</a><small> · '+journeyDate(a.date)+'</small></p>').join(''):jempty('لا توجد مواعيد خلال الأسبوعين القادمين.'))+'</section>'+ '<section class="journeyPanel"><h2>مجموعات مقترحة</h2>'+(recs.groups.length?recs.groups.map(g=>'<p><a href="/groups/'+g.id+'">'+esc(g.name)+'</a></p>').join(''):jempty('لا توجد مجموعات متطابقة حالياً.'))+'</section>'+
    '<section class="journeyPanel"><h2>مؤشر الأثر المبلغ عنه</h2><strong class="journeyBigNumber">'+Number(v.beneficiaries).toLocaleString('ar')+'</strong><p>مستفيد ورد في تقارير الإنجاز الشخصية؛ لا يُعد رقماً معتمداً قبل التحقق.</p>'+jlink('/my-impact','إدارة الأهداف والإنجازات')+'</section></div>');
+ }
+ if(path==='/my-people'){
+  const {people}=await api('journey/people');if(token!==version)return true;
+  const cards=people.map(p=>'<article class="journeyMember"><strong><a href="/profile/'+p.id+'">'+esc(p.name)+'</a></strong><p>'+esc(p.professional_role||'عضو تنموي')+(p.organization?' · '+esc(p.organization):'')+'</p><small>'+esc(p.city||p.country||'')+'</small><p>'+esc(p.skills.join('، ')||p.sectors.join('، '))+'</p><small>درجة تقاطع الاهتمامات: '+p.score+'</small></article>').join('');
+  jShell('شبكتي المهنية','اكتشف أعضاءً يجمعك بهم قطاع أو مهارة أو نطاق عمل. لا تظهر الملفات المهنية الخاصة.',
+   '<section class="journeyPanel"><h2>كفاءات وخبرات متقاربة</h2><form id="journeyPeopleSearch" class="journeyForm" role="search"><label>البحث باسم أو مهارة أو تخصص<input type="search" name="q" maxlength="100" placeholder="البحث في الأعضاء المتاحين"></label><button type="submit" class="btn primary">بحث</button><div class="error"></div></form><div class="journeyMembers" id="journeyMemberList">'+(cards||jempty('لا توجد ملفات مهنية متاحة تتقاطع مع اهتماماتك حالياً.'))+'</div></section>');
+ }
+ if(path==='/my-alerts'){
+  const {alerts,window_days}=await api('journey/alerts');if(token!==version)return true;
+  jShell('تنبيهاتي','تنبيهات داخل المجتمع للمواعيد والمهام وطلبات المشاركة. لا يتم إرسالها بالبريد حالياً.',
+   '<section class="journeyPanel"><h2>خلال '+window_days+' يوماً</h2>'+(alerts.length?alerts.map(a=>'<div class="journeyItem"><div><strong>'+esc(a.title)+'</strong><small>'+(a.date?journeyDate(a.date):'بانتظار إجراء')+'</small></div>'+jlink(a.url,'عرض')+'</div>').join(''):jempty('لا توجد تنبيهات تحتاج متابعة حالياً.'))+jlink('/onboarding','إعداد نطاق التذكير')+'</section>');
+ }
+ if(path==='/impact-review'){
+  if(user.role!=='admin'){go('/my-impact');return true;}
+  const {reports}=await api('journey/impact-review');if(token!==version)return true;
+  jShell('مراجعة تقارير الأثر','مراجعة بشرية وإثبات قرار المراجع؛ الاعتماد لا يتم تلقائياً.',
+   '<section class="journeyPanel"><h2>تقارير الأعضاء</h2>'+(reports.length?reports.map(r=>'<article class="journeyImpactItem"><strong>'+esc(r.title)+' — '+esc(r.member)+'</strong><p>'+esc(r.outcome)+'</p><small>'+r.beneficiaries+' مستفيد · '+(r.verification==='reviewed'?'تمت المراجعة':'إفصاح ذاتي')+'</small>'+(r.evidence_url?'<p><a href="'+esc(r.evidence_url)+'" target="_blank" rel="noopener noreferrer">رابط الدليل</a></p>':'')+'<form class="journeyForm" data-review-id="'+r.id+'" id="journeyReview-'+r.id+'"><label>قرار المراجعة<select name="decision"><option value="reviewed">تمت مراجعة الأدلة</option><option value="self_reported">إعادة إلى الإفصاح الذاتي</option></select></label><label>مبرر القرار<textarea name="note" required minlength="12" maxlength="700" placeholder="ما الذي تمت مراجعته؟ وما حدود الإثبات؟"></textarea></label><div class="error"></div><button type="submit" class="btn primary">حفظ قرار المراجعة</button></form></article>').join(''):jempty('لا توجد تقارير متاحة للمراجعة.'))+'</section>');
  }
  if(path==='/my-calendar'){
   const [cal,global]=await Promise.all([api('journey/calendar'),api('hub/events?year='+new Date().getFullYear())]);if(token!==version)return true;
@@ -134,6 +157,12 @@ async function journeyAction(el){
 }
 async function journeyForm(form,data){
  const id=form?.id;
+ if(id==='journeyPeopleSearch'){
+  const q=String(data.q||'').trim();try{const {people}=await api('journey/people?q='+encodeURIComponent(q));document.querySelector('#journeyMemberList').innerHTML=people.map(p=>'<article class="journeyMember"><strong><a href="/profile/'+p.id+'">'+esc(p.name)+'</a></strong><p>'+esc(p.professional_role)+' · '+esc(p.organization)+'</p><small>'+esc(p.skills.join('، '))+'</small></article>').join('')||jempty('لا توجد نتائج مطابقة.');}catch(e){form.querySelector('.error').textContent=e.message;}return true;
+ }
+ if(id?.startsWith('journeyReview-')){
+  const btn=form.querySelector('[type=submit]');btn.disabled=true;try{await api('journey/impact-review/'+Number(form.dataset.reviewId),'PATCH',data);notify('حُفظ قرار مراجعة الأثر');await route();}catch(e){form.querySelector('.error').textContent=e.message;}finally{btn.disabled=false;}return true;
+ }
  if(!['journeyPrefs','journeyCalendarForm','journeyGoalForm','journeyImpactForm','journeyTaskForm','journeyNewsLinkForm'].includes(id))return false;
  const btn=form.querySelector('button[type=submit],button:not([type])'),err=form.querySelector('.error');
  if(!btn)return true;
@@ -142,7 +171,7 @@ async function journeyForm(form,data){
  if(id==='journeyNewsLinkForm'){await api('journey/news-links','POST',data);notify('حُفظ الرابط في أخبارك الخاصة');await route();}
  if(id==='journeyTaskForm'){await api('journey/projects/'+Number(form.dataset.project)+'/tasks','POST',{...data,assigned_to:data.assigned_to?Number(data.assigned_to):null});notify('أُضيفت المهمة');await route();}
  if(id==='journeyPrefs'){
-  const payload={...data,sectors:[...form.querySelectorAll('[name=sectors]:checked')].map(x=>x.value),news_enabled:form.querySelector('[name=news_enabled]').checked,onboarding_complete:true};
+  const payload={...data,sectors:[...form.querySelectorAll('[name=sectors]:checked')].map(x=>x.value),skills:(data.skills_text||'').split(/[,،\n]/).map(x=>x.trim()).filter(Boolean).slice(0,12),participation:[...form.querySelectorAll('[name=participation]:checked')].map(x=>x.value),notification_window:Number(data.notification_window||14),news_enabled:form.querySelector('[name=news_enabled]').checked,onboarding_complete:true};
   await api('journey/preferences','PATCH',payload);notify('حُفظت تفضيلاتك');go('/my-space');
  }
  if(id==='journeyCalendarForm'){await api('journey/calendar','POST',data);notify('تمت إضافة الموعد');await route();}
