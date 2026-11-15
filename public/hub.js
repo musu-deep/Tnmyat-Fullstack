@@ -179,7 +179,18 @@ async function hubAction(action,el){if(!el?.hasAttribute('data-hub'))return fals
   root?.querySelectorAll('.hubDateSelected').forEach(e=>e.classList.remove('hubDateSelected'));
   el.classList.add('hubDateSelected');return true;
  }
- if(which==='submit-project'){if(!user){auth('login');return true;}showModal('إضافة مشروع إلى الخارطة',hubProjectForm());hubInitProjectPicker();return true;}
+ if(which==='submit-project'){
+  if(!user){auth('login');return true;}
+  showModal('إضافة مشروع إلى الخارطة',hubProjectForm());
+  hubInitProjectPicker();
+  api('journey/preferences').then(({preferences})=>{
+   const form=document.getElementById('hubProjectForm');
+   if(!form)return;
+   if(!form.elements.country.value)form.elements.country.value=preferences.country||'';
+   if(!form.elements.city.value)form.elements.city.value=preferences.city||'';
+  }).catch(()=>{});
+  return true;
+ }
  if(which==='find-project-place'){await hubFindProjectPlace();return true;}
  if(which==='select-project-place'){hubSetProjectPin(Number(el.dataset.lat),Number(el.dataset.lng),el.dataset.label);document.getElementById('hubProjectPlaceResults').innerHTML='';return true;}
  if(which==='new-event'){if(user?.role==='admin')showModal('إضافة فعالية موثقة',hubAdminEventForm());return true;}
