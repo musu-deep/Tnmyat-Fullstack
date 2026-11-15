@@ -91,7 +91,76 @@ function hubInitMap(){const el=document.querySelector('#hubMap');if(!el)return;
 function hubFitVisibleMap(){if(!hubMap||!hubMapMarkers.length)return;const nodes=hubMapMarkers.filter(({marker})=>hubMap.hasLayer(marker)).map(({p})=>[p.latitude,p.longitude]);if(nodes.length)hubMap.fitBounds(nodes,{padding:[30,30],maxZoom:9});}
 async function hubReviewQueue(){const el=document.querySelector('#hubReviewQueue');if(!el)return;try{const {projects}=await api('hub/admin/queue');el.innerHTML=projects.length?projects.map(p=>'<div class="hubReviewCard"><strong>'+hubEscape(p.title)+'</strong><p>'+hubEscape(p.summary)+'</p><small>'+hubEscape(p.owner)+' · '+hubEscape(p.country)+'</small><div><button class="btn primary" data-hub="review-project" data-status="published" data-id="'+p.id+'">اعتماد</button><button class="btn" data-hub="review-project" data-status="rejected" data-id="'+p.id+'">رفض</button></div></div>').join(''):'لا توجد مشاريع بانتظار المراجعة.';}catch{el.textContent='تعذر تحميل طلبات المراجعة.';}}
 function hubField(name,label,more=''){return '<label>'+label+'<input name="'+name+'" '+more+' '+(more.includes('optional')?'':'required')+'></label>';}
-function hubProjectForm(){return '<form id="hubProjectForm" class="fields hubForm">'+hubField('title','اسم المشروع','maxlength="110" minlength="4"')+'<label>وصف المشروع<textarea name="summary" required minlength="20" maxlength="1500"></textarea></label><label>المجال<select name="category">'+HUB_TOPICS.map(t=>'<option>'+t+'</option>').join('')+'</select></label>'+hubField('country','الدولة','maxlength="80"')+hubField('city','المدينة (اختياري)','maxlength="80" optional')+hubField('entity_name','اسم الجهة المنفذة (اختياري)','maxlength="120" optional')+'<div class="hubFormPair">'+hubField('latitude','خط العرض','type="number" min="-90" max="90" step="any"')+hubField('longitude','خط الطول','type="number" min="-180" max="180" step="any"')+'</div><p class="muted">يمكن تحديد إحداثيات الموقع من أي خدمة خرائط ولصقها هنا.</p><div class="hubFormPair">'+hubField('beneficiaries','عدد المستفيدين','type="number" min="0" value="0"')+hubField('budget','الميزانية التقديرية (اختياري)','type="number" min="0" value="0" optional')+'</div><label>مرحلة التنفيذ<select name="stage"><option value="planned">مخطط</option><option value="active">جارٍ</option><option value="completed">مكتمل</option></select></label><label>رابط مرجعي اختياري<input name="source_url" type="url" placeholder="https://..."></label><div role="alert" class="error"></div><button class="btn primary" type="submit">إرسال المشروع للمراجعة</button></form>';}
+// A member selects a place visually; coordinates are internal implementation details.
+let hubProjectPicker=null,hubProjectPin=null;
+function hubProjectForm(){
+ return '<form id="hubProjectForm" class="fields hubForm hubProjectEntry">'+
+  '<p class="hubProjectIntro">عرّف بمشروعك وحدد موقعه على الخارطة بخطوة بسيطة. ستراجعه إدارة المجتمع قبل نشره.</p>'+
+  '<label>اسم المشروع<input name="title" required minlength="4" maxlength="110" placeholder="مثلاً: مبادرة تطوير المدارس"></label>'+
+  '<label>وصف مختصر للمشروع<textarea name="summary" required minlength="20" maxlength="1500" placeholder="ما الذي يسعى المشروع إلى تحقيقه؟ ومن يستفيد منه؟"></textarea></label>'+
+  '<div class="hubFormPair"><label>المجال<select name="category" required>'+HUB_TOPICS.map(t=>'<option>'+hubEscape(t)+'</option>').join('')+'</select></label><label>مرحلة المشروع<select name="stage" required><option value="planned">مخطط</option><option value="active">جارٍ تنفيذه</option><option value="completed">مكتمل</option></select></label></div>'+
+  '<div class="hubFormPair"><label>الدولة<input name="country" required maxlength="80" autocomplete="country-name" placeholder="اسم الدولة"></label><label>المدينة أو المنطقة<input name="city" maxlength="80" placeholder="اسم المدينة أو المنطقة إن وجد"></label></div>'+
+  '<section class="hubPlacePicker" aria-label="تحديد موقع المشروع">'+
+  '<h3>أين يقع المشروع؟</h3><p>اكتب المدينة والدولة واضغط «ابحث عن الموقع»، ثم اختر النتيجة المناسبة. ويمكنك كذلك لمس الخارطة لتحديد الموقع مباشرة.</p>'+
+  '<div class="hubPlaceActions"><button type="button" class="btn" data-hub="find-project-place">⌕ ابحث عن الموقع</button><span id="hubProjectPlaceState" role="status" aria-live="polite">لم يُحدّد موقع المشروع بعد</span></div>'+
+  '<div id="hubProjectPlaceResults" class="hubPlaceResults" aria-live="polite"></div>'+
+  '<div id="hubProjectPickerMap" aria-label="انقر على الموقع المناسب لتثبيت علامة المشروع"></div>'+
+  '<input type="hidden" name="latitude" value=""><input type="hidden" name="longitude" value="">'+
+  '<small>الموقع للتعريف الجغرافي بالمبادرة فقط؛ لا يلزم تحديد المبنى أو النقطة الدقيقة. البحث يستخدم خدمة OpenStreetMap Nominatim.</small>'+
+  '</section>'+
+  '<details class="hubProjectOptional"><summary>تفاصيل إضافية (اختيارية)</summary>'+
+  '<label>اسم الجهة المنفذة<input name="entity_name" maxlength="120" placeholder="اتركه فارغاً إن لم توجد جهة محددة"></label>'+
+  '<div class="hubFormPair"><label>عدد المستفيدين المتوقع<input name="beneficiaries" type="number" min="0" step="1" placeholder="اختياري"></label><label>الميزانية التقديرية<input name="budget" type="number" min="0" step="any" placeholder="اختياري"></label></div>'+
+  '<label>رابط مرجعي<input name="source_url" type="url" placeholder="https://..."></label></details>'+
+  '<div role="alert" class="error"></div><button class="btn primary" type="submit">إرسال المشروع للمراجعة</button></form>';
+}
+function hubSetProjectPin(lat,lng,label){
+ const form=document.getElementById('hubProjectForm');
+ if(!form||!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return;
+ form.elements.latitude.value=String(lat);form.elements.longitude.value=String(lng);
+ const status=document.getElementById('hubProjectPlaceState');
+ if(status)status.textContent='✓ تم تحديد الموقع'+(label?' — '+label:' على الخارطة');
+ if(hubProjectPicker){
+  if(hubProjectPin)hubProjectPin.setLatLng([lat,lng]);
+  else hubProjectPin=L.marker([lat,lng],{draggable:true}).addTo(hubProjectPicker).on('dragend',e=>{
+   const point=e.target.getLatLng();hubSetProjectPin(point.lat,point.lng,'موقع المشروع');
+  });
+  hubProjectPicker.setView([lat,lng],Math.max(hubProjectPicker.getZoom(),7));
+ }
+}
+function hubInitProjectPicker(){
+ if(hubProjectPicker){hubProjectPicker.remove();hubProjectPicker=null;hubProjectPin=null;}
+ const node=document.getElementById('hubProjectPickerMap');
+ if(!node)return;
+ if(typeof L==='undefined'){
+  node.textContent='تعذر تحميل الخارطة. يمكنك استخدام البحث عن المدينة لتحديد موقع تقريبي.';
+  return;
+ }
+ hubProjectPicker=L.map(node,{scrollWheelZoom:false}).setView([22,32],2);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(hubProjectPicker);
+ hubProjectPicker.on('click',e=>hubSetProjectPin(e.latlng.lat,e.latlng.lng,'موقع المشروع'));
+ setTimeout(()=>hubProjectPicker?.invalidateSize(),100);
+}
+async function hubFindProjectPlace(){
+ const form=document.getElementById('hubProjectForm');if(!form)return;
+ const country=form.elements.country.value.trim(),city=form.elements.city.value.trim();
+ const results=document.getElementById('hubProjectPlaceResults'),status=document.getElementById('hubProjectPlaceState');
+ if(country.length<2){status.textContent='أدخل الدولة أولاً للبحث عن الموقع.';form.elements.country.focus();return;}
+ const button=form.querySelector('[data-hub="find-project-place"]');
+ button.disabled=true;status.textContent='جارٍ البحث عن الموقع…';results.innerHTML='';
+ try{
+  // Explicit search only, never autocomplete: respects public geocoding request limits.
+  const q=[city,country].filter(Boolean).join('، ');
+  const url='https://nominatim.openstreetmap.org/search?'+new URLSearchParams({q,format:'json',limit:'5',addressdetails:'1',accept_language:'ar'});
+  const response=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!response.ok)throw Error('خدمة البحث غير متاحة الآن؛ اختر الموقع بالضغط على الخارطة.');
+  const places=await response.json();
+  if(!Array.isArray(places)||!places.length){status.textContent='لم نجد نتيجة مطابقة. حاول كتابة اسم المنطقة أو تحديدها على الخارطة.';return;}
+  status.textContent='اختر المكان الأقرب إلى موقع المشروع:';
+  results.innerHTML=places.map((p,i)=>'<button type="button" class="hubPlaceResult" data-hub="select-project-place" data-lat="'+Number(p.lat)+'" data-lng="'+Number(p.lon)+'" data-label="'+hubEscape((p.display_name||'').slice(0,170))+'"><span>◉</span><span>'+hubEscape((p.display_name||q).slice(0,170))+'</span></button>').join('');
+ }catch(e){status.textContent=e.message;}
+ finally{button.disabled=false;}
+}
 function hubAdminEventForm(){return '<form id="hubEventForm" class="fields hubForm">'+hubField('title','اسم الفعالية','maxlength="160"')+'<label>الفئة<select name="category"><option value="international_day">يوم دولي</option><option value="conference">مؤتمر</option><option value="local_event">فعالية محلية</option><option value="program">برنامج</option></select></label>'+hubField('event_date','تاريخ البداية','type="date"')+'<label>تاريخ النهاية (اختياري)<input name="end_date" type="date"></label><label><input type="checkbox" name="recurring" value="true"> تكرار سنوي</label><label>وصف<textarea name="description" maxlength="1000"></textarea></label><label>الموقع<input name="location" maxlength="150"></label><label>الدولة<input name="country" maxlength="80"></label><label>رابط المصدر الرسمي<input name="source_url" type="url" placeholder="https://..."></label><div class="error" role="alert"></div><button class="btn primary" type="submit">نشر في التقويم</button></form>';}
 function hubAdminNewsForm(){return '<form id="hubNewsForm" class="fields hubForm">'+hubField('headline','عنوان الخبر','maxlength="180" minlength="8"')+hubField('source_name','الجهة المصدر','maxlength="90"')+'<label>رابط الخبر الأصلي<input type="url" name="source_url" placeholder="https://..." required></label>'+hubField('published_at','تاريخ النشر','type="date"')+'<label>التصنيف<input name="category" value="تنمية" maxlength="60"></label><label>الشريط<select name="lane"><option value="1">الشريط الأول — سريع</option><option value="2">الشريط الثاني — أبطأ</option></select></label><div class="error" role="alert"></div><button class="btn primary" type="submit">نشر الخبر</button></form>';}
 async function hubAction(action,el){if(!el?.hasAttribute('data-hub'))return false;const which=el.dataset.hub;
@@ -110,7 +179,9 @@ async function hubAction(action,el){if(!el?.hasAttribute('data-hub'))return fals
   root?.querySelectorAll('.hubDateSelected').forEach(e=>e.classList.remove('hubDateSelected'));
   el.classList.add('hubDateSelected');return true;
  }
- if(which==='submit-project'){if(!user){auth('login');return true;}showModal('إضافة مشروع إلى الخارطة',hubProjectForm());return true;}
+ if(which==='submit-project'){if(!user){auth('login');return true;}showModal('إضافة مشروع إلى الخارطة',hubProjectForm());hubInitProjectPicker();return true;}
+ if(which==='find-project-place'){await hubFindProjectPlace();return true;}
+ if(which==='select-project-place'){hubSetProjectPin(Number(el.dataset.lat),Number(el.dataset.lng),el.dataset.label);document.getElementById('hubProjectPlaceResults').innerHTML='';return true;}
  if(which==='new-event'){if(user?.role==='admin')showModal('إضافة فعالية موثقة',hubAdminEventForm());return true;}
  if(which==='new-news'){if(user?.role==='admin')showModal('إضافة خبر موثق المصدر',hubAdminNewsForm());return true;}
  if(which==='hide-event'&&user?.role==='admin'){const reason=prompt('سبب سحب الفعالية من التقويم (ثمانية أحرف على الأقل)');if(reason)try{await api('hub/admin/events/'+el.dataset.id,'PATCH',{reason});notify('سُحبت الفعالية');if(location.pathname==='/calendar')await hubCalendar(version);else await hubSidebar(version);}catch(e){notify(e.message);}return true;}
@@ -123,10 +194,14 @@ async function hubForm(form,data){if(!['hubProjectForm','hubEventForm','hubNewsF
  const error=form.querySelector('.error'),btn=form.querySelector('button[type=submit]');btn.disabled=true;error.textContent='';
  try{
   let result;
-  if(form.id==='hubProjectForm')result=await api('hub/projects','POST',{...data,latitude:Number(data.latitude),longitude:Number(data.longitude),beneficiaries:Number(data.beneficiaries),budget:Number(data.budget)});
+  if(form.id==='hubProjectForm'){
+   const latitude=data.latitude===''?NaN:Number(data.latitude),longitude=data.longitude===''?NaN:Number(data.longitude);
+   if(!Number.isFinite(latitude)||!Number.isFinite(longitude))throw Error('حدد موقع المشروع بالبحث أو بالنقر على الخارطة أولاً.');
+   result=await api('hub/projects','POST',{...data,latitude,longitude,beneficiaries:Number(data.beneficiaries||0),budget:Number(data.budget||0)});
+  }
   if(form.id==='hubEventForm')result=await api('hub/admin/events','POST',{...data,recurring:Boolean(data.recurring)});
   if(form.id==='hubNewsForm')result=await api('hub/admin/news','POST',{...data,lane:Number(data.lane)});
-  dialog.close();notify(result?.message||'تم حفظ البيانات');if(location.pathname==='/map')await hubMapPage(version);if(location.pathname==='/calendar')await hubCalendar(version);if(form.id==='hubProjectForm'&&['/my-projects','/my-map'].includes(location.pathname))await route();if(form.id==='hubNewsForm')await hubRefreshTickers(version);
+  dialog.close();if(form.id==='hubProjectForm'&&hubProjectPicker){hubProjectPicker.remove();hubProjectPicker=null;hubProjectPin=null;}notify(result?.message||'تم حفظ البيانات');if(location.pathname==='/map')await hubMapPage(version);if(location.pathname==='/calendar')await hubCalendar(version);if(form.id==='hubProjectForm'&&['/my-projects','/my-map'].includes(location.pathname))await route();if(form.id==='hubNewsForm')await hubRefreshTickers(version);
  }catch(e){error.textContent=e.message;}finally{btn.disabled=false;}return true;
 }
 async function hubRoute(token){const path=location.pathname.replace(/\/$/,'');if(!['/calendar','/map'].includes(path))return false;document.body.classList.remove('wallCoverView');main.innerHTML='<div class="status">جارٍ التحميل...</div>';if(path==='/calendar')await hubCalendar(token);else await hubMapPage(token);return true;}
