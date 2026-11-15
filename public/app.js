@@ -38,7 +38,7 @@ function homeShell(){
  const name=user?user.name:'زائر تنميات';
  const avatar=face(user||{name});
  const links=topics.map((t,i)=>'<button class="topic" data-act="filter" data-topic="'+t+'"><span class="symbol tone'+i+'">'+icon(keys[i])+'</span>'+t+'</button>').join('');
- main.innerHTML='<div id="wallIdentity" class="wallBannerSlot" aria-label="غلاف وهوية العضو"></div><div id="hubTickers"></div><div class="wallGrid"><aside class="rail"><div id="myCard">'+(user?profileMini(user):'<div class="railUser">'+avatar+'<strong>'+esc(name)+'</strong></div>')+'</div><a class="railHome" href="/wall">⌂ &nbsp; الرئيسية</a><button class="topic" data-act="compose">'+icon('plus')+' مشاركة جديدة</button><a class="topic" href="/people">دليل الأعضاء</a><a class="topic" href="/people?filter=friends">الأصدقاء</a><a class="topic" href="/people?filter=followers">المتابعون</a><a class="topic" href="/groups">المجموعات</a><a class="topic" href="/messages">الرسائل الخاصة</a><a class="topic" href="/map">◉ الخارطة التنموية</a><a class="topic" href="/calendar">▦ التقويم السنوي</a><a class="topic" href="/wall?view=saved">◇ المنشورات المحفوظة</a><h2>مجالات المجتمع</h2>'+links+'</aside>'+
+ main.innerHTML='<div id="wallIdentity" class="wallBannerSlot" aria-label="غلاف وهوية العضو"></div><div id="hubTickers"></div><div class="wallGrid"><aside class="rail"><div id="myCard">'+(user?profileMini(user):'<div class="railUser">'+avatar+'<strong>'+esc(name)+'</strong></div>')+'</div><a class="railHome" href="/wall">⌂ &nbsp; الرئيسية</a><button class="topic" data-act="compose">'+icon('plus')+' مشاركة جديدة</button><a class="topic" href="/people">دليل الأعضاء</a><a class="topic" href="/people?filter=friends">الأصدقاء</a><a class="topic" href="/people?filter=followers">المتابعون</a><a class="topic" href="/groups">المجموعات</a><a class="topic" href="/messages">الرسائل الخاصة</a><a class="topic" href="/map">◉ الخارطة التنموية</a><a class="topic" href="/calendar">▦ التقويم السنوي</a>'+(user?'<a class="topic" href="/my-space">◈ مساحتي التنموية</a><a class="topic" href="/my-calendar">▦ تقويمي</a><a class="topic" href="/my-map">◉ خارطتي</a><a class="topic" href="/my-projects">▣ مشاريعي</a><a class="topic" href="/my-news">✦ أخباري</a><a class="topic" href="/my-impact">◈ أهدافي وأثري</a>':'')+'<a class="topic" href="/wall?view=saved">◇ المنشورات المحفوظة</a><h2>مجالات المجتمع</h2>'+links+'</aside>'+
  '<section class="wall" aria-label="الحائط التفاعلي"><div id="mobileCard"></div><div class="composeBox"><div class="composeRow">'+avatar+'<button data-act="compose">شارك فكرة أو تجربة أو مبادرة...</button></div><div class="composeShortcuts"><button type="button" data-act="compose">✍ منشور</button><button type="button" data-act="compose">▣ صورة أو ملف</button><button type="button" data-act="compose">✦ مبادرة أو سؤال</button></div></div>'+
  '<div class="wallHead"><div class="feedHeading"><div><h1>حائط تنميات</h1><p>أفكار وخبرات ومبادرات المجتمع</p></div><button class="btn primary" data-act="compose">＋ مشاركة</button></div><div class="feedViews">'+[['latest','الأحدث'],['following','أتابعهم'],['trending','الأكثر تفاعلاً'],['saved','المحفوظات']].map(([key,label])=>'<button class="feedView '+(wallView===key?'active':'')+'" data-act="feedview" data-view="'+key+'" aria-pressed="'+(wallView===key)+'">'+label+'</button>').join('')+'</div><div class="kindFilters">'+[['','كل الأنواع'],...Object.entries(kindNames)].map(([key,label])=>'<button class="kindFilter '+(wallKind===key?'active':'')+'" data-act="feedkind" data-kind="'+key+'">'+label+'</button>').join('')+'</div>'+(wallTag?'<div class="activeTag">الوسم: #'+esc(wallTag)+' <button data-act="cleartag">× إزالة</button></div>':'')+'<div class="filters">'+['',...topics].map(t=>'<button class="pill '+(t===topic?'active':'')+'" aria-pressed="'+(t===topic)+'" data-act="filter" data-topic="'+t+'">'+(t||'الكل')+'</button>').join('')+'</div></div><div id="list"></div></section>'+
  '<aside class="latest"><section id="presence"></section><section class="latestBox"><h2>آخر الموضوعات</h2><div id="recent"></div></section><section class="hubSideCalendar" id="hubCalendarPreview"></section><section id="trends" class="trendsBox"></section><section id="discovery" class="discoveryBox"></section></aside></div>';
@@ -84,6 +84,7 @@ async function route(){const token=++version;let target=main;
  if(isLanding){if(user){history.replaceState(null,'','/wall');await route();return;}renderWelcome();return;}
  if(location.pathname==='/admin'){await renderGovernance(token);return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}
+ if(await renderJourney(token))return;
  if(await hubRoute(token))return;
  if(await socialRoute(token))return;
  const post=location.pathname.match(/^\/post\/(\d+)\/?$/);if(post){
@@ -105,11 +106,12 @@ async function route(){const token=++version;let target=main;
 }
 function confirmAction(title,label,action,id){showModal(title,'<form id="confirm" class="fields" data-action="'+action+'" data-id="'+id+'"><div role="alert" class="error"></div><div class="minirow"><button class="btn primary">'+label+'</button><button class="btn" type="button" data-act="close">تراجع</button></div></form>');}
 document.addEventListener('click',async event=>{
- const el=event.target.closest('[data-hub],[data-act],a');if(!el)return;
+ const el=event.target.closest('[data-hub],[data-journey],[data-act],a');if(!el)return;
  if(el.tagName==='A'){if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||el.target||el.hasAttribute('download')||el.getAttribute('href').startsWith('#'))return;const url=new URL(el.href);if(url.origin===location.origin){event.preventDefault();go(url.pathname+url.search+url.hash);}return;}
  const action=el.dataset.act,id=el.dataset.id;
  try{
  if(await hubAction(action,el))return;
+ if(await journeyAction(el))return;
  if(await governanceAction(action,el))return;
  if(await socialAction(action,el))return;
  switch(action){
@@ -146,12 +148,13 @@ dialog.addEventListener('cancel',()=>{afterAuth=null;});
 document.addEventListener('submit',async e=>{
  const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form));
  if(await hubForm(form,data))return;
+ if(await journeyForm(form,data))return;
  if(await governanceForm(form,data))return;
  if(await socialForm(form,data))return;
  if(form.id==='search'){go(homeUrl(location.pathname==='/wall'?topic:'',data.q.trim()));return;}
  const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;const error=form.querySelector('.error');error.textContent='';
  try{
- if(form.id==='auth'){await api(form.dataset.mode,'POST',data);user=(await api('me')).user;account();if(dialog.open)dialog.close();const next=afterAuth;afterAuth=null;await pulse();if(next&&user){await route();next();}else{go('/wall');}}
+ if(form.id==='auth'){const isNew=form.dataset.mode==='register';await api(form.dataset.mode,'POST',data);user=(await api('me')).user;account();if(dialog.open)dialog.close();const next=afterAuth;afterAuth=null;await pulse();if(isNew){go('/onboarding');}else if(next&&user){await route();next();}else{go('/wall');}}
  else if(form.id==='compose'){const res=await api('posts','POST',data);dialog.close();go('/post/'+encodeURIComponent(res.post.id));notify('نُشرت مشاركتك');}
  else if(form.id==='comment'){await api('posts/'+form.dataset.id+'/comments','POST',data);await route();notify('نُشر تعليقك');}
  else if(form.id==='confirm'){const removing=form.dataset.action==='delete';await api('posts/'+form.dataset.id+(removing?'':'/report'),removing?'DELETE':'POST');dialog.close();if(removing)go('/wall');notify(removing?'حُذف المنشور':'أُرسل البلاغ إلى الإدارة');}

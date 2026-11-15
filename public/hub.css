@@ -113,3 +113,11 @@ body.hubTickerDocked main.wrap{padding-bottom:110px}
 .hubNewsTag{background:rgba(4,22,33,.48);border-color:rgba(255,255,255,.38);color:#fff}
 .hubTickerLabel{background:rgba(4,17,30,.4)}
 .hubNewsItem a:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+/* Personalized third lane — distinct premium indigo glass. */
+.hubTicker-3{background:rgba(60,44,97,.84)}
+@supports(backdrop-filter:blur(1px)){.hubTicker-3{background:linear-gradient(110deg,rgba(52,40,92,.82),rgba(87,53,110,.72))}}
+.hubTicker-3 .hubTickerTrack{animation-duration:48s}
+.hubTicker-3 .hubTickerLabel a{color:#fff;text-decoration:none;margin-inline-start:5px}
+.hubTicker-3 .hubTickerTrack[data-empty="true"] a{color:#fff;text-decoration:underline}
+@media(prefers-reduced-motion:reduce){.hubTicker-3 .hubTickerTrack{animation:none!important}}
