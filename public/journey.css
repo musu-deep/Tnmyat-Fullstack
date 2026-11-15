@@ -43,3 +43,14 @@
 .journeyForm button[type="submit"]{cursor:pointer}
 .journeyHint{border-right:3px solid #6e68a7;padding:9px 13px;background:#f3f1f9;border-radius:7px;color:#5c527e;font-size:.84rem}
 .journeyPanel>button[data-hub="submit-project"]{margin:10px 0 16px}
+
+.journeyMembers{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:18px}
+.journeyMember{padding:15px;border:1px solid #dce5ed;background:#f8fafc;border-radius:13px}
+.journeyMember p{margin:6px 0;font-size:.83rem;line-height:1.7}
+.journeyMember strong a{color:#194b71}
+.journeyImpactItem{padding:16px 0;border-bottom:1px solid #e5eaf1}
+.journeyImpactItem:last-child{border:0}
+.journeyImpactItem .journeyForm{margin-top:12px;background:#f7f9fd}
+.professionalDetails{margin:13px 0 24px}
+.professionalDetails h2{font-size:1.1rem}
+.professionalDetails p{margin:8px 0;line-height:1.8}
