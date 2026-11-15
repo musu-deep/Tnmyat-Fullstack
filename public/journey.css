@@ -38,3 +38,8 @@
 .journeyCalNav strong{color:#214561}
 #journeyMap{height:440px;min-height:300px;border-radius:12px;background:#e6edf3;overflow:hidden}
 @media(max-width:680px){#journeyMap{height:340px}}
+
+.journeyForm select{width:100%;min-height:42px;border:1px solid #c9d6e2;border-radius:9px;padding:9px;color:#21394f;background:#fbfcfe}
+.journeyForm button[type="submit"]{cursor:pointer}
+.journeyHint{border-right:3px solid #6e68a7;padding:9px 13px;background:#f3f1f9;border-radius:7px;color:#5c527e;font-size:.84rem}
+.journeyPanel>button[data-hub="submit-project"]{margin:10px 0 16px}
