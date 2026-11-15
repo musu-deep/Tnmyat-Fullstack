@@ -1,0 +1,17 @@
+{
+  "name": "tnmyat-community",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/*.test.js",
+    "admin": "node scripts/admin.js",
+    "deploy": "npx wrangler@4 deploy",
+    "db:remote": "npx wrangler@4 d1 migrations apply tnmyat-db --remote",
+    "dev": "node src/server.js"
+  }
+}
