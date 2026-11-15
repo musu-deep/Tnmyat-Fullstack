@@ -1,6 +1,7 @@
 'use strict';
 // Member journey UI. Profiles, personal calendars and project selections are scoped to the signed-in member.
 const JOURNEY_SECTORS=['التعليم','البيئة','المجتمع','الاقتصاد','الصحة','الإغاثة','البنية التحتية','المياه','الطاقة','التقنية'];
+let journeyMapInstance=null;
 const JOURNEY_MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const journeyDate=s=>new Date(s+'T12:00:00Z').toLocaleDateString('ar',{year:'numeric',month:'long',day:'numeric'});
 const jlink=(url,label)=>'<a class="journeyLink" href="'+url+'">'+label+'</a>';
@@ -42,18 +43,34 @@ async function renderJourney(token){
  }
  if(path==='/my-calendar'){
   const [cal,global]=await Promise.all([api('journey/calendar'),api('hub/events?year='+new Date().getFullYear())]);if(token!==version)return true;
+  const params=new URL(location.href).searchParams;
+  const calYear=Math.min(2100,Math.max(2020,Number(params.get('year'))||new Date().getFullYear()));
+  const m=Number(params.get('month')),calMonth=Math.min(11,Math.max(0,Number.isInteger(m)&&params.has('month')?m:new Date().getMonth()));
+  hubYearEvents=cal.items.map(x=>({...x,category:'program',description:x.note||'',source_url:''}));
+  const prev=new Date(calYear,calMonth-1,1),next=new Date(calYear,calMonth+1,1);
+  const monthNav='<div class="journeyCalNav"><a href="/my-calendar?year='+prev.getFullYear()+'&month='+prev.getMonth()+'">‹ السابق</a><strong>'+JOURNEY_MONTHS[calMonth]+' '+calYear+'</strong><a href="/my-calendar?year='+next.getFullYear()+'&month='+next.getMonth()+'">التالي ›</a></div>';
+  const monthGrid=monthNav+hubMonthGrid(calYear,calMonth,hubYearEvents,'year')+'<div id="hubCalendarDetails" class="hubCalendarDetails">اختر اليوم لاستعراض مواعيده.</div>';
   const my=cal.items.map(x=>'<div class="journeyItem"><div><strong>'+esc(x.title)+'</strong><small>'+journeyDate(x.event_date)+'</small><p>'+esc(x.note)+'</p></div><button type="button" data-journey="delete-calendar" data-id="'+x.id+'">حذف</button></div>').join('');
-  const preferences=(await api('journey/preferences')).preferences;
+  const {preferences}=await api('journey/preferences');
   const suggestions=global.events.filter(e=>!preferences.sectors.length||preferences.sectors.some(t=>(e.title+' '+e.description).includes(t))).filter(e=>e.event_date>=new Date().toISOString().slice(0,10)).slice(0,12);
   jShell('تقويمي','مواعيدك الخاصة ومناسبات التنمية الملائمة لك.',
    '<div class="journeyColumns"><section class="journeyPanel"><h2>إضافة موعد شخصي</h2><form id="journeyCalendarForm" class="journeyForm"><label>العنوان<input name="title" required minlength="3" maxlength="160"></label><label>التاريخ<input name="event_date" type="date" required></label><label>ملاحظات<textarea name="note" maxlength="500"></textarea></label><div class="error"></div><button class="btn primary">إضافة إلى تقويمي</button></form></section>'+
-   '<section class="journeyPanel"><h2>مواعيدي</h2>'+(my||jempty('لم تضف أي موعد بعد.'))+'</section>'+
+   '<section class="journeyPanel"><h2>تقويمي الشهري</h2>'+monthGrid+'</section>'+
+   '<section class="journeyPanel journeyWide"><h2>مواعيدي</h2>'+(my||jempty('لم تضف أي موعد بعد.'))+'</section>'+
    '<section class="journeyPanel journeyWide"><h2>فعاليات مقترحة من التقويم العام</h2>'+(suggestions.length?suggestions.map(e=>'<div class="journeyItem"><div><strong>'+esc(e.title)+'</strong><small>'+journeyDate(e.event_date)+'</small></div><button type="button" data-journey="save-event" data-id="'+e.id+'" data-title="'+esc(e.title)+'" data-date="'+e.event_date+'">أضف إلى تقويمي</button></div>').join(''):jempty('لا توجد فعاليات مطابقة في الفترة الحالية.'))+'</section></div>');
  }
  if(path==='/my-map'){
   const {projects}=await api('journey/map');if(token!==version)return true;
   jShell('خارطتي','المشاريع والبرامج التنموية التي تتابعها، مع روابط إلى المواقع.',
-    '<section class="journeyPanel"><h2>مشاريع محفوظة</h2>'+(projects.length?projects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+esc(p.city+', '+p.country)+' · '+esc(p.category)+'</small></div><div><a href="https://www.google.com/maps/dir/?api=1&amp;destination='+encodeURIComponent(p.latitude+','+p.longitude)+'" target="_blank" rel="noopener noreferrer">الموقع</a> <button type="button" data-journey="toggle-project" data-id="'+p.id+'" data-saved="false">إزالة</button></div></div>').join(''):jempty('احفظ مشروعاً من الخارطة العامة ليظهر هنا.'))+jlink('/map','استعرض الخارطة العامة')+'</section>');
+    '<section class="journeyPanel"><h2>خارطة مشاريعي</h2><div id="journeyMap"></div></section><section class="journeyPanel"><h2>مشاريع محفوظة</h2>'+(projects.length?projects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+esc(p.city+', '+p.country)+' · '+esc(p.category)+'</small></div><div><a href="https://www.google.com/maps/dir/?api=1&amp;destination='+encodeURIComponent(p.latitude+','+p.longitude)+'" target="_blank" rel="noopener noreferrer">الموقع</a> <button type="button" data-journey="toggle-project" data-id="'+p.id+'" data-saved="false">إزالة</button></div></div>').join(''):jempty('احفظ مشروعاً من الخارطة العامة ليظهر هنا.'))+jlink('/map','استعرض الخارطة العامة')+'</section>');
+  if(typeof L!=='undefined'){
+   if(journeyMapInstance){journeyMapInstance.remove();journeyMapInstance=null;}
+   journeyMapInstance=L.map('journeyMap',{scrollWheelZoom:false}).setView([24,40],3);
+   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(journeyMapInstance);
+   const pins=projects.map(p=>L.marker([p.latitude,p.longitude]).bindPopup(esc(p.title)+' — '+esc(p.country)).addTo(journeyMapInstance));
+   if(pins.length)journeyMapInstance.fitBounds(L.featureGroup(pins).getBounds(),{maxZoom:8,padding:[22,22]});
+   setTimeout(()=>journeyMapInstance?.invalidateSize(),100);
+  }else document.querySelector('#journeyMap').textContent='الخريطة غير متاحة؛ استعرض بيانات المشاريع وروابط مواقعها أدناه.';
  }
  if(path==='/my-news'){
   const [{preferences},news]=await Promise.all([api('journey/preferences'),api('journey/news')]);if(token!==version)return true;
