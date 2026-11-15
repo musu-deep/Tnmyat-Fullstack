@@ -297,8 +297,9 @@ export async function memberJourneyRoute(request,db,user,h){
   await enforceLimit(db,'impact-review',uid,60,3600);
   const d=await parseBody(request),status=d.decision,note=clamp(d.note,700);
   if(!['reviewed','self_reported'].includes(status)||note.length<12)fail('أدخل قرار مراجعة واضحاً ومبرراً مناسباً.');
-  const item=await db.prepare('SELECT id FROM member_impact WHERE id=?').bind(reviewId).first();
+  const item=await db.prepare('SELECT id,evidence_url FROM member_impact WHERE id=?').bind(reviewId).first();
   if(!item)throw new ApiError(404,'تقرير الإنجاز غير موجود');
+  if(status==='reviewed'&&!item.evidence_url)fail('لا يمكن تأكيد مراجعة الأدلة دون رابط دليل في التقرير.');
   await db.batch([
    db.prepare("UPDATE member_impact SET verification=?,reviewer_id=?,reviewed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),reviewer_note=? WHERE id=?").bind(status,uid,note,reviewId),
    db.prepare('INSERT INTO member_impact_reviews(impact_id,reviewer_id,decision,note) VALUES(?,?,?,?)').bind(reviewId,uid,status,note)
