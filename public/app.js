@@ -122,6 +122,7 @@ document.addEventListener('click',async event=>{
  case 'night':setNight(document.documentElement.dataset.theme!=='dark');account();document.getElementById('accountSwitch')?.focus();return;
  case 'shortcuts':return showModal('اختصارات لوحة المفاتيح','<p><kbd>Alt + N</kbd> &nbsp; كتابة مشاركة</p><p><kbd>Alt + M</kbd> &nbsp; فتح الرسائل</p><p><kbd>Esc</kbd> &nbsp; إغلاق القائمة أو النافذة</p>');
  case 'myprofile':return requireUser(()=>go('/profile/'+user.id));
+ case 'mysettings':if(dialog.open)dialog.close();return requireUser(()=>go('/onboarding'));
  case 'close':afterAuth=null;dialog.close();return;
  case 'retry':return route();
  case 'register':case 'login':return auth(action);
