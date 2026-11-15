@@ -126,7 +126,7 @@ async function hubForm(form,data){if(!['hubProjectForm','hubEventForm','hubNewsF
   if(form.id==='hubProjectForm')result=await api('hub/projects','POST',{...data,latitude:Number(data.latitude),longitude:Number(data.longitude),beneficiaries:Number(data.beneficiaries),budget:Number(data.budget)});
   if(form.id==='hubEventForm')result=await api('hub/admin/events','POST',{...data,recurring:Boolean(data.recurring)});
   if(form.id==='hubNewsForm')result=await api('hub/admin/news','POST',{...data,lane:Number(data.lane)});
-  dialog.close();notify(result?.message||'تم حفظ البيانات');if(location.pathname==='/map')await hubMapPage(version);if(location.pathname==='/calendar')await hubCalendar(version);if(form.id==='hubNewsForm')await hubRefreshTickers(version);
+  dialog.close();notify(result?.message||'تم حفظ البيانات');if(location.pathname==='/map')await hubMapPage(version);if(location.pathname==='/calendar')await hubCalendar(version);if(form.id==='hubProjectForm'&&['/my-projects','/my-map'].includes(location.pathname))await route();if(form.id==='hubNewsForm')await hubRefreshTickers(version);
  }catch(e){error.textContent=e.message;}finally{btn.disabled=false;}return true;
 }
 async function hubRoute(token){const path=location.pathname.replace(/\/$/,'');if(!['/calendar','/map'].includes(path))return false;document.body.classList.remove('wallCoverView');main.innerHTML='<div class="status">جارٍ التحميل...</div>';if(path==='/calendar')await hubCalendar(token);else await hubMapPage(token);return true;}
