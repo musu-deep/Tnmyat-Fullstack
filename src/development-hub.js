@@ -49,8 +49,53 @@ export async function developmentHubRoute(request,db,user,helpers){
  }
  if(path==='/api/hub/news'&&method==='GET'){
    const {results}=await db.prepare(`SELECT id,headline,source_name,source_url,lane,category,published_at FROM development_news
-      WHERE status='published' ORDER BY published_at DESC,id DESC LIMIT 50`).all();
+      WHERE status='published'
+      UNION ALL
+      SELECT f.post_id AS id,COALESCE(NULLIF(p.title,''),substr(p.body,1,130),'منشور تنموي مميز') AS headline,
+       'مجتمع تنميات' AS source_name,'/post/'||p.id AS source_url,f.lane AS lane,
+       'شارة ذهبية' AS category,substr(f.endorsed_at,1,10) AS published_at
+      FROM featured_member_posts f JOIN posts p ON p.id=f.post_id JOIN users u ON u.id=p.author_id
+      WHERE f.status='published' AND p.moderation_status='visible' AND u.account_status='active'
+      ORDER BY published_at DESC,id DESC LIMIT 50`).all();
    return json({news:results});
+ }
+ if(path==='/api/hub/admin/editorial'&&method==='GET'){
+   requireAdmin(user,ApiError);
+   const {results}=await db.prepare(`SELECT p.id,p.title,substr(p.body,1,180) AS excerpt,u.name AS author,p.created_at,
+    (SELECT count(*) FROM likes l WHERE l.post_id=p.id) AS likes,
+    (SELECT count(*) FROM comments c WHERE c.post_id=p.id AND c.moderation_status='visible') AS comments,
+    (SELECT count(*) FROM reposts r WHERE r.post_id=p.id) AS reposts,
+    CASE WHEN f.status='published' THEN 1 ELSE 0 END AS featured,p.pinned
+    FROM posts p JOIN users u ON u.id=p.author_id
+    LEFT JOIN featured_member_posts f ON f.post_id=p.id
+    WHERE p.moderation_status='visible' AND u.account_status='active'
+    ORDER BY CASE WHEN f.status='published' THEN 100000 ELSE 0 END +
+      (SELECT count(*) FROM likes l WHERE l.post_id=p.id) * 2 +
+      (SELECT count(*) FROM comments c WHERE c.post_id=p.id AND c.moderation_status='visible') * 3 +
+      (SELECT count(*) FROM reposts r WHERE r.post_id=p.id) * 4 +
+      CASE WHEN p.pinned=1 THEN 15 ELSE 0 END DESC, p.id DESC LIMIT 50`).all();
+   return json({posts:results.map(p=>({...p,score:p.likes*2+p.comments*3+p.reposts*4+(p.pinned?15:0)}))});
+ }
+ const featured=path.match(/^\/api\/hub\/admin\/featured\/(\d+)$/);
+ if(featured&&method==='PATCH'){
+   requireAdmin(user,ApiError);
+   const id=Number(featured[1]);if(!Number.isSafeInteger(id)||id<1)throw new ApiError(400,'معرف المنشور غير صالح');
+   const d=await parseBody(request);
+   if(!['published','withdrawn'].includes(d.status))throw new ApiError(400,'الحالة غير صالحة');
+   const reason=textField(d.reason,8,500,'مبرر القرار');
+   const lane=safeNumber(d.lane??2,1,2,'شريط الأخبار',ApiError);
+   const post=await db.prepare(`SELECT p.id FROM posts p JOIN users u ON u.id=p.author_id
+    WHERE p.id=? AND p.moderation_status='visible' AND u.account_status='active'`).bind(id).first();
+   if(!post)throw new ApiError(404,'المنشور غير متاح للترشيح');
+   if(d.status==='published'){
+     await db.prepare(`INSERT INTO featured_member_posts(post_id,lane,status,endorsed_by,reason)
+       VALUES(?,?,'published',?,?) ON CONFLICT(post_id) DO UPDATE SET lane=excluded.lane,status='published',endorsed_by=excluded.endorsed_by,reason=excluded.reason,endorsed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).bind(id,lane,user.id,reason).run();
+   }else{
+     const result=await db.prepare("UPDATE featured_member_posts SET status='withdrawn',reason=?,endorsed_by=? WHERE post_id=? AND status='published'").bind(reason,user.id,id).run();
+     if(!result.meta.changes)throw new ApiError(404,'المنشور غير مميز حالياً');
+   }
+   await audit(db,user,d.status==='published'?'feature':'withdraw','member_post',id,reason);
+   return json({ok:true});
  }
  if(path==='/api/hub/projects/mine'&&method==='GET'){
    requireUser(user);const {results}=await db.prepare(`SELECT id,title,summary,category,country,city,stage,status,created_at
