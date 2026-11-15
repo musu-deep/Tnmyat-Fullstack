@@ -54,7 +54,7 @@ async function renderJourney(token){
   const {preferences}=await api('journey/preferences');
   const suggestions=global.events.filter(e=>!preferences.sectors.length||preferences.sectors.some(t=>(e.title+' '+e.description).includes(t))).filter(e=>e.event_date>=new Date().toISOString().slice(0,10)).slice(0,12);
   jShell('تقويمي','مواعيدك الخاصة ومناسبات التنمية الملائمة لك.',
-   '<div class="journeyColumns"><section class="journeyPanel"><h2>إضافة موعد شخصي</h2><form id="journeyCalendarForm" class="journeyForm"><label>العنوان<input name="title" required minlength="3" maxlength="160"></label><label>التاريخ<input name="event_date" type="date" required></label><label>ملاحظات<textarea name="note" maxlength="500"></textarea></label><div class="error"></div><button class="btn primary">إضافة إلى تقويمي</button></form></section>'+
+   '<div class="journeyColumns"><section class="journeyPanel"><h2>إضافة موعد شخصي</h2><form id="journeyCalendarForm" class="journeyForm"><label>العنوان<input name="title" required minlength="3" maxlength="160"></label><label>التاريخ<input name="event_date" type="date" required></label><label>ملاحظات<textarea name="note" maxlength="500"></textarea></label><div class="error"></div><button class="btn primary" type="submit">إضافة إلى تقويمي</button></form></section>'+
    '<section class="journeyPanel"><h2>تقويمي الشهري</h2>'+monthGrid+'</section>'+
    '<section class="journeyPanel journeyWide"><h2>مواعيدي</h2>'+(my||jempty('لم تضف أي موعد بعد.'))+'</section>'+
    '<section class="journeyPanel journeyWide"><h2>فعاليات مقترحة من التقويم العام</h2>'+(suggestions.length?suggestions.map(e=>'<div class="journeyItem"><div><strong>'+esc(e.title)+'</strong><small>'+journeyDate(e.event_date)+'</small></div><button type="button" data-journey="save-event" data-id="'+e.id+'" data-title="'+esc(e.title)+'" data-date="'+e.event_date+'">أضف إلى تقويمي</button></div>').join(''):jempty('لا توجد فعاليات مطابقة في الفترة الحالية.'))+'</section></div>');
@@ -85,7 +85,7 @@ async function renderJourney(token){
     (work.owner?'<h3>طلبات الانضمام</h3>'+(work.members.filter(m=>m.status==='pending').map(m=>'<div class="journeyItem"><strong>'+esc(m.name)+'</strong><div><button data-journey="review-member" data-project="'+selected+'" data-member="'+m.user_id+'" data-status="approved">قبول</button> <button data-journey="review-member" data-project="'+selected+'" data-member="'+m.user_id+'" data-status="rejected">رفض</button></div></div>').join('')||jempty('لا توجد طلبات قيد المراجعة.')):'')+
     '<h3>الفريق</h3>'+(work.members.filter(m=>m.status==='approved').map(m=>'<p>'+esc(m.name)+'</p>').join('')||jempty('لا يوجد متعاونون معتمدون بعد.'))+
     '<h3>المهام</h3>'+(work.tasks.map(t=>'<div class="journeyItem"><div><strong>'+esc(t.title)+'</strong><small>'+(t.status==='done'?'مكتملة':'قيد التنفيذ')+(t.due_date?' · '+journeyDate(t.due_date):'')+'</small></div>'+(t.status==='open'&&(work.owner||t.assigned_to===user.id)?'<button data-journey="complete-task" data-id="'+t.id+'">إنجاز</button>':'')+'</div>').join('')||jempty('لم تُضف مهام بعد.'))+
-    (work.owner?'<form id="journeyTaskForm" data-project="'+selected+'" class="journeyForm"><label>مهمة جديدة<input name="title" required minlength="3" maxlength="160"></label><label>موعد الاستحقاق<input name="due_date" type="date"></label><label>التكليف<select name="assigned_to">'+memberOptions+'</select></label><div class="error"></div><button class="btn primary">إضافة المهمة</button></form>':'')+'</section>';
+    (work.owner?'<form id="journeyTaskForm" data-project="'+selected+'" class="journeyForm"><label>مهمة جديدة<input name="title" required minlength="3" maxlength="160"></label><label>موعد الاستحقاق<input name="due_date" type="date"></label><label>التكليف<select name="assigned_to">'+memberOptions+'</select></label><div class="error"></div><button class="btn primary" type="submit">إضافة المهمة</button></form>':'')+'</section>';
    }
   }
   jShell('مشاريعي وتعاوني','إدارة مشاركتك وطلبات التعاون ومهام المشاريع التنموية.',
@@ -100,9 +100,9 @@ async function renderJourney(token){
  if(path==='/my-impact'){
   const [goals,impact]=await Promise.all([api('journey/goals'),api('journey/impact')]);if(token!==version)return true;
   jShell('أهدافي وأثري','توثيق أهدافك ونتائج المبادرات والأعمال التنموية.',
-   '<div class="journeyColumns"><section class="journeyPanel"><h2>هدف جديد</h2><form id="journeyGoalForm" class="journeyForm"><label>عنوان الهدف<input name="title" minlength="3" maxlength="160" required></label><label>وصف الهدف<textarea name="description" maxlength="1000"></textarea></label><div class="error"></div><button class="btn primary">إضافة الهدف</button></form></section>'+
+   '<div class="journeyColumns"><section class="journeyPanel"><h2>هدف جديد</h2><form id="journeyGoalForm" class="journeyForm"><label>عنوان الهدف<input name="title" minlength="3" maxlength="160" required></label><label>وصف الهدف<textarea name="description" maxlength="1000"></textarea></label><div class="error"></div><button class="btn primary" type="submit">إضافة الهدف</button></form></section>'+
    '<section class="journeyPanel"><h2>أهدافي</h2>'+(goals.goals.length?goals.goals.map(g=>'<div class="journeyItem"><div><strong>'+esc(g.title)+'</strong><small>'+(g.status==='completed'?'مكتمل':'نشط')+'</small></div>'+(g.status==='active'?'<button data-journey="complete-goal" data-id="'+g.id+'">إنجاز</button>':'')+'</div>').join(''):jempty('لم تضف أهدافاً بعد.'))+'</section>'+
-   '<section class="journeyPanel"><h2>توثيق إنجاز</h2><form id="journeyImpactForm" class="journeyForm"><label>عنوان الإنجاز<input name="title" required minlength="4" maxlength="160"></label><label>وصف النتائج<textarea name="outcome" required minlength="15" maxlength="1600"></textarea></label><label>المستفيدون<input name="beneficiaries" type="number" min="0" value="0"></label><label>رابط الدليل (اختياري)<input name="evidence_url" type="url"></label><div class="error"></div><button class="btn primary">حفظ تقرير الإنجاز</button></form></section>'+
+   '<section class="journeyPanel"><h2>توثيق إنجاز</h2><form id="journeyImpactForm" class="journeyForm"><label>عنوان الإنجاز<input name="title" required minlength="4" maxlength="160"></label><label>وصف النتائج<textarea name="outcome" required minlength="15" maxlength="1600"></textarea></label><label>المستفيدون<input name="beneficiaries" type="number" min="0" value="0"></label><label>رابط الدليل (اختياري)<input name="evidence_url" type="url"></label><div class="error"></div><button class="btn primary" type="submit">حفظ تقرير الإنجاز</button></form></section>'+
    '<section class="journeyPanel"><h2>تقارير الإنجاز</h2>'+(impact.reports.length?impact.reports.map(r=>'<div class="journeyItem"><div><strong>'+esc(r.title)+'</strong><p>'+esc(r.outcome)+'</p><small>تقرير ذاتي غير متحقق · '+Number(r.beneficiaries)+' مستفيد</small></div></div>').join(''):jempty('لم تسجل إنجازات بعد.'))+'</section></div>');
  }
  }catch(e){if(token===version)main.innerHTML='<div class="status">'+esc(e.message)+' <a href="/wall">العودة للحائط</a></div>';}
@@ -129,7 +129,8 @@ async function journeyAction(el){
 async function journeyForm(form,data){
  const id=form?.id;
  if(!['journeyPrefs','journeyCalendarForm','journeyGoalForm','journeyImpactForm','journeyTaskForm'].includes(id))return false;
- const btn=form.querySelector('button[type=submit]'),err=form.querySelector('.error');
+ const btn=form.querySelector('button[type=submit],button:not([type])'),err=form.querySelector('.error');
+ if(!btn)return true;
  if(btn.disabled)return true;btn.disabled=true;if(err)err.textContent='';
  try{
  if(id==='journeyTaskForm'){await api('journey/projects/'+Number(form.dataset.project)+'/tasks','POST',{...data,assigned_to:data.assigned_to?Number(data.assigned_to):null});notify('أُضيفت المهمة');await route();}
