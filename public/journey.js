@@ -7,7 +7,7 @@ const journeyDate=s=>new Date(s+'T12:00:00Z').toLocaleDateString('ar',{year:'num
 const jlink=(url,label)=>'<a class="journeyLink" href="'+url+'">'+label+'</a>';
 const jempty=t=>'<p class="journeyEmpty">'+t+'</p>';
 const jNav=()=>'<nav class="journeyNav" aria-label="مساحتي التنموية">'+[
- ['/my-space','لوحتي'],['/my-calendar','تقويمي'],['/my-map','خارطتي'],['/my-news','أخباري'],['/my-impact','أهدافي وأثري'],['/onboarding','تفضيلاتي']
+ ['/my-space','لوحتي'],['/my-calendar','تقويمي'],['/my-map','خارطتي'],['/my-projects','مشاريعي'],['/my-news','أخباري'],['/my-impact','أهدافي وأثري'],['/onboarding','تفضيلاتي']
 ].map(([url,label])=>'<a href="'+url+'" class="'+(location.pathname===url?'active':'')+'">'+label+'</a>').join('')+'</nav>';
 function jShell(title,subtitle,body){document.title=title+' | تنميات';main.innerHTML='<div class="journeyPage"><div class="journeyHeader"><span>مساحتي التنموية</span><h1>'+title+'</h1><p>'+subtitle+'</p></div>'+jNav()+body+'</div>';}
 function jFields(p){
@@ -22,7 +22,7 @@ function jFields(p){
 }
 async function renderJourney(token){
  const path=location.pathname.replace(/\/$/,'');
- const supported=['/onboarding','/my-space','/my-calendar','/my-map','/my-news','/my-impact'];
+ const supported=['/onboarding','/my-space','/my-calendar','/my-map','/my-projects','/my-news','/my-impact'];
  if(!supported.includes(path))return false;
  if(!user){go('/welcome');return true;}
  main.innerHTML='<div class="status">جارٍ تحميل مساحتك التنموية...</div>';
@@ -72,6 +72,25 @@ async function renderJourney(token){
    setTimeout(()=>journeyMapInstance?.invalidateSize(),100);
   }else document.querySelector('#journeyMap').textContent='الخريطة غير متاحة؛ استعرض بيانات المشاريع وروابط مواقعها أدناه.';
  }
+ if(path==='/my-projects'){
+  const {projects}=await api('journey/collaboration');if(token!==version)return true;
+  const selected=Number(new URL(location.href).searchParams.get('id')||projects[0]?.id||0);
+  let details='';
+  if(selected){
+   const record=projects.find(p=>p.id===selected);
+   if(record&&(record.owner||record.participation==='approved')){
+    const work=await api('journey/projects/'+selected+'/work');if(token!==version)return true;
+    const memberOptions='<option value="">بدون تكليف</option>'+'<option value="'+user.id+'">أنا</option>'+work.members.filter(m=>m.status==='approved').map(m=>'<option value="'+m.user_id+'">'+esc(m.name)+'</option>').join('');
+    details='<section class="journeyPanel"><h2>فريق المشروع ومهامه — '+esc(work.project.title)+'</h2>'+
+    (work.owner?'<h3>طلبات الانضمام</h3>'+(work.members.filter(m=>m.status==='pending').map(m=>'<div class="journeyItem"><strong>'+esc(m.name)+'</strong><div><button data-journey="review-member" data-project="'+selected+'" data-member="'+m.user_id+'" data-status="approved">قبول</button> <button data-journey="review-member" data-project="'+selected+'" data-member="'+m.user_id+'" data-status="rejected">رفض</button></div></div>').join('')||jempty('لا توجد طلبات قيد المراجعة.')):'')+
+    '<h3>الفريق</h3>'+(work.members.filter(m=>m.status==='approved').map(m=>'<p>'+esc(m.name)+'</p>').join('')||jempty('لا يوجد متعاونون معتمدون بعد.'))+
+    '<h3>المهام</h3>'+(work.tasks.map(t=>'<div class="journeyItem"><div><strong>'+esc(t.title)+'</strong><small>'+(t.status==='done'?'مكتملة':'قيد التنفيذ')+(t.due_date?' · '+journeyDate(t.due_date):'')+'</small></div>'+(t.status==='open'&&(work.owner||t.assigned_to===user.id)?'<button data-journey="complete-task" data-id="'+t.id+'">إنجاز</button>':'')+'</div>').join('')||jempty('لم تُضف مهام بعد.'))+
+    (work.owner?'<form id="journeyTaskForm" data-project="'+selected+'" class="journeyForm"><label>مهمة جديدة<input name="title" required minlength="3" maxlength="160"></label><label>موعد الاستحقاق<input name="due_date" type="date"></label><label>التكليف<select name="assigned_to">'+memberOptions+'</select></label><div class="error"></div><button class="btn primary">إضافة المهمة</button></form>':'')+'</section>';
+   }
+  }
+  jShell('مشاريعي وتعاوني','إدارة مشاركتك وطلبات التعاون ومهام المشاريع التنموية.',
+   '<section class="journeyPanel"><h2>المشاريع المرتبطة بي</h2>'+(projects.length?projects.map(p=>'<div class="journeyItem"><div><strong>'+esc(p.title)+'</strong><small>'+(p.owner?'مشروعي':p.participation==='approved'?'مشارك معتمد':'طلب انضمام: '+(p.participation==='pending'?'قيد المراجعة':'غير معتمد'))+'</small></div><a class="journeyLink" href="/my-projects?id='+p.id+'">التفاصيل</a></div>').join(''):jempty('لم تسجل مشاريع أو طلبات تعاون بعد.'))+'</section>'+details+jlink('/map','استكشف مشاريع المجتمع'));
+ }
  if(path==='/my-news'){
   const [{preferences},news]=await Promise.all([api('journey/preferences'),api('journey/news')]);if(token!==version)return true;
   jShell('أخباري','نشرة مستقلة تتصل باهتماماتك، مع مصدر كل خبر وتاريخه.',
@@ -95,6 +114,9 @@ async function journeyAction(el){
  if(kind==='skip-onboarding'){go('/wall');return true;}
  const id=Number(el.dataset.id);
  try{
+ if(kind==='join-project'){await api('journey/projects/'+id+'/join','POST');notify('أُرسل طلب المشاركة لصاحب المشروع');}
+ if(kind==='review-member'){await api('journey/projects/'+Number(el.dataset.project)+'/members/'+Number(el.dataset.member),'PATCH',{status:el.dataset.status});notify('تم توثيق القرار');}
+ if(kind==='complete-task'){await api('journey/tasks/'+id,'PATCH',{status:'done'});notify('سُجل إنجاز المهمة');}
  if(kind==='delete-calendar'){await api('journey/calendar/'+id,'DELETE');notify('أُزيل الموعد');}
  if(kind==='save-event'){await api('journey/calendar','POST',{title:el.dataset.title,event_date:el.dataset.date,event_id:id});notify('أُضيفت الفعالية إلى تقويمك');}
  if(kind==='toggle-project'){await api('journey/map/'+id,'PUT',{saved:el.dataset.saved==='true'});notify(el.dataset.saved==='true'?'أُضيف المشروع إلى خارطتك':'أُزيل المشروع من خارطتك');}
@@ -106,10 +128,11 @@ async function journeyAction(el){
 }
 async function journeyForm(form,data){
  const id=form?.id;
- if(!['journeyPrefs','journeyCalendarForm','journeyGoalForm','journeyImpactForm'].includes(id))return false;
+ if(!['journeyPrefs','journeyCalendarForm','journeyGoalForm','journeyImpactForm','journeyTaskForm'].includes(id))return false;
  const btn=form.querySelector('button[type=submit]'),err=form.querySelector('.error');
  if(btn.disabled)return true;btn.disabled=true;if(err)err.textContent='';
  try{
+ if(id==='journeyTaskForm'){await api('journey/projects/'+Number(form.dataset.project)+'/tasks','POST',{...data,assigned_to:data.assigned_to?Number(data.assigned_to):null});notify('أُضيفت المهمة');await route();}
  if(id==='journeyPrefs'){
   const payload={...data,sectors:[...form.querySelectorAll('[name=sectors]:checked')].map(x=>x.value),news_enabled:form.querySelector('[name=news_enabled]').checked,onboarding_complete:true};
   await api('journey/preferences','PATCH',payload);notify('حُفظت تفضيلاتك');go('/my-space');
