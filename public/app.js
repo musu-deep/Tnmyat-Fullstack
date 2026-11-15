@@ -154,7 +154,7 @@ document.addEventListener('submit',async e=>{
  if(form.id==='search'){go(homeUrl(location.pathname==='/wall'?topic:'',data.q.trim()));return;}
  const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;const error=form.querySelector('.error');error.textContent='';
  try{
- if(form.id==='auth'){await api(form.dataset.mode,'POST',data);user=(await api('me')).user;account();if(dialog.open)dialog.close();const next=afterAuth;afterAuth=null;await pulse();if(next&&user){await route();next();}else{go(form.dataset.mode==='register'?'/onboarding':'/wall');}}
+ if(form.id==='auth'){const isNew=form.dataset.mode==='register';await api(form.dataset.mode,'POST',data);user=(await api('me')).user;account();if(dialog.open)dialog.close();const next=afterAuth;afterAuth=null;await pulse();if(isNew){go('/onboarding');}else if(next&&user){await route();next();}else{go('/wall');}}
  else if(form.id==='compose'){const res=await api('posts','POST',data);dialog.close();go('/post/'+encodeURIComponent(res.post.id));notify('نُشرت مشاركتك');}
  else if(form.id==='comment'){await api('posts/'+form.dataset.id+'/comments','POST',data);await route();notify('نُشر تعليقك');}
  else if(form.id==='confirm'){const removing=form.dataset.action==='delete';await api('posts/'+form.dataset.id+(removing?'':'/report'),removing?'DELETE':'POST');dialog.close();if(removing)go('/wall');notify(removing?'حُذف المنشور':'أُرسل البلاغ إلى الإدارة');}
