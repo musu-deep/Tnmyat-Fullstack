@@ -145,10 +145,18 @@ export async function memberJourneyRoute(request,db,user,h){
  if(path==='/api/journey/news'&&method==='GET'){
   const pref=await prefs();
   if(!pref.news_enabled)return response(json,{news:[],disabled:true});
-  const {results}=await db.prepare(`SELECT headline,source_name,source_url,category,published_at FROM development_news WHERE status='published' ORDER BY published_at DESC LIMIT 75`).all();
+  const {results}=await db.prepare(`SELECT headline,source_name,source_url,category,published_at FROM (
+    SELECT headline,source_name,source_url,category,published_at FROM development_news WHERE status='published'
+    UNION ALL
+    SELECT COALESCE(NULLIF(p.title,''),substr(p.body,1,130)), 'مجتمع تنميات',
+      '/post/'||p.id,p.topic,substr(f.endorsed_at,1,10)
+    FROM featured_member_posts f JOIN posts p ON p.id=f.post_id JOIN users u ON u.id=p.author_id
+    WHERE f.status='published' AND p.moderation_status='visible' AND u.account_status='active'
+   ) ORDER BY published_at DESC LIMIT 75`).all();
   const terms=pref.sectors;
   const matched=terms.length?results.filter(x=>terms.some(t=>(x.category+' '+x.headline).includes(t))):results;
-  return response(json,{news:matched.slice(0,20),fallback:terms.length>0&&matched.length===0});
+  const fallback=terms.length>0&&matched.length===0;
+  return response(json,{news:(fallback?results:matched).slice(0,20),fallback});
  }
  if(path==='/api/journey/recommendations'&&method==='GET'){
   const pref=await prefs();
