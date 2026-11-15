@@ -56,3 +56,44 @@ body.wallCoverView main.wrap{overflow:visible}
 .hubNewsManage{border:0;border-radius:10px;padding:8px 12px;background:#e8f1f6;color:#173e55;cursor:pointer;font-weight:800;font-size:.75rem;justify-self:end}
 
 .hubUnpublish{border:0;background:transparent;text-align:right;color:#8a4750;font-size:.72rem;cursor:pointer;padding:3px}
+
+/* Interactive calendar, Sunday-first with consistent 7 x 6 month matrix */
+.hubCalendarToolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 8px}
+.hubCalendarToolbar strong{font-size:.87rem;color:#263c57;font-weight:800}
+.hubCalendarToolbar button,.hubCalendarLegend button{border:1px solid #dbe5ef;background:#f7f9fc;border-radius:9px;color:#284968;cursor:pointer;padding:4px 10px}
+.hubCalendarToolbar button{font-size:1.5rem;min-width:34px;min-height:35px;line-height:1}
+.hubCalendarGrid{direction:ltr;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.hubWeekday{display:grid;place-items:center;color:#708197;font-size:.72rem;font-weight:700;height:26px}
+.hubDate,.hubDateOutside{border:0;min-width:0;min-height:33px;border-radius:9px;background:transparent;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0;font:inherit;font-size:.79rem;color:#334963;position:relative;line-height:1.15;font-variant-numeric:tabular-nums}
+.hubDate{cursor:pointer}.hubDateOutside{opacity:.3;pointer-events:none}
+.hubDate:hover,.hubDate:focus-visible{background:#e7eef7}
+.hubDateToday{background:#266b79!important;color:white;font-weight:800}
+.hubDateSelected{outline:2px solid #cd9d54;outline-offset:-2px;background:#f0e6d1}
+.hubDate i{height:5px;width:5px;position:absolute;bottom:2px;border-radius:50%;background:#ce8740}
+.hubDateToday i{background:white}
+.hubCalendarLegend{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#58778b;font-size:.7rem;margin:9px 0}
+.hubCalendarLegend span{color:#9b6a3d}
+.hubCalendarDetails{border-top:1px solid #e6ecf2;padding-top:10px;margin-top:8px;min-height:42px}
+.hubCalendarDetails .hubEventItem{padding:8px 0}
+.hubDayDetailTitle{font-weight:800;color:#294760;font-size:.87rem;display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hubDayDetailTitle span{font-size:.7rem;color:#698090;font-weight:600}
+.hubCalendarSelection{background:#fff;border:1px solid #dce6ef;border-radius:14px;padding:14px 18px;scroll-margin-top:90px}
+.hubCalendarSelection .hubEventItem{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.hubMonthHead{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:10px}
+.hubMonthHead b{margin:0!important;font-size:.7rem}
+.hubMonth .hubCalendarGrid{gap:4px}
+.hubMonth .hubDate,.hubMonth .hubDateOutside{min-height:36px}
+.hubMonth{min-height:0}
+@media(max-width:650px){.hubMonth .hubDate,.hubMonth .hubDateOutside{min-height:40px}.hubCalendarGrid{gap:2px}}
+
+/* The two news lanes remain in flow at their original position.
+   Once the original location scrolls out, both dock at viewport bottom. */
+#hubTickers{position:relative}
+#hubTickers .hubTickersDocked{position:fixed;inset-inline:0;bottom:0;width:100%;margin:0;border-radius:0;z-index:28;box-shadow:0 -8px 26px rgba(8,27,44,.25)}
+#hubTickers .hubTickersDocked .hubTicker{min-height:35px}
+body.hubTickerDocked main.wrap{padding-bottom:110px}
+@media(max-width:680px){
+ #hubTickers .hubTickersDocked{bottom:calc(53px + env(safe-area-inset-bottom));}
+ body.hubTickerDocked main.wrap{padding-bottom:155px}
+}
+@media(prefers-reduced-motion:reduce){.hubTickersDocked .hubTickerTrack{animation:none!important}}
