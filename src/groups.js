@@ -10,7 +10,7 @@ export async function groupRoute(request, db, user, helpers) {
   const viewer = user?.id ?? 0;
   if (path==='/api/groups') {
     if (method==='GET') {
-      const {results}=await db.prepare(groupSelect+' ORDER BY g.id DESC').bind(viewer,viewer).all();
+      const {results}=await db.prepare(groupSelect+" WHERE (g.moderation_status='visible' OR ?=1) ORDER BY g.id DESC").bind(viewer,viewer,user?.role==='admin'?1:0).all();
       return json({groups:results});
     }
     if (method==='POST') {
@@ -27,14 +27,14 @@ export async function groupRoute(request, db, user, helpers) {
   if (!match) throw new ApiError(404,'المجموعة غير موجودة');
   const [,id,action,target]=match;
   const group=await db.prepare(groupSelect+' WHERE g.id=?').bind(viewer,viewer,id).first();
-  if (!group) throw new ApiError(404,'المجموعة غير موجودة');
+  if (!group || (group.moderation_status!=='visible' && user?.role!=='admin')) throw new ApiError(404,'المجموعة غير موجودة');
   const manager=group.membership==='owner'||group.membership==='moderator';
   const isMember=manager||group.membership==='member';
   if (!action && method==='GET') {
     const before=Number(new URL(request.url).searchParams.get('before') || Number.MAX_SAFE_INTEGER);
     if(!Number.isSafeInteger(before)||before<1)throw new ApiError(400,'مؤشر صفحة غير صالح');
     const {results:notes}=await db.prepare(`SELECT n.*,u.name AS author FROM group_notes n JOIN users u ON u.id=n.user_id
-      WHERE n.group_id=? AND n.id<? ORDER BY n.id DESC LIMIT 31`).bind(id,before).all();
+      WHERE n.group_id=? AND n.id<? AND (n.moderation_status='visible' OR ?=1) ORDER BY n.id DESC LIMIT 31`).bind(id,before,user?.role==='admin'?1:0).all();
     const members=manager?(await db.prepare(`SELECT m.user_id,u.name,m.status FROM group_members m
       JOIN users u ON u.id=m.user_id WHERE m.group_id=? ORDER BY u.name`).bind(id).all()).results:[];
     return json({group,notes:notes.slice(0,30),hasMore:notes.length>30,members});

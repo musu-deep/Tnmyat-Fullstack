@@ -59,6 +59,7 @@ async function route(){const token=++version;let target=main;
  const isLanding=['/','/welcome','/welcome/'].includes(location.pathname);
  document.body.classList.toggle('landingView',isLanding);
  if(isLanding){if(user){history.replaceState(null,'','/wall');await route();return;}renderWelcome();return;}
+ if(location.pathname==='/admin'){await renderGovernance(token);return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}
  if(await socialRoute(token))return;
  const post=location.pathname.match(/^\/post\/(\d+)\/?$/);if(post){
@@ -84,6 +85,7 @@ document.addEventListener('click',async event=>{
  if(el.tagName==='A'){if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||el.target||el.hasAttribute('download')||el.getAttribute('href').startsWith('#'))return;const url=new URL(el.href);if(url.origin===location.origin){event.preventDefault();go(url.pathname+url.search+url.hash);}return;}
  const action=el.dataset.act,id=el.dataset.id;
  try{
+ if(await governanceAction(action,el))return;
  if(await socialAction(action,el))return;
  switch(action){
  case 'accountmenu':{
@@ -113,6 +115,7 @@ document.addEventListener('click',async event=>{
 dialog.addEventListener('cancel',()=>{afterAuth=null;});
 document.addEventListener('submit',async e=>{
  const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form));
+ if(await governanceForm(form,data))return;
  if(await socialForm(form,data))return;
  if(form.id==='search'){go(homeUrl(location.pathname==='/wall'?topic:'',data.q.trim()));return;}
  const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;const error=form.querySelector('.error');error.textContent='';

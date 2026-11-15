@@ -1,3 +1,4 @@
+import { governanceRoute } from './governance.js';
 import { socialRoute, validateImage } from './social.js';
 import { writePost, serveFile } from './media.js';
 import { groupRoute } from './groups.js';
@@ -100,7 +101,7 @@ async function currentUser(request,db) {
   const token = sessionToken(request);
   if (!token) return null;
   return db.prepare(`
-    SELECT u.id,u.name,u.role,u.bio,
+    SELECT u.id,u.name,u.role,u.bio,u.account_status,u.status_until,
       CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar
     FROM sessions s JOIN users u ON u.id=s.user_id
     WHERE s.token_hash=? AND s.expires_at>unixepoch()
@@ -161,6 +162,8 @@ async function authenticate(request,db,register) {
     if (!user?.password_hash || !sameHash(candidate,user.password_hash)) {
       throw new ApiError(401,'البريد الإلكتروني أو كلمة المرور غير صحيحة.');
     }
+    const status=await db.prepare('SELECT account_status,status_until FROM users WHERE id=?').bind(user.id).first();
+    if(status.account_status==='banned'||(status.account_status==='suspended'&&(!status.status_until||status.status_until>Math.floor(Date.now()/1000))))throw new ApiError(403,'الحساب موقوف؛ تواصل مع إدارة المجتمع.');
     await db.batch([
       db.prepare('INSERT INTO sessions VALUES(?,?,unixepoch()+?)').bind(tokenHash,user.id,sessionSeconds),
       db.prepare('UPDATE users SET last_seen=unixepoch() WHERE id=?').bind(user.id),
@@ -179,7 +182,7 @@ const postFields = `
   CASE WHEN p.image_mime IS NOT NULL THEN '/api/media/post/'||p.id END AS image,
   (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id) AS likes,
   EXISTS(SELECT 1 FROM likes l WHERE l.post_id=p.id AND l.user_id=viewer.id) AS liked,
-  (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id) AS comments_count,
+  (SELECT COUNT(*) FROM comments c WHERE c.post_id=p.id AND c.moderation_status='visible') AS comments_count,
   (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS reposts_count,
   EXISTS(SELECT 1 FROM reposts r WHERE r.post_id=p.id AND r.user_id=viewer.id) AS reposted
 `;
@@ -194,7 +197,7 @@ function postView(row) {
     repost_by:repost_user_id ? {id:repost_user_id,name:repost_name} : null,repost_at:post.repost_at ?? null};
 }
 async function getPost(db,id,user) {
-  const post = await db.prepare('SELECT '+postFields+postFrom+' WHERE p.id=?').bind(user?.id ?? 0,id).first();
+  const post = await db.prepare('SELECT '+postFields+postFrom+" WHERE p.id=? AND (p.moderation_status='visible' OR ?=1)").bind(user?.id ?? 0,id,user?.role==='admin'?1:0).first();
   if (!post) throw new ApiError(404,'تعذر العثور على المنشور.');
   return postView(post);
 }
@@ -225,12 +228,15 @@ async function route(request,db) {
   }
   const user = await currentUser(request,db);
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
+  const governance=await governanceRoute(request,db,user,helpers);
+  if(governance)return governance;
+  if(user&&(user.account_status==='banned'||(user.account_status==='suspended'&&(!user.status_until||user.status_until>Math.floor(Date.now()/1000)))))throw new ApiError(403,'الحساب موقوف؛ تواصل مع إدارة المجتمع.');
   const file=path.match(/^\/api\/files\/([0-9a-f-]{36})$/);
   if(file&&['GET','HEAD'].includes(method))return serveFile(request,db,file[1],helpers);
   if (path.startsWith('/api/groups')) return groupRoute(request,db,user,helpers);
   const social=await socialRoute(request,db,user,helpers);
   if (social) return social;
-  if (method === 'GET' && path === '/api/me') return json({user});
+  if (method === 'GET' && path === '/api/me') return json({user:user ? {id:user.id,name:user.name,role:user.role,bio:user.bio} : null});
   if (path === '/api/posts' && method === 'GET') {
     const q = textField(url.searchParams.get('q') || '',0,160,'عبارة البحث');
     const topic = url.searchParams.get('topic') || '';
@@ -247,9 +253,9 @@ async function route(request,db) {
     SELECT `+postFields+`,w.repost_user_id,rep.name AS repost_name,
       CASE WHEN w.repost_user_id IS NOT NULL THEN w.event_time END AS repost_at`+postFrom+`
     JOIN wall w ON w.post_id=p.id LEFT JOIN users rep ON rep.id=w.repost_user_id
-    WHERE (?='' OR p.topic=?) AND (?='' OR instr(lower(p.title),lower(?))>0 OR instr(lower(p.body),lower(?))>0 OR instr(lower(u.name),lower(?))>0)
+    WHERE (p.moderation_status='visible' OR ?=1) AND (?='' OR p.topic=?) AND (?='' OR instr(lower(p.title),lower(?))>0 OR instr(lower(p.body),lower(?))>0 OR instr(lower(u.name),lower(?))>0)
     ORDER BY w.event_time DESC,p.id DESC,COALESCE(w.repost_user_id,0) DESC LIMIT ? OFFSET ?
-    `).bind(member,member,member,member,user?.id ?? 0,topic,topic,q,q,q,q,pageSize+1,pageSize*(page-1)).all();
+    `).bind(member,member,member,member,user?.id ?? 0,user?.role==='admin'?1:0,topic,topic,q,q,q,q,pageSize+1,pageSize*(page-1)).all();
     return json({posts:results.slice(0,pageSize).map(postView),hasMore:results.length>pageSize});
   }
   if (path === '/api/posts' && method === 'POST') {
@@ -276,8 +282,8 @@ async function route(request,db) {
       const {results} = await db.prepare(`
         SELECT c.id,c.body,c.created_at,u.id AS author_id,u.name AS author,
           CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS author_avatar FROM comments c JOIN users u ON u.id=c.author_id
-        WHERE c.post_id=? ORDER BY c.id
-      `).bind(id).all();
+        WHERE c.post_id=? AND (c.moderation_status='visible' OR ?=1) ORDER BY c.id
+      `).bind(id,user?.role==='admin'?1:0).all();
       return json({post,comments:results});
     }
     requireUser(user);
@@ -288,6 +294,7 @@ async function route(request,db) {
     }
     if (!action && method === 'DELETE') {
       if (post.author_id !== user.id && user.role !== 'admin') throw new ApiError(403,'لا تملك صلاحية حذف هذا المنشور.');
+      if(user.role==='admin'&&post.author_id!==user.id)throw new ApiError(403,'استخدم مركز الإدارة لإخفاء المنشور مع توثيق القرار');
       await db.prepare('DELETE FROM posts WHERE id=?').bind(id).run();
     } else if (action === 'like' && method === 'PUT') {
       const data = await parseBody(request);
@@ -310,7 +317,7 @@ async function route(request,db) {
       await db.prepare('INSERT INTO comments(post_id,author_id,body) VALUES(?,?,?)').bind(id,user.id,body).run();
     } else if (action === 'report' && method === 'POST') {
       await enforceLimit(db,'report',user.id,20,3600);
-      await db.prepare('INSERT INTO reports(post_id,user_id) VALUES(?,?) ON CONFLICT DO NOTHING').bind(id,user.id).run();
+      await db.batch([db.prepare('INSERT INTO reports(post_id,user_id) VALUES(?,?) ON CONFLICT DO NOTHING').bind(id,user.id),db.prepare('INSERT INTO moderation_reports(reporter_id,target_type,target_id,reason) VALUES(?,?,?,?)').bind(user.id,'post',Number(id),'بلاغ عن محتوى منشور')]);
     } else throw new ApiError(405,'طريقة الطلب غير مدعومة.');
     return json({ok:true});
   }

@@ -17,7 +17,7 @@ function signedAccountMenu(){
     '<div class="accountSet">'+accountRow('مشاركاتي','▤','peach','href="'+profile+'"')+accountRow('الأصدقاء وطلبات الصداقة','♧','lilac','href="/people?filter=requests"')+accountRow('الرسائل الخاصة','✉','sky','href="/messages"')+'</div>'+
     '<div class="accountSet">'+accountRow('تعديل بياناتي','✎','mint','data-act="editprofile"')+accountRow('اختصارات لوحة المفاتيح','⌨','sky','data-act="shortcuts"')+
     accountRow('الوضع الليلي','☾','lilac','data-act="night" aria-pressed="'+(document.documentElement.dataset.theme==='dark')+'"')+
-    (user.role==='admin'?accountRow('إدارة البلاغات','⚑','peach','href="/reports"'):'')+'</div>'+
+    (user.role==='admin'?accountRow('مركز إدارة تنميات','⚑','peach','href="/admin"'):'')+'</div>'+
     accountRow('تسجيل الخروج','↪','rose','data-act="logout"')+'</section>';
 }
 function setNight(on){
