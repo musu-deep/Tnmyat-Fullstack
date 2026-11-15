@@ -76,7 +76,7 @@ function card(p,detail=false){
  const repost=p.repost_by?'<div class="originNote">↻ أعاد <a href="/profile/'+encodeURIComponent(p.repost_by.id)+'">'+esc(p.repost_by.name)+'</a> نشر هذه المشاركة</div>':'';
  const kind=kindNames[p.post_kind]||'منشور';
  const heading=p.title?(detail?'<h1>'+esc(p.title)+'</h1>':'<h3><a href="'+href+'">'+esc(p.title)+'</a></h3>'):'';
- return '<article class="card feedCard">'+repost+meta(p)+'<div class="feedBadges"><span class="kindBadge">'+esc(kindIcons[p.post_kind]||'✍')+' '+esc(kind)+'</span>'+(p.pinned?'<span class="pinnedBadge">⌁ مثبّت</span>':'')+'</div>'+heading+(p.body?'<p class="'+(detail?'bodycopy':'snippet')+'">'+esc(p.body)+'</p>':'')+
+ return '<article class="card feedCard">'+repost+meta(p)+'<div class="feedBadges"><span class="kindBadge">'+esc(kindIcons[p.post_kind]||'✍')+' '+esc(kind)+'</span>'+(p.gold_featured?'<span class="goldFeatureBadge" title="إشادة تحريرية من إدارة تنميات">★ إشادة ذهبية</span>':'')+(p.pinned?'<span class="pinnedBadge">⌁ مثبّت</span>':'')+'</div>'+heading+(p.body?'<p class="'+(detail?'bodycopy':'snippet')+'">'+esc(p.body)+'</p>':'')+
  postMedia(p)+postTags(p)+
  '<div class="actions"><button class="action" data-act="like" data-id="'+id+'" data-liked="'+Boolean(p.liked)+'" aria-pressed="'+Boolean(p.liked)+'" aria-label="إعجاب">'+icon('heart')+' '+esc(p.likes||0)+'</button><a class="action" href="'+href+'#comments" aria-label="التعليقات">'+icon('chat')+' '+esc(p.comments_count||0)+'</a>'+
  '<button class="action" data-act="repost" '+(user&&p.author_id===user.id?'disabled title="منشورك الأصلي"':'')+' data-id="'+id+'" data-on="'+Boolean(p.reposted)+'" aria-pressed="'+Boolean(p.reposted)+'">↻ '+(p.reposted?'أُعيد نشره':'إعادة نشر')+' '+Number(p.reposts_count||0)+'</button>'+
