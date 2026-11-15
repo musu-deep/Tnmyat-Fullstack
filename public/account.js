@@ -13,7 +13,7 @@ function signedAccountMenu(){
   const profile='/profile/'+encodeURIComponent(user.id);
   return '<button id="accountSwitch" class="accountSwitch" aria-expanded="false" aria-controls="accountPanel" data-act="accountmenu">'+face(user)+'<span>'+esc(user.name)+'</span><b aria-hidden="true">⌄</b></button>'+
     '<section id="accountPanel" class="accountPanel" aria-label="قائمة الحساب" hidden>'+
-    '<a href="'+profile+'" class="accountSummary">'+face(user,'medium')+'<span><strong>'+esc(user.name)+'</strong><small>عرض الملف الشخصي</small></span></a>'+
+    '<a href="'+profile+'" class="accountSummary accountSummaryCover"><span class="accountCoverRibbon"'+coverStyle(user)+'></span>'+face(user,'medium')+'<span><strong>'+esc(user.name)+'</strong><small>عرض الملف الشخصي</small></span></a>'+
     '<div class="accountSet">'+accountRow('مشاركاتي','▤','peach','href="'+profile+'"')+accountRow('الأصدقاء وطلبات الصداقة','♧','lilac','href="/people?filter=requests"')+accountRow('الرسائل الخاصة','✉','sky','href="/messages"')+'</div>'+
     '<div class="accountSet">'+accountRow('تعديل بياناتي','✎','mint','data-act="editprofile"')+accountRow('اختصارات لوحة المفاتيح','⌨','sky','data-act="shortcuts"')+
     accountRow('الوضع الليلي','☾','lilac','data-act="night" aria-pressed="'+(document.documentElement.dataset.theme==='dark')+'"')+

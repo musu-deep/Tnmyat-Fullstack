@@ -51,7 +51,9 @@ export async function governanceRoute(request, db, user, helpers) {
   }
   if(path==='/api/admin/users' && method==='GET'){
     const q=(url.searchParams.get('q')||'').slice(0,100),page=Math.min(1000,Math.max(1,Number(url.searchParams.get('page'))||1));
-    const {results}=await db.prepare("SELECT id,email,name,role,account_status,status_reason,status_until,created_at FROM users WHERE password_hash IS NOT NULL AND (instr(lower(email),lower(?))>0 OR instr(lower(name),lower(?))>0) ORDER BY id DESC LIMIT 30 OFFSET ?").bind(q,q,(page-1)*30).all();
+    const {results}=await db.prepare(`SELECT id,email,name,role,account_status,status_reason,status_until,created_at,cover_position,
+      CASE WHEN avatar_version IS NOT NULL THEN '/api/media/avatar/'||id||'?v='||avatar_version END AS avatar,
+      CASE WHEN cover_version IS NOT NULL THEN '/api/media/cover/'||id||'?v='||cover_version END AS cover FROM users WHERE password_hash IS NOT NULL AND (instr(lower(email),lower(?))>0 OR instr(lower(name),lower(?))>0) ORDER BY id DESC LIMIT 30 OFFSET ?`).bind(q,q,(page-1)*30).all();
     return json({users:results});
   }
   if(path==='/api/admin/posts' && method==='GET'){

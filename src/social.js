@@ -71,8 +71,9 @@ async function profileFor(db,viewer,id) {
     personFrom+' WHERE u.id=?').bind(viewer,id).first();
   return person ? personView(person) : null;
 }
-const peerFields = `u.id,u.name,CASE WHEN u.avatar_version IS NOT NULL
-  THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar`;
+const peerFields = `u.id,u.name,u.cover_position,
+  CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar,
+  CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS cover`;
 
 export async function socialRoute(request,db,user,helpers) {
   const {ApiError,json,parseBody,textField,requireUser,enforceLimit}=helpers;
@@ -187,7 +188,7 @@ export async function socialRoute(request,db,user,helpers) {
     )
     SELECT `+peerFields+`,r.body AS last_body,r.created_at,r.unread FROM ranked r JOIN users u ON u.id=r.peer_id
     WHERE r.rank=1 ORDER BY r.id DESC`).bind(viewer,viewer,viewer,viewer).all();
-    return json({conversations:results.map(({id,name,avatar,...latest})=>({peer:{id,name,avatar},...latest}))});
+    return json({conversations:results.map(({id,name,avatar,cover,cover_position,...latest})=>({peer:{id,name,avatar,cover,cover_position},...latest}))});
   }
   const convo=path.match(/^\/api\/messages\/(\d+)$/);
   if (convo && (method==='GET' || method==='POST')) {

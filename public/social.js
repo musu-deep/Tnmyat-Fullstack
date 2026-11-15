@@ -6,6 +6,26 @@ function face(person={},size=''){
  const photo=asset(person.avatar)||(String(person.id)==='1'?'/favicon.png':'');
  return '<span class="avatar '+size+'" aria-hidden="true">'+(photo?'<img src="'+photo+'" alt="" loading="lazy">':esc((person.name||'ت').trim().charAt(0)))+(person.online?'<i class="onlineDot"></i>':'')+'</span>';
 }
+// One member identity across the wall, comments, people, groups and messages.
+// The cover is a slim visual signature in compact locations; full image in profile/wall hero.
+function coverStyle(member) {
+ const src=asset(member?.cover);
+ const position=Math.max(0,Math.min(100,Number(member?.cover_position??member?.author_cover_position??50)||50));
+ return src?' style="background-image:linear-gradient(0deg,rgba(6,28,50,.18),transparent),url(\''+src+'\');background-position:center '+position+'%"':'';
+}
+function memberSignature(member,mode='regular') {
+ const id=encodeURIComponent(member.id);
+ return '<a class="identityLink identity-'+mode+'" href="/profile/'+id+'" aria-label="الملف الشخصي: '+esc(member.name)+'">'+
+  '<span class="identityCover"'+coverStyle(member)+' aria-hidden="true"></span>'+face(member,mode==='regular'?'medium':'')+
+  '<span class="identityCopy"><strong>'+esc(member.name)+'</strong>'+
+  (mode==='regular'?'<small>'+esc(member.bio||'عضو في مجتمع تنميات')+'</small>':'')+'</span></a>';
+}
+function wallIdentityHero(p){
+ const id=encodeURIComponent(p.id),posts=Number(p.posts_count||0),followers=Number(p.followers_count||0),friends=Number(p.friends_count||0);
+ return '<section class="wallIdentityHero"><div class="wallIdentityCover"'+coverStyle(p)+'><span>مساحتك في مجتمع تنميات</span><button type="button" data-act="editprofile" class="wallCoverEdit">✎ تخصيص الغلاف</button></div>'+
+ '<div class="wallIdentityMain"><a href="/profile/'+id+'" class="wallIdentityPortrait">'+face(p,'large')+'</a><div class="wallIdentityInfo"><h2>'+esc(p.name)+'</h2><p>'+esc(p.bio||'تواصل، وشارك خبراتك ومبادراتك مع مجتمعك.')+'</p></div><a class="wallIdentityLink" href="/profile/'+id+'">عرض الملف الشخصي ←</a></div>'+
+ '<div class="wallIdentityStats"><a href="/profile/'+id+'"><b>'+posts.toLocaleString('ar')+'</b><span>منشورات</span></a><a href="/people?filter=followers"><b>'+followers.toLocaleString('ar')+'</b><span>متابعون</span></a><a href="/people?filter=friends"><b>'+friends.toLocaleString('ar')+'</b><span>أصدقاء</span></a></div></section>';
+}
 const kindNames={post:'منشور',article:'مقال',initiative:'مبادرة',question:'سؤال',announcement:'إعلان مجموعة'};
 const kindIcons={post:'✍',article:'▤',initiative:'✦',question:'؟',announcement:'♧'};
 const topicIcons={'التعليم':'▤','البيئة':'❧','المجتمع':'♧','الاقتصاد':'▥'};
@@ -20,9 +40,9 @@ function postTags(p){
 }
 function postLabel(p){return p.title||String(p.body||'').slice(0,65)||'منشور مصوّر';}
 function meta(p){
- const author={id:p.author_id,name:p.author,avatar:p.author_avatar};
- const identity=face(author)+'<strong>'+esc(author.name)+'</strong>';
- return '<div class="meta">'+(author.id?'<a class="authorLink" href="/profile/'+encodeURIComponent(author.id)+'">'+identity+'</a>':identity)+'<span>·</span><time>'+esc(date(p.created_at))+'</time>'+(p.topic?'<span class="tag">'+esc(p.topic)+'</span>':'')+'</div>';
+ const author={id:p.author_id,name:p.author,avatar:p.author_avatar,cover:p.author_cover,cover_position:p.author_cover_position};
+ const identity=author.id?memberSignature(author,'tiny'):face(author)+'<strong>'+esc(author.name)+'</strong>';
+ return '<div class="meta">'+identity+'<span>·</span><time>'+esc(date(p.created_at))+'</time>'+(p.topic?'<span class="tag">'+esc(p.topic)+'</span>':'')+'</div>';
 }
 function card(p,detail=false){
  const id=encodeURIComponent(p.id),href='/post/'+id,own=user&&(String(user.id)===String(p.author_id)||user.role==='admin');
@@ -232,7 +252,8 @@ function counts(p,full=false){
 function profileMini(p,latest){
  const summary=p.bio?'<p class="memberIntro">'+esc(p.bio)+'</p>':'';
  const activity=latest?'<a class="memberLatest" href="/post/'+latest.id+'"><small>آخر مشاركة</small><strong>'+esc(postLabel(latest))+'</strong></a>':'';
- return '<section class="memberPass"><a class="miniProfile" href="/profile/'+encodeURIComponent(p.id)+'">'+face(p,'medium')+'<span><strong>'+esc(p.name)+'</strong><small>عرض ملفي الشخصي ←</small></span></a>'+summary+(p.posts_count!==undefined?counts(p,true):'')+activity+'</section>';
+ return '<section class="memberPass memberPassCover"><div class="memberPassCoverImage"'+coverStyle(p)+'><button type="button" data-act="editprofile" aria-label="تخصيص غلافك">✎</button></div>'+
+ '<div class="memberPassIdentity">'+memberSignature(p,'regular')+'</div>'+summary+(p.posts_count!==undefined?counts(p,true):'')+activity+'</section>';
 }
 function peopleButtons(p){
  if(!user)return '<button class="btn" data-act="login">دخول للتواصل</button>';
@@ -241,18 +262,18 @@ function peopleButtons(p){
  const btn=(label,action,mode='')=>'<button class="btn compact" data-act="'+action+'" data-id="'+id+'" data-mode="'+mode+'">'+label+'</button>';
  return btn(p.following?'إلغاء المتابعة':'متابعة','follow',p.following?'off':'on')+(p.can_message===false?'':(stat==='incoming'?btn('قبول الصداقة','friend','accept')+btn('رفض','friend','remove'):btn(stat==='friends'?'إزالة الصداقة':stat==='outgoing'?'إلغاء الطلب':'طلب صداقة','friend',stat==='friends'||stat==='outgoing'?'remove':'request'))+'<a class="btn compact" href="/messages/'+id+'">رسالة</a>');
 }
-function personCard(p){return '<article class="personCard"><a class="miniProfile" href="/profile/'+encodeURIComponent(p.id)+'">'+face(p,'medium')+'<span><strong>'+esc(p.name)+'</strong><small>'+(p.online?'متصل الآن':'عضو في تنميات')+'</small></span></a>'+(p.bio?'<p class="memberBio">'+esc(p.bio)+'</p>':'')+'<div class="minirow">'+peopleButtons(p)+'</div></article>';}
+function personCard(p){return '<article class="personCard personIdentityCard">'+memberSignature(p,'regular')+(p.bio?'<p class="memberBio">'+esc(p.bio)+'</p>':'')+'<div class="minirow">'+peopleButtons(p)+'</div></article>';}
 function pathTitle(name){document.title=name+' | تنميات';return '<a class="plain back" href="/wall">← الحائط التفاعلي</a>';}
 async function pulse(){if(user&&document.visibilityState!=='hidden')try{await api('heartbeat','POST');}catch{/* The next heartbeat retries. */}}
 async function wallPresence(token){
  const data=await api('people?filter=online');if(token!==version)return;
  const node=document.querySelector('#presence');if(!node)return;
  node.innerHTML='<div class="onlineHeading"><h2>متصلون الآن</h2><a href="/people?filter=online">عرض الكل</a></div>'+
- (data.people.length?data.people.slice(0,6).map(p=>'<a class="onlineLink" href="/profile/'+encodeURIComponent(p.id)+'">'+face(p)+'<strong>'+esc(p.name)+'</strong></a>').join(''):'<p class="muted">لا يوجد أعضاء متصلون حاليًا.</p>');
+ (data.people.length?data.people.slice(0,6).map(p=>'<div class="onlineLink">'+memberSignature(p,'tiny')+'</div>').join(''):'<p class="muted">لا يوجد أعضاء متصلون حاليًا.</p>');
 }
 async function refreshWallSide(token){
  const presence=wallPresence(token).catch(()=>{});
- if(user)try{const [{profile},activity]=await Promise.all([api('profiles/'+user.id),api('posts?user='+user.id)]);if(token===version){for(const key of ['myCard','mobileCard']){const node=document.getElementById(key);if(node)node.innerHTML=profileMini(profile,activity.posts[0]);}}}catch{/* Profile remains reachable via the initial card. */}
+ if(user)try{const [{profile},activity]=await Promise.all([api('profiles/'+user.id),api('posts?user='+user.id)]);if(token===version){const hero=document.getElementById('wallIdentity');if(hero)hero.innerHTML=wallIdentityHero(profile);for(const key of ['myCard','mobileCard']){const node=document.getElementById(key);if(node)node.innerHTML=profileMini(profile,activity.posts[0]);}}}catch{/* Profile remains reachable via the initial card. */}
  await presence;
 }
 async function directory(token){
@@ -284,7 +305,7 @@ async function profilePosts(id,page,token){
  profilePage=page;document.querySelector('#profileMore').innerHTML=data.hasMore?'<button class="btn load" data-act="profilemore" data-id="'+id+'">عرض المزيد</button>':'';
 }
 function conversationList(list,id){
- return list.length?list.map(c=>'<a class="conversation '+(String(c.peer.id)===id?'active':'')+'" href="/messages/'+encodeURIComponent(c.peer.id)+'">'+face(c.peer)+'<span><strong>'+esc(c.peer.name)+'</strong><small>'+esc(c.last_body)+'</small></span>'+(c.unread?'<b>'+Number(c.unread)+'</b>':'')+'</a>').join(''):'<p class="muted">لا توجد محادثات بعد.</p>';
+ return list.length?list.map(c=>'<a class="conversation '+(String(c.peer.id)===id?'active':'')+'" href="/messages/'+encodeURIComponent(c.peer.id)+'"><span class="conversationMember"><span class="identityCover"'+coverStyle(c.peer)+'></span>'+face(c.peer)+'<span><strong>'+esc(c.peer.name)+'</strong><small>'+esc(c.last_body)+'</small></span></span>'+(c.unread?'<b>'+Number(c.unread)+'</b>':'')+'</a>').join(''):'<p class="muted">لا توجد محادثات بعد.</p>';
 }
 function bubbles(messages){return messages.map(m=>'<div class="bubble '+(String(user.id)===String(m.sender_id)?'mine':'theirs')+'"><p>'+esc(m.body)+'</p><time>'+esc(new Intl.DateTimeFormat('ar',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(m.created_at)))+'</time></div>').join('');}
 async function refreshInbox(id,token){
@@ -296,7 +317,7 @@ async function inbox(token,id){
  main.innerHTML='<div class="socialPage">'+pathTitle('الرسائل الخاصة')+'<div class="socialHeading"><h1>الرسائل الخاصة</h1><a href="/people" class="btn">محادثة جديدة</a></div><div class="inboxLayout '+(id?'selected':'')+'"><aside class="threadList"><h2>المحادثات</h2><div id="conversationList"></div></aside><section id="threadView" class="threadView">'+(id?'جارٍ تحميل المحادثة…':'<div class="status"><h2>اختر محادثة</h2><p>أو افتح ملف عضو لبدء مراسلته.</p></div>')+'</section></div></div>';
  if(id){
   const data=await api('messages/'+id);if(token!==version)return;threadPeer=data.peer;threadEntries=data.messages;
-  document.querySelector('#threadView').innerHTML='<div class="threadHead"><a class="authorLink" href="/profile/'+id+'">'+face(threadPeer)+'<strong>'+esc(threadPeer.name)+'</strong></a><a class="plain" href="/messages">كل المحادثات</a></div><div id="stream" class="stream"><div id="earlier">'+(data.hasMore?'<button class="plain" data-act="older" data-id="'+id+'">الرسائل السابقة</button>':'')+'</div><div id="bubbles">'+(data.messages.length?bubbles(data.messages):'<p class="muted emptyThread">اكتب أول رسالة.</p>')+'</div></div><form class="fields messageForm" id="sendMessage" data-id="'+id+'"><label class="sr" for="dmBody">نص الرسالة</label><textarea id="dmBody" name="body" maxlength="2000" required placeholder="اكتب رسالة…"></textarea><button class="btn primary">إرسال</button><div class="error" role="alert"></div></form>';
+  document.querySelector('#threadView').innerHTML='<div class="threadHead">'+memberSignature(threadPeer,'tiny')+'<a class="plain" href="/messages">كل المحادثات</a></div><div id="stream" class="stream"><div id="earlier">'+(data.hasMore?'<button class="plain" data-act="older" data-id="'+id+'">الرسائل السابقة</button>':'')+'</div><div id="bubbles">'+(data.messages.length?bubbles(data.messages):'<p class="muted emptyThread">اكتب أول رسالة.</p>')+'</div></div><form class="fields messageForm" id="sendMessage" data-id="'+id+'"><label class="sr" for="dmBody">نص الرسالة</label><textarea id="dmBody" name="body" maxlength="2000" required placeholder="اكتب رسالة…"></textarea><button class="btn primary">إرسال</button><div class="error" role="alert"></div></form>';
   const stream=document.querySelector('#stream');stream.scrollTop=stream.scrollHeight;
  }
  await refreshInbox(id,token);

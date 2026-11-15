@@ -101,7 +101,8 @@ async function currentUser(request,db) {
   const token = sessionToken(request);
   if (!token) return null;
   return db.prepare(`
-    SELECT u.id,u.name,u.role,u.bio,u.account_status,u.status_until,
+    SELECT u.id,u.name,u.role,u.bio,u.account_status,u.status_until,u.cover_position,
+      CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS cover,
       CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar
     FROM sessions s JOIN users u ON u.id=s.user_id
     WHERE s.token_hash=? AND s.expires_at>unixepoch()
@@ -180,6 +181,8 @@ const postFields = `
   (SELECT json_group_array(json_object('id',id,'name',name,'mime',mime,'size',size,'url','/api/files/'||id))
    FROM (SELECT id,name,mime,size FROM post_files WHERE post_id=p.id ORDER BY position)) AS file_list,
   CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS author_avatar,
+  CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS author_cover,
+  u.cover_position AS author_cover_position,
   CASE WHEN p.image_mime IS NOT NULL THEN '/api/media/post/'||p.id END AS image,
   (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id) AS likes,
   EXISTS(SELECT 1 FROM likes l WHERE l.post_id=p.id AND l.user_id=viewer.id) AS liked,
@@ -237,7 +240,7 @@ async function route(request,db) {
   if (path.startsWith('/api/groups')) return groupRoute(request,db,user,helpers);
   const social=await socialRoute(request,db,user,helpers);
   if (social) return social;
-  if (method === 'GET' && path === '/api/me') return json({user:user ? {id:user.id,name:user.name,role:user.role,bio:user.bio} : null});
+  if (method === 'GET' && path === '/api/me') return json({user:user ? {id:user.id,name:user.name,role:user.role,bio:user.bio,avatar:user.avatar,cover:user.cover,cover_position:user.cover_position} : null});
   if (path === '/api/posts' && method === 'GET') {
     const q = textField(url.searchParams.get('q') || '',0,160,'عبارة البحث');
     const topic = url.searchParams.get('topic') || '';
@@ -286,7 +289,11 @@ async function route(request,db) {
   }
   if(path==='/api/discover' && method==='GET') {
     const {results:members}=await db.prepare(`SELECT u.id,u.name,u.bio,
-      CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar
+      CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar,
+      CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS cover,
+      u.cover_position,
+      (SELECT count(*) FROM posts p WHERE p.author_id=u.id AND p.moderation_status='visible') AS posts_count,
+      (SELECT count(*) FROM follows f WHERE f.followed=u.id) AS followers_count
       FROM users u WHERE u.id<>? AND u.password_hash IS NOT NULL AND u.account_status='active'
       AND NOT EXISTS(SELECT 1 FROM follows f WHERE f.follower=? AND f.followed=u.id)
       ORDER BY (SELECT COUNT(*) FROM posts p WHERE p.author_id=u.id AND p.moderation_status='visible') DESC,u.id DESC LIMIT 4`).bind(user?.id??0,user?.id??0).all();
@@ -328,7 +335,9 @@ async function route(request,db) {
       const post = await getPost(db,id,user);
       const {results} = await db.prepare(`
         SELECT c.id,c.body,c.created_at,u.id AS author_id,u.name AS author,
-          CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS author_avatar FROM comments c JOIN users u ON u.id=c.author_id
+          CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS author_avatar,
+          CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS author_cover,
+          u.cover_position AS author_cover_position FROM comments c JOIN users u ON u.id=c.author_id
         WHERE c.post_id=? AND (c.moderation_status='visible' OR ?=1) ORDER BY c.id
       `).bind(id,user?.role==='admin'?1:0).all();
       return json({post,comments:results});

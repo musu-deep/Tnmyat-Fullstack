@@ -4,11 +4,11 @@ function groupItem(group) {
 }
 function groupDiscussion(note, manager) {
   const canDelete=manager||user?.id===note.user_id;
-  return '<article class="group-note"><a href="/profile/'+note.user_id+'"><strong>'+esc(note.author)+'</strong></a><time>'+esc(date(note.created_at))+'</time><p>'+esc(note.body)+'</p>'+(canDelete?'<button class="plain" data-group-action="delete-note" data-id="'+note.id+'">حذف المشاركة</button>':'')+'</article>';
+  return '<article class="group-note">'+memberSignature({id:note.user_id,name:note.author,avatar:note.author_avatar,cover:note.author_cover},'tiny')+'<time>'+esc(date(note.created_at))+'</time><p>'+esc(note.body)+'</p>'+(canDelete?'<button class="plain" data-group-action="delete-note" data-id="'+note.id+'">حذف المشاركة</button>':'')+'</article>';
 }
 function memberControls(member) {
   const options=[['member','عضو'],['moderator','مشرف'],['blocked','عضوية موقوفة']];
-  return '<form data-group-form="role" data-id="'+member.user_id+'" class="group-member"><label>'+esc(member.name)+' <select name="status">'+options.map(([v,label])=>'<option value="'+v+'" '+(v===member.status?'selected':'')+'>'+label+'</option>').join('')+'</select></label><button class="btn">حفظ</button></form>';
+  return '<form data-group-form="role" data-id="'+member.user_id+'" class="group-member">'+memberSignature({id:member.user_id,name:member.name,avatar:member.avatar,cover:member.cover},'tiny')+'<label>الصلاحية <select name="status">'+options.map(([v,label])=>'<option value="'+v+'" '+(v===member.status?'selected':'')+'>'+label+'</option>').join('')+'</select></label><button class="btn">حفظ</button></form>';
 }
 async function renderGroups(token) {
   const match=location.pathname.match(/^\/groups\/(\d+)$/);
@@ -24,7 +24,7 @@ async function renderGroups(token) {
   const member=manager||g.membership==='member';
   document.title=g.name+' | تنميات';
   const membershipUI=g.membership==='owner'?'<small>مالك المجموعة</small>':g.membership==='blocked'?'<small>العضوية موقوفة</small>':'<button class="btn" data-group-action="'+(member?'leave':'join')+'">'+(member?'مغادرة المجموعة':'انضمام للمجموعة')+'</button>';
-  main.innerHTML='<section class="group-page" data-group="'+g.id+'"><a href="/groups" class="plain">← المجموعات</a><div class="group-summary"><small>مجموعة عامة · '+g.member_count+' عضو</small><h1>'+esc(g.name)+'</h1><p>'+esc(g.description)+'</p><div class="group-by"><a href="/profile/'+g.owner_id+'">'+esc(g.owner)+'</a>'+membershipUI+'</div></div>'+
+  main.innerHTML='<section class="group-page" data-group="'+g.id+'"><a href="/groups" class="plain">← المجموعات</a><div class="group-summary"><small>مجموعة عامة · '+g.member_count+' عضو</small><h1>'+esc(g.name)+'</h1><p>'+esc(g.description)+'</p><div class="group-by">'+memberSignature({id:g.owner_id,name:g.owner,avatar:g.owner_avatar,cover:g.owner_cover},'tiny')+''+membershipUI+'</div></div>'+
     (g.membership==='owner'&&data.members.length?'<details class="group-manage"><summary>إدارة أعضاء المجموعة ('+data.members.length+')</summary>'+data.members.map(memberControls).join('')+'</details>':'')+
     (member?'<form data-group-form="note" class="fields group-compose"><label>مشاركة في المجموعة<textarea name="body" required maxlength="3000" rows="3"></textarea></label><button class="btn primary">نشر</button></form>':'')+
     '<h2>نقاش المجموعة</h2><div id="group-notes">'+(data.notes.length?data.notes.map(n=>groupDiscussion(n,manager)).join(''):'<p>لم تبدأ المناقشة بعد.</p>')+'</div>'+

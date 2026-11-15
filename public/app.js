@@ -59,7 +59,7 @@ async function wallTrends(token){const el=document.getElementById('trends');if(!
  }catch{el.innerHTML='';}}
 async function wallDiscover(token){const el=document.getElementById('discovery');if(!el)return;try{
  const data=await api('discover');if(token!==version)return;
- el.innerHTML='<h2>اكتشف مجتمعك</h2>'+(data.members.length?'<h3>أعضاء مقترحون</h3>'+data.members.slice(0,3).map(p=>'<a href="/profile/'+encodeURIComponent(p.id)+'" class="discoverMember">'+face(p)+'<span><strong>'+esc(p.name)+'</strong><small>'+esc((p.bio||'عضو في المجتمع').slice(0,52))+'</small></span></a>').join(''):'')+
+ el.innerHTML='<h2>اكتشف مجتمعك</h2>'+(data.members.length?'<h3>أعضاء مقترحون</h3>'+data.members.slice(0,3).map(p=>'<div class="discoverMember">'+memberSignature(p,'regular')+'</div>').join(''):'')+
  (data.groups.length?'<h3>مجموعات نشطة</h3>'+data.groups.slice(0,3).map(g=>'<a href="/groups/'+encodeURIComponent(g.id)+'" class="discoverGroup"><strong>'+esc(g.name)+'</strong><small>'+Number(g.members)+' عضو</small></a>').join(''):'');
  }catch{el.innerHTML='';}}
 

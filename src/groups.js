@@ -3,6 +3,8 @@ export async function groupRoute(request, db, user, helpers) {
   const path = new URL(request.url).pathname;
   const method = request.method;
   const groupSelect = `SELECT g.*,u.name AS owner,
+    CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS owner_avatar,
+    CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS owner_cover,
     1+(SELECT COUNT(*) FROM group_members m WHERE m.group_id=g.id AND m.status!='blocked') AS member_count,
     CASE WHEN g.owner_id=? THEN 'owner' ELSE
     (SELECT m.status FROM group_members m WHERE m.group_id=g.id AND m.user_id=?) END AS membership
@@ -33,9 +35,13 @@ export async function groupRoute(request, db, user, helpers) {
   if (!action && method==='GET') {
     const before=Number(new URL(request.url).searchParams.get('before') || Number.MAX_SAFE_INTEGER);
     if(!Number.isSafeInteger(before)||before<1)throw new ApiError(400,'مؤشر صفحة غير صالح');
-    const {results:notes}=await db.prepare(`SELECT n.*,u.name AS author FROM group_notes n JOIN users u ON u.id=n.user_id
+    const {results:notes}=await db.prepare(`SELECT n.*,u.name AS author,
+      CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS author_avatar,
+      CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS author_cover FROM group_notes n JOIN users u ON u.id=n.user_id
       WHERE n.group_id=? AND n.id<? AND (n.moderation_status='visible' OR ?=1) ORDER BY n.id DESC LIMIT 31`).bind(id,before,user?.role==='admin'?1:0).all();
-    const members=manager?(await db.prepare(`SELECT m.user_id,u.name,m.status FROM group_members m
+    const members=manager?(await db.prepare(`SELECT m.user_id,u.name,m.status,
+      CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar,
+      CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS cover FROM group_members m
       JOIN users u ON u.id=m.user_id WHERE m.group_id=? ORDER BY u.name`).bind(id).all()).results:[];
     return json({group,notes:notes.slice(0,30),hasMore:notes.length>30,members});
   }

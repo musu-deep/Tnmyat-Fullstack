@@ -22,7 +22,7 @@ async function governanceLoad(){
  }else if(key==='users'){
   target.innerHTML='<form id="govSearch" class="gov-search"><input name="q" placeholder="ابحث باسم العضو أو البريد الإلكتروني" value="'+govEsc(window.govUserQuery||'')+'"><button>بحث</button></form>';
   const list=window.govUserQuery?await api('admin/users?q='+encodeURIComponent(window.govUserQuery)):data;
-  target.insertAdjacentHTML('beforeend',govTable(['الاسم','البريد','الدور','الحالة','إجراء'],list.users.map(u=>'<tr><td>'+govEsc(u.name)+'</td><td dir="ltr">'+govEsc(u.email)+'</td><td>'+govEsc(u.role)+'</td><td>'+govEsc(u.account_status)+'</td><td>'+(u.role==='admin'?'حساب إداري محمي':govButton('users',u.id,u.account_status==='active'?'suspended':'active',u.account_status==='active'?'إيقاف مؤقت':'إعادة تفعيل')+' '+govButton('users',u.id,'banned','حظر'))+'</td></tr>')));
+  target.insertAdjacentHTML('beforeend',govTable(['الاسم','البريد','الدور','الحالة','إجراء'],list.users.map(u=>'<tr><td>'+memberSignature(u,'tiny')+'</td><td dir="ltr">'+govEsc(u.email)+'</td><td>'+govEsc(u.role)+'</td><td>'+govEsc(u.account_status)+'</td><td>'+(u.role==='admin'?'حساب إداري محمي':govButton('users',u.id,u.account_status==='active'?'suspended':'active',u.account_status==='active'?'إيقاف مؤقت':'إعادة تفعيل')+' '+govButton('users',u.id,'banned','حظر'))+'</td></tr>')));
  }else if(key==='posts'){
   target.innerHTML=govTable(['الموضوع','الكاتب','الحالة','إجراء'],data.posts.map(p=>'<tr><td>'+govEsc(p.title||p.excerpt||'منشور')+'</td><td>'+govEsc(p.author)+'</td><td>'+govEsc(p.moderation_status)+'</td><td>'+govButton('posts',p.id,p.moderation_status==='visible'?'hidden':'visible',p.moderation_status==='visible'?'إخفاء':'استعادة')+'</td></tr>'));
  }else if(key==='groups'){
