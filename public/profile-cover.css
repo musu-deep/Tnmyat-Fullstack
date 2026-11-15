@@ -39,3 +39,37 @@
 [data-theme=dark] .wallIdentityHero{background:#1d2b3e;border-color:#405469}[data-theme=dark] .wallIdentityInfo p,[data-theme=dark] .identityCopy small{color:#bfccdb}[data-theme=dark] .wallIdentityStats{border-color:#405469}[data-theme=dark] .wallIdentityStats a{border-color:#405469}[data-theme=dark] .wallIdentityStats a:hover{background:#213d50}
 
 .accountSummaryCover{position:relative;overflow:hidden;padding-top:14px!important}.accountCoverRibbon{position:absolute;top:0;inset-inline:0;height:14px;background:linear-gradient(100deg,#21465e,#91a69d);background-size:cover;background-position:center}.accountSummaryCover>.avatar{position:relative;border:2px solid white;flex-shrink:0}
+
+/* Wall: one panoramic member cover replaces the blue navigation strip.
+   The sidebar does not duplicate the image or statistics. */
+body.wallCoverView > header{
+ position:fixed;inset-block-start:0;inset-inline:0;z-index:30;
+ background:rgba(18,37,54,.38);border-bottom:1px solid rgba(255,255,255,.18);
+ -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+body.wallCoverView main.wrap{padding-top:0}
+.wallBannerSlot{margin:0 0 20px}
+.wallBannerSlot:empty{min-height:0;margin:0}
+.wallBannerSlot .wallIdentityHero{border-radius:0 0 18px 18px;margin:0;box-shadow:0 10px 30px #1e3c5617}
+.wallBannerSlot .wallIdentityCover{height:clamp(235px,30vw,390px);background-color:#16435a}
+.wallBannerSlot .wallIdentityCover>span{top:90px;inset-inline-start:25px;font-size:.85rem}
+.wallBannerSlot .wallCoverEdit{bottom:20px;inset-inline-end:22px}
+.wallBannerSlot .wallIdentityMain{padding:0 24px 18px;min-height:78px}
+.wallBannerSlot .wallIdentityPortrait{margin-top:-55px}
+.wallBannerSlot .wallIdentityPortrait .avatar.large{height:112px;width:112px}
+.wallBannerSlot .wallIdentityInfo h2{font-size:1.4rem}
+.wallBannerSlot .wallIdentityStats{background:#f7f9fc}
+.memberPassCompact{padding:14px 10px 12px}
+.memberPassCompact .memberPassIdentity{padding:0}
+.memberPassCompact .memberPassIdentity .identityLink{margin-top:0}
+.memberPassCompact .memberPassIdentity .identityCover{display:none}
+.memberPassCompact .memberPassIdentity .avatar{margin-top:0}
+@media(max-width:680px){
+ body.wallCoverView .topbar{min-height:62px}
+ .wallBannerSlot .wallIdentityCover{height:225px}
+ .wallBannerSlot .wallIdentityCover>span{top:100px;inset-inline-start:14px}
+ .wallBannerSlot .wallIdentityMain{padding:0 14px 14px}
+ .wallBannerSlot .wallIdentityPortrait{margin-top:-38px}
+ .wallBannerSlot .wallIdentityPortrait .avatar.large{height:82px;width:82px}
+ .wallBannerSlot .wallIdentityInfo h2{font-size:1.15rem}
+}
