@@ -121,3 +121,24 @@ body.hubTickerDocked main.wrap{padding-bottom:110px}
 .hubTicker-3 .hubTickerLabel a{color:#fff;text-decoration:none;margin-inline-start:5px}
 .hubTicker-3 .hubTickerTrack[data-empty="true"] a{color:#fff;text-decoration:underline}
 @media(prefers-reduced-motion:reduce){.hubTicker-3 .hubTickerTrack{animation:none!important}}
+
+/* Friendly geographic selection for member projects */
+.hubProjectEntry{display:grid;gap:15px;max-width:100%}
+.hubProjectIntro{margin:0;padding:12px 14px;border-radius:12px;background:#edf4f7;color:#36586b;line-height:1.85;font-size:.87rem}
+.hubProjectEntry label{display:grid;gap:6px}
+.hubProjectEntry input,.hubProjectEntry select,.hubProjectEntry textarea{min-width:0}
+.hubPlacePicker{border:1px solid #d8e4ec;background:#f7fafc;border-radius:15px;padding:15px;display:grid;gap:10px}
+.hubPlacePicker h3{margin:0;color:#244d63;font-size:1rem}
+.hubPlacePicker p{margin:0;color:#506a79;line-height:1.8;font-size:.83rem}
+.hubPlaceActions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#hubProjectPlaceState{font-size:.83rem;color:#365d73;flex:1}
+#hubProjectPickerMap{height:270px;min-height:210px;border-radius:12px;background:#e3ecef;overflow:hidden}
+.hubPlaceResults{display:grid;gap:7px}
+.hubPlaceResult{display:flex;gap:9px;align-items:start;width:100%;background:white;color:#294960;cursor:pointer;padding:9px 12px;text-align:right;border:1px solid #dbe7ee;border-radius:9px;font-size:.83rem;line-height:1.6}
+.hubPlaceResult:hover,.hubPlaceResult:focus-visible{border-color:#41758e;background:#f1f8fc}
+.hubPlacePicker small{color:#68818d;font-size:.72rem;line-height:1.7}
+.hubProjectOptional{border:1px solid #dbe5ee;border-radius:13px;padding:12px 15px}
+.hubProjectOptional>summary{font-weight:750;cursor:pointer;color:#31596d;padding:4px}
+.hubProjectOptional[open]{display:grid;gap:13px}
+.hubProjectOptional[open]>summary{margin-bottom:6px}
+@media(max-width:650px){.hubPlacePicker{padding:12px}#hubProjectPickerMap{height:245px}.hubPlaceActions{align-items:stretch;flex-direction:column}.hubPlaceActions button{width:100%}}
