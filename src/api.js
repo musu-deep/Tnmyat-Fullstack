@@ -402,7 +402,7 @@ async function route(request,db) {
         'DELETE FROM post_bookmarks WHERE user_id=? AND post_id=?').bind(user.id,id).run();
     } else if (action === 'comments' && method === 'POST') {
       const data = await parseBody(request);
-      const body = textField(data.body,1,1500,'التعليق');
+      const body = textField(data.body,1,8000,'التعليق');
       await enforceLimit(db,'comment',user.id,60,3600);
       await db.prepare('INSERT INTO comments(post_id,author_id,body) VALUES(?,?,?)').bind(id,user.id,body).run();
     } else if (action === 'report' && method === 'POST') {
