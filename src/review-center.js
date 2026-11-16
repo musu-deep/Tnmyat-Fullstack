@@ -32,7 +32,7 @@ export async function reviewCenterRoute(request,db,user,{json,requireUser,ApiErr
       FROM development_opportunities o JOIN users u ON u.id=o.owner_id WHERE o.status='pending' ORDER BY o.id DESC LIMIT 100`).all(),
    db.prepare(`SELECT o.id,o.name AS title,o.description,o.created_at,u.name AS owner,'organization' AS kind
       FROM development_organizations o JOIN users u ON u.id=o.owner_id WHERE o.status='unverified' ORDER BY o.id DESC LIMIT 100`).all(),
-   db.prepare(`SELECT o.id,o.metric AS title,COALESCE(o.context,'') AS description,o.created_at,u.name AS owner,'outcome' AS kind
+   db.prepare(`SELECT o.id,o.metric AS title,COALESCE(o.context,'') AS description,o.evidence_url,o.created_at,u.name AS owner,'outcome' AS kind
       FROM project_outcomes o JOIN users u ON u.id=o.created_by WHERE o.verification='self_reported' ORDER BY o.id DESC LIMIT 100`).all(),
    db.prepare(`SELECT p.id,COALESCE(NULLIF(p.title,''),substr(p.body,1,100),'منشور') AS title,
        substr(p.body,1,350) AS description,p.created_at,u.name AS owner,'post' AS kind
