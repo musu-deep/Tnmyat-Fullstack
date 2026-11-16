@@ -1,10 +1,11 @@
 // Member-centered services: server-enforced ownership for all private data.
 const participations=['تطوع','خبرة واستشارات','بحث علمي','شراكات','استثمار','تدريب','تنفيذ مشاريع'];
+const focusTopics=['القراءة المبكرة','تدريب المعلمين','التعليم الرقمي','المناهج','تعليم الكبار','إدارة المدارس','التعليم المهني','التغير المناخي','إدارة النفايات','الطاقة النظيفة','الزراعة المستدامة','الصحة المجتمعية','الرعاية الأولية','التأهيل','التطوع','الاقتصاد الاجتماعي','ريادة الأعمال','سلاسل الإمداد','المياه والإصحاح','الأمن الغذائي','التحول الرقمي','البيانات والتحليل','الذكاء الاصطناعي','إدارة المشاريع','بناء القدرات'];
 const sectors=['التعليم','البيئة','المجتمع','الاقتصاد','الصحة','الإغاثة','البنية التحتية','المياه','الطاقة','التقنية'];
 const checkDate=(s)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().startsWith(s);
 const clamp=(s,n)=>typeof s==='string'?s.trim().slice(0,n):'';
 const verifyUrl=(s)=>{if(!s)return '';try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password&&u.href.length<=1200?u.href:null;}catch{return null;}};
-const selectPreferences="SELECT professional_role,organization,country,city,goal,sectors,skills,participation,profile_visibility,notification_window,news_enabled,onboarding_complete FROM member_preferences WHERE user_id=?";
+const selectPreferences="SELECT professional_role,organization,country,city,goal,sectors,focus_topics,skills,participation,profile_visibility,notification_window,news_enabled,onboarding_complete FROM member_preferences WHERE user_id=?";
 function response(json,data,status=200){return json(data,status);}
 export async function memberJourneyRoute(request,db,user,h){
  const {json,parseBody,ApiError,requireUser,enforceLimit}=h;
@@ -14,21 +15,23 @@ export async function memberJourneyRoute(request,db,user,h){
  const uid=user.id;
  const idOf=(regex)=>{const match=path.match(regex);if(!match)return null;const id=Number(match[1]);if(!Number.isSafeInteger(id)||id<1)throw new ApiError(400,'معرف غير صالح');return id;};
  const fail=(msg)=>{throw new ApiError(400,msg);};
- const prefs=async()=>{const r=await db.prepare(selectPreferences).bind(uid).first();return r?{...r,sectors:JSON.parse(r.sectors),skills:JSON.parse(r.skills),participation:JSON.parse(r.participation),news_enabled:Boolean(r.news_enabled),onboarding_complete:Boolean(r.onboarding_complete)}:{professional_role:'',organization:'',country:'',city:'',goal:'',sectors:[],skills:[],participation:[],profile_visibility:'members',notification_window:14,news_enabled:true,onboarding_complete:false};};
+ const prefs=async()=>{const r=await db.prepare(selectPreferences).bind(uid).first();return r?{...r,sectors:JSON.parse(r.sectors),focus_topics:JSON.parse(r.focus_topics),skills:JSON.parse(r.skills),participation:JSON.parse(r.participation),news_enabled:Boolean(r.news_enabled),onboarding_complete:Boolean(r.onboarding_complete)}:{professional_role:'',organization:'',country:'',city:'',goal:'',sectors:[],focus_topics:[],skills:[],participation:[],profile_visibility:'members',notification_window:14,news_enabled:true,onboarding_complete:false};};
  if(path==='/api/journey/preferences'){
   if(method==='GET')return response(json,{preferences:await prefs()});
   if(method==='PATCH'){
    const d=await parseBody(request);
    if(!Array.isArray(d.sectors)||d.sectors.length>10||d.sectors.some(x=>!sectors.includes(x)))fail('اختر مجالات اهتمام معروفة.');
    const skills=Array.isArray(d.skills)?d.skills:[];
+   const focus=Array.isArray(d.focus_topics)?d.focus_topics:[];
+   if(focus.length>12||focus.some(x=>!focusTopics.includes(x)))fail('التخصصات الدقيقة غير صالحة.');
    if(skills.length>12||skills.some(x=>typeof x!=='string'||!x.trim()||x.trim().length>65))fail('المهارات غير صالحة.');
    const participation=Array.isArray(d.participation)?d.participation:[];
    if(participation.some(x=>!participations.includes(x)))fail('مجالات المشاركة غير صالحة.');
    const visibility=['private','members'].includes(d.profile_visibility)?d.profile_visibility:'members';
    const windowDays=[3,7,14,30].includes(Number(d.notification_window))?Number(d.notification_window):14;
-   const values=[clamp(d.professional_role,80),clamp(d.organization,120),clamp(d.country,80),clamp(d.city,80),clamp(d.goal,400),JSON.stringify([...new Set(d.sectors)]),JSON.stringify([...new Set(skills.map(x=>x.trim()))]),JSON.stringify([...new Set(participation)]),visibility,windowDays,d.news_enabled===false?0:1,d.onboarding_complete===true?1:0];
-   await db.prepare(`INSERT INTO member_preferences(user_id,professional_role,organization,country,city,goal,sectors,skills,participation,profile_visibility,notification_window,news_enabled,onboarding_complete) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(user_id) DO UPDATE SET professional_role=excluded.professional_role,organization=excluded.organization,country=excluded.country,city=excluded.city,goal=excluded.goal,sectors=excluded.sectors,skills=excluded.skills,participation=excluded.participation,profile_visibility=excluded.profile_visibility,notification_window=excluded.notification_window,news_enabled=excluded.news_enabled,onboarding_complete=excluded.onboarding_complete,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).bind(uid,...values).run();
+   const values=[clamp(d.professional_role,80),clamp(d.organization,120),clamp(d.country,80),clamp(d.city,80),clamp(d.goal,400),JSON.stringify([...new Set(d.sectors)]),JSON.stringify([...new Set(focus)]),JSON.stringify([...new Set(skills.map(x=>x.trim()))]),JSON.stringify([...new Set(participation)]),visibility,windowDays,d.news_enabled===false?0:1,d.onboarding_complete===true?1:0];
+   await db.prepare(`INSERT INTO member_preferences(user_id,professional_role,organization,country,city,goal,sectors,focus_topics,skills,participation,profile_visibility,notification_window,news_enabled,onboarding_complete) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(user_id) DO UPDATE SET professional_role=excluded.professional_role,organization=excluded.organization,country=excluded.country,city=excluded.city,goal=excluded.goal,sectors=excluded.sectors,focus_topics=excluded.focus_topics,skills=excluded.skills,participation=excluded.participation,profile_visibility=excluded.profile_visibility,notification_window=excluded.notification_window,news_enabled=excluded.news_enabled,onboarding_complete=excluded.onboarding_complete,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).bind(uid,...values).run();
    return response(json,{preferences:await prefs()});
   }
  }
