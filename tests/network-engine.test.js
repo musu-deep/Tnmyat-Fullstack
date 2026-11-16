@@ -67,5 +67,9 @@ test('Relationship life cycle requires recipient approval, records work and labe
   assert.equal(get.data.relations.find(x=>x.id===id).status,'completed');
   assert.equal((await call('network/admin/overview','GET',undefined,a.cookie)).status,403);
   assert.equal(DB.prepare('SELECT COUNT(*) AS n FROM network_relation_events WHERE relation_id=?').bind(id).first().n,4);
+  const audit=await call('network/relations/'+id+'/history','GET',undefined,a.cookie);
+  assert.equal(audit.status,200);assert.equal(audit.data.history.length,4);
+  assert.equal((await call('network/relations/'+id+'/history','GET',undefined,outsider.cookie)).status,404);
+
  }finally{DB.close()}
 });
