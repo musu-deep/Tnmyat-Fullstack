@@ -74,6 +74,15 @@ export async function networkRoute(request,db,user,{json,parseBody,requireUser,A
   await db.prepare('INSERT INTO network_relation_events(relation_id,actor_id,action,note) VALUES(?,?,?,?)').bind(row.id,uid,'request',purpose).run();
   return json({id:row.id,status:'pending'},201);
  }
+ const history=path.match(/^\/api\/network\/relations\/(\d+)\/history$/);
+ if(history&&method==='GET'){
+  const id=Number(history[1]);
+  const accessible=await db.prepare('SELECT id FROM network_relations WHERE id=? AND (initiator_id=? OR recipient_id=?)').bind(id,uid,uid).first();
+  if(!accessible)throw new ApiError(404,'العلاقة غير متاحة.');
+  const {results}=await db.prepare(`SELECT e.action,e.note,e.created_at,u.name AS actor
+   FROM network_relation_events e JOIN users u ON u.id=e.actor_id WHERE e.relation_id=? ORDER BY e.id DESC LIMIT 100`).bind(id).all();
+  return json({history:results});
+ }
  const match=path.match(/^\/api\/network\/relations\/(\d+)$/);
  if(match&&method==='PATCH'){
   await enforceLimit(db,'network-update',uid,35,3600);
