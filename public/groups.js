@@ -26,12 +26,12 @@ async function renderGroups(token) {
   const membershipUI=g.membership==='owner'?'<small>مالك المجموعة</small>':g.membership==='blocked'?'<small>العضوية موقوفة</small>':'<button class="btn" data-group-action="'+(member?'leave':'join')+'">'+(member?'مغادرة المجموعة':'انضمام للمجموعة')+'</button>';
   main.innerHTML='<section class="group-page" data-group="'+g.id+'"><a href="/groups" class="plain">← المجموعات</a><div class="group-summary"><small>مجموعة عامة · '+g.member_count+' عضو</small><h1>'+esc(g.name)+'</h1><p>'+esc(g.description)+'</p><div class="group-by">'+memberSignature({id:g.owner_id,name:g.owner,avatar:g.owner_avatar,cover:g.owner_cover},'tiny')+''+membershipUI+'</div></div>'+
     (g.membership==='owner'&&data.members.length?'<details class="group-manage"><summary>إدارة أعضاء المجموعة ('+data.members.length+')</summary>'+data.members.map(memberControls).join('')+'</details>':'')+
-    (member?'<form data-group-form="note" class="fields group-compose"><label>مشاركة في المجموعة<textarea name="body" required maxlength="3000" rows="3"></textarea></label><button class="btn primary">نشر</button></form>':'')+
+    (member?'<form data-group-form="note" class="fields group-compose"><label>مشاركة في المجموعة<textarea name="body" required maxlength="12000" rows="3"></textarea></label><button class="btn primary">نشر</button></form>':'')+
     '<h2>نقاش المجموعة</h2><div id="group-notes">'+(data.notes.length?data.notes.map(n=>groupDiscussion(n,manager)).join(''):'<p>لم تبدأ المناقشة بعد.</p>')+'</div>'+
     (data.hasMore?'<button class="btn" data-group-action="more" data-before="'+data.notes.at(-1).id+'">عرض مشاركات أقدم</button>':'')+'</section>';
 }
 function createGroupDialog(){
-  showModal('إنشاء مجموعة عامة','<form class="fields" data-group-form="create"><label>اسم المجموعة<input name="name" required minlength="2" maxlength="80"></label><label>موضوع المجموعة<textarea name="description" required minlength="3" maxlength="500" rows="3"></textarea></label><button class="btn primary">إنشاء المجموعة</button></form>');
+  showModal('إنشاء مجموعة عامة','<form class="fields" data-group-form="create"><label>اسم المجموعة<input name="name" required minlength="2" maxlength="80"></label><label>موضوع المجموعة<textarea name="description" required minlength="3" maxlength="4000" rows="3"></textarea></label><button class="btn primary">إنشاء المجموعة</button></form>');
 }
 document.addEventListener('click',async event=>{
   const button=event.target.closest('[data-group-action]');if(!button)return;
