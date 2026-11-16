@@ -8,7 +8,7 @@ const journeyDate=s=>new Date(s+'T12:00:00Z').toLocaleDateString('ar',{year:'num
 const jlink=(url,label)=>'<a class="journeyLink" href="'+url+'">'+label+'</a>';
 const jempty=t=>'<p class="journeyEmpty">'+t+'</p>';
 const jNav=()=>'<nav class="journeyNav" aria-label="مساحتي التنموية">'+[
- ['/my-space','لوحتي'],['/my-people','شبكتي المهنية'],['/network','علاقاتي المهنية'],['/my-alerts','تنبيهاتي'],['/my-calendar','تقويمي'],['/my-map','خارطتي'],['/my-projects','مشاريعي'],['/my-news','أخباري'],['/my-impact','أهدافي وأثري'],['/onboarding','تفضيلاتي'],...(user?.role==='admin'?[['/impact-review','مراجعة الأثر']]:[])
+ ['/my-space','لوحتي'],['/my-people','شبكتي المهنية'],['/network','علاقاتي المهنية'],['/my-alerts','تنبيهاتي'],['/my-calendar','تقويمي'],['/my-map','خارطتي'],['/my-projects','مشاريعي'],['/my-news','أخباري'],['/my-impact','أهدافي وأثري'],['/onboarding','تفضيلاتي'],...(user?.role==='admin'?[['/impact-review','مراجعة الأثر'],['/network-admin','مؤشرات العلاقات']]:[])
 ].map(([url,label])=>'<a href="'+url+'" class="'+(location.pathname===url?'active':'')+'">'+label+'</a>').join('')+'</nav>';
 function jShell(title,subtitle,body){document.title=title+' | تنميات';main.innerHTML='<div class="journeyPage"><div class="journeyHeader"><span>مساحتي التنموية</span><h1>'+title+'</h1><p>'+subtitle+'</p></div>'+jNav()+body+'</div>';}
 function jFields(p){
