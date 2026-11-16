@@ -55,7 +55,7 @@ export async function communityNeedsRoute(request,db,user,{json,parseBody,requir
   await log('need',id,d.status,note);return json({ok:true});
  }
  if(path==='/api/partnerships/groups'&&method==='GET'){
-  const {results}=await db.prepare("SELECT id,name FROM community_groups WHERE moderation_status='visible' ORDER BY id DESC LIMIT 100").all();
+  const {results}=await db.prepare("SELECT id,name,owner_id FROM community_groups WHERE moderation_status='visible' ORDER BY id DESC LIMIT 100").all();
   return json({groups:results});
  }
  if(path==='/api/partnerships/mine'&&method==='GET'){
