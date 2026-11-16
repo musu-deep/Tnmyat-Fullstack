@@ -139,7 +139,7 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
   return json({ok:true,status:'pending'});
  }
  if(path==='/api/work/group-links'&&method==='GET'){
-  const {results}=await db.prepare(`SELECT l.project_id,l.group_id,l.status,p.title AS project_title,g.name AS group_name
+  const {results}=await db.prepare(`SELECT l.project_id,l.group_id,l.status,p.title AS project_title,g.name AS group_name,g.owner_id AS group_owner_id,p.owner_id AS project_owner_id
    FROM project_group_links l JOIN community_groups g ON g.id=l.group_id JOIN development_projects p ON p.id=l.project_id
    WHERE g.owner_id=? OR p.owner_id=? ORDER BY l.created_at DESC LIMIT 120`).bind(uid,uid).all();
   return json({links:results});
