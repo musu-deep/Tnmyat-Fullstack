@@ -194,9 +194,9 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
  if(path==='/api/work/admin/queue'&&method==='GET'){
   requireAdmin();
   const [orgs,opps,outcomes]=await Promise.all([
-   db.prepare("SELECT o.id,o.name,o.country,u.name AS owner FROM development_organizations o JOIN users u ON u.id=o.owner_id WHERE o.status='unverified' ORDER BY o.id LIMIT 80").all(),
-   db.prepare("SELECT o.id,o.title,o.category,u.name AS owner FROM development_opportunities o JOIN users u ON u.id=o.owner_id WHERE o.status='pending' ORDER BY o.id LIMIT 80").all(),
-   db.prepare(`SELECT o.id,o.metric,o.baseline,o.observed,o.unit,p.title AS project_title FROM project_outcomes o JOIN development_projects p ON p.id=o.project_id
+   db.prepare("SELECT o.id,o.name,o.country,o.description,o.website,u.name AS owner FROM development_organizations o JOIN users u ON u.id=o.owner_id WHERE o.status='unverified' ORDER BY o.id LIMIT 80").all(),
+   db.prepare("SELECT o.id,o.title,o.description,o.requirements,o.category,o.country,o.mode,o.arrangement,o.capacity,o.deadline,u.name AS owner FROM development_opportunities o JOIN users u ON u.id=o.owner_id WHERE o.status='pending' ORDER BY o.id LIMIT 80").all(),
+   db.prepare(`SELECT o.id,o.metric,o.baseline,o.observed,o.unit,o.context,o.evidence_url,o.measured_on,p.title AS project_title FROM project_outcomes o JOIN development_projects p ON p.id=o.project_id
     WHERE o.verification='self_reported' ORDER BY o.id LIMIT 80`).all()
   ]);return json({organizations:orgs.results,opportunities:opps.results,outcomes:outcomes.results});
  }
