@@ -1,6 +1,7 @@
 import { governanceRoute } from './governance.js';
 import { developmentHubRoute } from './development-hub.js';
 import { memberJourneyRoute } from './member-journey.js';
+import { networkRoute } from './network-engine.js';
 import { socialRoute, validateImage } from './social.js';
 import { writePost, serveFile } from './media.js';
 import { groupRoute } from './groups.js';
@@ -242,6 +243,8 @@ async function route(request,db) {
   if(hub)return hub;
   const journey=await memberJourneyRoute(request,db,user,helpers);
   if(journey)return journey;
+  const network=await networkRoute(request,db,user,helpers);
+  if(network)return network;
   const file=path.match(/^\/api\/files\/([0-9a-f-]{36})$/);
   if(file&&['GET','HEAD'].includes(method))return serveFile(request,db,file[1],helpers);
   if (path.startsWith('/api/groups')) return groupRoute(request,db,user,helpers);
