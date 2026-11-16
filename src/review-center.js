@@ -14,9 +14,24 @@ export async function reviewCenterRoute(request,db,user,{json,requireUser,ApiErr
    db.prepare('SELECT id,title,status,created_at FROM development_needs WHERE owner_id=? ORDER BY id DESC LIMIT 60').bind(uid).all(),
    db.prepare('SELECT id,name AS title,status,created_at FROM development_organizations WHERE owner_id=? ORDER BY id DESC LIMIT 60').bind(uid).all(),
    db.prepare(`SELECT a.opportunity_id AS id,o.title,a.status,a.created_at FROM opportunity_applications a
-     JOIN development_opportunities o ON o.id=a.opportunity_id WHERE a.applicant_id=? ORDER BY a.created_at DESC LIMIT 60`).bind(uid).all()
+     JOIN development_opportunities o ON o.id=a.opportunity_id WHERE a.applicant_id=? ORDER BY a.created_at DESC LIMIT 60`).bind(uid).all(),
+   db.prepare(`SELECT r.id,r.purpose AS title,r.status,r.created_at FROM network_relations r
+     WHERE r.initiator_id=? OR r.recipient_id=? ORDER BY r.id DESC LIMIT 60`).bind(uid,uid).all(),
+   db.prepare(`SELECT c.project_id AS id,p.title,c.status,c.applied_at AS created_at
+     FROM project_collaborators c JOIN development_projects p ON p.id=c.project_id
+     WHERE c.user_id=? OR p.owner_id=? ORDER BY c.applied_at DESC LIMIT 60`).bind(uid,uid).all(),
+   db.prepare(`SELECT c.id,c.purpose AS title,c.status,c.created_at FROM community_partnerships c
+     JOIN community_groups a ON a.id=c.from_group_id JOIN community_groups b ON b.id=c.to_group_id
+     WHERE a.owner_id=? OR b.owner_id=? ORDER BY c.id DESC LIMIT 60`).bind(uid,uid).all(),
+   db.prepare(`SELECT l.project_id AS id,p.title||' / '||g.name AS title,l.status,l.created_at
+     FROM project_group_links l JOIN development_projects p ON p.id=l.project_id
+     JOIN community_groups g ON g.id=l.group_id WHERE p.owner_id=? OR g.owner_id=?
+     ORDER BY l.created_at DESC LIMIT 60`).bind(uid,uid).all(),
+   db.prepare(`SELECT a.opportunity_id AS id,o.title,a.status,a.created_at FROM opportunity_applications a
+     JOIN development_opportunities o ON o.id=a.opportunity_id
+     WHERE o.owner_id=? ORDER BY a.created_at DESC LIMIT 60`).bind(uid).all()
   ]);
-  const kinds=['post','project','opportunity','need','organization','application'];
+  const kinds=['post','project','opportunity','need','organization','application','relation','collaboration','partnership','group_link','received_application'];
   const items=parts.flatMap((part,i)=>part.results.map(r=>({...r,kind:kinds[i]})));
   items.sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
   return json({items:items.slice(0,140),summary:{pending:items.filter(x=>x.status==='pending'||x.status==='unverified').length}});
