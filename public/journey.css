@@ -68,3 +68,18 @@
 .networkActions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
 .networkRelation a{overflow-wrap:anywhere}
 @media(max-width:650px){.networkCards{grid-template-columns:1fr}}
+
+/* Moderated opportunities, project outcomes and organization participation */
+.workHeader{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.workHeader h2{margin:0}
+.workGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.workCard,.workApplication{padding:15px;border:1px solid #d8e3ec;background:#f8fbfd;border-radius:13px;min-width:0;overflow-wrap:anywhere}
+.workCard h3{font-size:1rem;color:#244b65;margin:0 0 7px}
+.workCard p,.workApplication p{font-size:.85rem;line-height:1.8;margin:7px 0}
+.workCard small{color:#657b8a}
+.workCard .btn,.workApplication .btn{display:inline-block;margin:6px 5px 2px 0}
+.workCard a{color:#1b607f}
+.workApplication+ .workApplication{margin-top:12px}
+.journeyPanel .journeyForm{box-shadow:none;padding:13px;border-color:#e4eaf0}
+.journeyPanel .journeyForm input,.journeyPanel .journeyForm textarea,.journeyPanel .journeyForm select{max-width:100%}
+@media(max-width:650px){.workGrid{grid-template-columns:1fr}.workHeader{align-items:stretch;flex-direction:column}}
