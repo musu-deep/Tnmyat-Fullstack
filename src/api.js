@@ -138,7 +138,16 @@ async function authenticate(request,db,register) {
   const data = await parseBody(request);
   const email = textField(data.email,3,254,'البريد الإلكتروني').toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ApiError(400,'تحقق من البريد الإلكتروني.');
-  const password = textField(data.password,10,128,'كلمة المرور',false);
+  // Preserve login compatibility for accounts created before this change.
+  const password = textField(data.password,1,256,'كلمة المرور',false);
+  if(register){
+    const letters=/\p{L}/u.test(password);
+    const secondary=/[\p{N}\p{P}\p{S}]/u.test(password);
+    if(password.length<8||!letters||!secondary||/\s/u.test(password)||
+       /^(?:password|12345678|qwerty123|admin123|password123)$/i.test(password)){
+      throw new ApiError(400,'اختر كلمة مرور قوية من 8 أحرف على الأقل، تتضمن حروفاً مع أرقام أو رموزاً، دون مسافات.');
+    }
+  }
   const token = randomHex(32);
   const tokenHash = await digest(token);
   const expire = db.prepare('DELETE FROM sessions WHERE expires_at<=unixepoch()');
