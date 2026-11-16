@@ -105,7 +105,7 @@ export async function developmentHubRoute(request,db,user,helpers){
    requireUser(user);await enforceLimit(db,'map-project',user.id,10,3600);
    const d=await parseBody(request),category=textField(d.category,2,40,'المجال');
    if(!knownCategories.has(category))throw new ApiError(400,'مجال المشروع غير مدعوم.');
-   const title=textField(d.title,4,110,'اسم المشروع'),summary=textField(d.summary,20,1500,'وصف المشروع');
+   const title=textField(d.title,4,110,'اسم المشروع'),summary=textField(d.summary,20,8000,'وصف المشروع');
    const country=textField(d.country,2,80,'الدولة'),city=textField(d.city||'',0,80,'المدينة');
    const entity=textField(d.entity_name||'',0,120,'الجهة');
    const latitude=safeNumber(d.latitude,-90,90,'خط العرض',ApiError),longitude=safeNumber(d.longitude,-180,180,'خط الطول',ApiError);
