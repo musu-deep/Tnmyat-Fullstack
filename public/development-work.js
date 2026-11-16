@@ -57,7 +57,18 @@ async function renderDevelopmentWork(token){
   if(user.role!=='admin'){go('/my-opportunities');return true;}
   const [queue,metrics]=await Promise.all([api('work/admin/queue'),api('work/metrics')]);if(token!==version)return true;
   const nums=[['الفرص المنشورة',metrics.opportunities],['الطلبات',metrics.applications],['طلبات مقبولة',metrics.accepted],['مشاركات مكتملة',metrics.completed],['الجهات المتحققة',metrics.verified_organizations],['نتائج مسجلة',metrics.outcomes],['نتائج روجعت أدلتها',metrics.reviewed_outcomes]];
-  const review=(items,type,action)=>items.map(o=>wcard(o,'<p>'+wesc(o.country||o.project_title||o.category||'')+'</p>'+wbutton('admin-review',o.id,'اعتماد','data-kind="'+type+'" data-status="'+action+'"')+' '+(type!=='outcomes'?wbutton('admin-review',o.id,'رفض','data-kind="'+type+'" data-status="rejected"'):'') )).join('');
+  const review=(items,type,action)=>items.map(o=>{
+   const source=o.website||o.evidence_url||'';
+   const detail=(o.description?'<p>'+wesc(o.description)+'</p>':'')+
+    (o.requirements?'<p><b>الشروط:</b> '+wesc(o.requirements)+'</p>':'')+
+    (o.context?'<p><b>سياق القياس:</b> '+wesc(o.context)+'</p>':'')+
+    (type==='outcomes'?'<p><b>القيم:</b> '+Number(o.baseline)+' ← '+Number(o.observed)+' '+wesc(o.unit)+' · '+wesc(o.measured_on)+'</p>':'')+
+    (type==='opportunities'?'<p>'+wesc(o.category)+' · '+wesc(o.mode)+' · '+wesc(o.arrangement)+' · عدد المقاعد '+Number(o.capacity)+'</p>':'')+
+    (source?'<p><a href="'+wesc(source)+'" rel="noopener noreferrer" target="_blank">فتح الرابط الداعم للمراجعة</a></p>':'<p class="journeyHint">لا يوجد رابط داعم مرفق؛ تأكد من وجود أدلة كافية قبل اتخاذ القرار.</p>');
+   const buttons=(type!=='outcomes'||o.evidence_url?wbutton('admin-review',o.id,'اعتماد','data-kind="'+type+'" data-status="'+action+'"'):'')+
+    ' '+(type!=='outcomes'?wbutton('admin-review',o.id,'رفض','data-kind="'+type+'" data-status="rejected"'):'');
+   return wcard(o,'<p>'+wesc(o.country||o.project_title||o.category||'')+'</p>'+detail+buttons);
+  }).join('');
   jShell('مراجعة الفرص والنتائج','قرارات بشرية موثقة للجهات والفرص وأدلة النتائج.',
    '<div class="journeyStats">'+nums.map(([l,n])=>'<div class="journeyStat"><strong>'+Number(n||0).toLocaleString('ar')+'</strong><span>'+l+'</span></div>').join('')+'</div>'+
    '<section class="journeyPanel">'+wtitle('جهات تنتظر التحقق')+'<div class="workGrid">'+(review(queue.organizations,'organizations','verified')||wblank('لا توجد جهات معلقة.'))+'</div></section>'+
