@@ -1,7 +1,7 @@
 'use strict';
 const govEsc = s => esc(s);
 let governanceTab='overview';
-const govTabs=[['overview','المؤشرات'],['users','الأعضاء'],['posts','المحتوى'],['groups','المجموعات'],['reports','البلاغات'],['appeals','التظلمات'],['editorial','الأخبار والتحرير'],['audit','سجل الإجراءات']];
+const govTabs=[['overview','المؤشرات'],['queue','طلبات المراجعة'],['users','الأعضاء'],['posts','المحتوى'],['groups','المجموعات'],['reports','البلاغات'],['appeals','التظلمات'],['editorial','الأخبار والتحرير'],['audit','سجل الإجراءات']];
 async function renderGovernance(token){
   if(!user||user.role!=='admin'){go('/wall');return;}
   document.title='مركز إدارة تنميات';
@@ -14,6 +14,7 @@ async function governanceLoad(){
  const target=document.querySelector('#govContent');if(!target)return;
  target.textContent='جارٍ تحميل البيانات…';
  const key=governanceTab;
+ if(key==='queue'){await renderReviewQueue();return;}
  const data=await api(key==='editorial'?'hub/admin/editorial':'admin/'+key);
  if(!target.isConnected||governanceTab!==key)return;
  if(key==='overview'){
