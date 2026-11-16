@@ -19,7 +19,7 @@ export async function groupRoute(request, db, user, helpers) {
       requireUser(user);
       const data=await parseBody(request);
       const name=textField(data.name,2,80,'اسم المجموعة');
-      const description=textField(data.description,3,500,'تعريف المجموعة');
+      const description=textField(data.description,3,4000,'تعريف المجموعة');
       await enforceLimit(db,'create-group',viewer,5,3600);
       const row=await db.prepare('INSERT INTO community_groups(name,description,owner_id) VALUES(?,?,?) RETURNING id').bind(name,description,viewer).first();
       return json({id:row.id},201);
@@ -59,7 +59,7 @@ export async function groupRoute(request, db, user, helpers) {
     const result=await db.prepare(`INSERT INTO group_notes(group_id,user_id,body) SELECT ?,?,?
       WHERE EXISTS(SELECT 1 FROM community_groups WHERE id=? AND owner_id=?)
       OR EXISTS(SELECT 1 FROM group_members WHERE group_id=? AND user_id=? AND status!='blocked')`)
-      .bind(id,viewer,textField(body,1,3000,'المشاركة'),id,viewer,id,viewer).run();
+      .bind(id,viewer,textField(body,1,12000,'المشاركة'),id,viewer,id,viewer).run();
     if(!result.meta.changes) throw new ApiError(403,'تعذرت المشاركة بهذه العضوية');
   } else if(action==='notes' && target && method==='DELETE'){
     await db.prepare(`DELETE FROM group_notes WHERE id=? AND group_id=? AND (user_id=? OR EXISTS
