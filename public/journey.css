@@ -54,3 +54,17 @@
 .professionalDetails{margin:13px 0 24px}
 .professionalDetails h2{font-size:1.1rem}
 .professionalDetails p{margin:8px 0;line-height:1.8}
+
+/* Purpose-led opt-in relationships and recommendations */
+.networkWide{grid-column:1/-1}
+.networkCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
+.networkCard,.networkRelation{border:1px solid #dce5ee;background:#f9fbfe;padding:16px;border-radius:14px;min-width:0}
+.networkCard h3,.networkRelation h3{margin:0;color:#244e67;font-size:1rem}
+.networkCard p,.networkRelation p{line-height:1.7;margin:10px 0}
+.networkCard small,.networkRelation small{color:#627e8e}
+.networkCard button{margin-top:8px}
+.networkSwitch{display:flex;align-items:center;gap:10px;font-weight:700;line-height:1.6}
+.networkSwitch input{width:19px;height:19px;accent-color:#1d718a}
+.networkActions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.networkRelation a{overflow-wrap:anywhere}
+@media(max-width:650px){.networkCards{grid-template-columns:1fr}}
