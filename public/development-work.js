@@ -28,7 +28,7 @@ async function renderDevelopmentWork(token){
   const myProjects=mine.projects.map(p=>({id:p.id,title:p.title}));
   const opps=mine.opportunities.map(o=>wcard(o,'<p>'+wesc(o.category)+' · '+wlabel(o.status)+'</p>'+wbutton('applications',o.id,'طلبات المشاركة'))).join('');
   const myApps=mine.applications.map(a=>wcard({title:a.title},'<p>'+wlabel(a.status)+(a.status==='accepted'?' · '+(a.applicant_confirmed?'أكدت الإنجاز':'بانتظار تأكيدك'):'')+'</p>'+(a.status==='accepted'&&!a.applicant_confirmed?wbutton('confirm-participation',a.opportunity_id,'تأكيد إكمال مشاركتي'):'')+(a.status==='pending'||a.status==='accepted'?wbutton('withdraw-participation',a.opportunity_id,'سحب طلبي'):'') )).join('');
-  const ownGroupLinks=links.links.map(l=>wcard({title:l.project_title+' · '+l.group_name},'<p>'+wlabel(l.status)+'</p>'+(l.status==='pending'?wbutton('approve-group',l.project_id,'قبول ارتباط المجموعة','data-group="'+l.group_id+'"')+' '+wbutton('reject-group',l.project_id,'رفض الارتباط','data-group="'+l.group_id+'"'):'') )).join('');
+  const ownGroupLinks=links.links.map(l=>wcard({title:l.project_title+' · '+l.group_name},'<p>'+wlabel(l.status)+'</p>'+(l.status==='pending'&&l.group_owner_id===user.id?wbutton('approve-group',l.project_id,'قبول ارتباط المجموعة','data-group="'+l.group_id+'"')+' '+wbutton('reject-group',l.project_id,'رفض الارتباط','data-group="'+l.group_id+'"'):'') )).join('');
   const verifiedList=userOrgs.length?userOrgs.map(o=>'<option value="'+o.id+'">'+wesc(o.name)+'</option>').join(''):'';
   jShell('فرصي وطلباتي','إنشاء الفرص، وتوثيق الجهات، ومتابعة الطلبات والتعاون.',
    '<div class="journeyColumns">'+
