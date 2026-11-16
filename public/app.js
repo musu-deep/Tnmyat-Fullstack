@@ -30,7 +30,7 @@ function account(){
 function showModal(title,body){modal.innerHTML='<div class="modalhead"><h2 id="dialogTitle">'+esc(title)+'</h2><button class="iconbtn" data-act="close" aria-label="إغلاق">×</button></div>'+body;if(!dialog.open)dialog.showModal();}
 function auth(mode){const reg=mode==='register';showModal(reg?'إنشاء حساب':'تسجيل الدخول',
  '<form id="auth" class="fields" data-mode="'+mode+'">'+(reg?'<label>الاسم<input name="name" required minlength="2" maxlength="60" autocomplete="name"></label>':'')+
- '<label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>كلمة المرور<input name="password" type="password" required '+(reg?'minlength="10" maxlength="128" placeholder="10 أحرف على الأقل" autocomplete="new-password"':'autocomplete="current-password"')+'></label><div role="alert" class="error"></div><button class="btn primary">'+(reg?'إنشاء حساب':'دخول')+'</button></form><p class="switch">'+(reg?'لديك حساب؟ <button class="plain" data-act="login">سجّل الدخول</button>':'عضو جديد؟ <button class="plain" data-act="register">أنشئ حسابًا</button>')+'</p>');}
+ '<label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>كلمة المرور<input name="password" type="password" required '+(reg?'minlength="8" maxlength="256" placeholder="حروف مع أرقام أو رموز، 8 أحرف على الأقل" autocomplete="new-password"':'autocomplete="current-password"')+'></label><div role="alert" class="error"></div><button class="btn primary">'+(reg?'إنشاء حساب':'دخول')+'</button></form><p class="switch">'+(reg?'لديك حساب؟ <button class="plain" data-act="login">سجّل الدخول</button>':'عضو جديد؟ <button class="plain" data-act="register">أنشئ حسابًا</button>')+'</p>');}
 function requireUser(next){if(user){next();return;}afterAuth=next;auth('login');}
 function date(value){const raw=String(value||'');const dt=new Date(/^\d{4}-\d\d-\d\d /.test(raw)?raw.replace(' ','T')+'Z':raw);return Number.isNaN(+dt)?'':new Intl.DateTimeFormat('ar',{day:'numeric',month:'short',year:'numeric'}).format(dt);}
 function homeShell(){
@@ -96,7 +96,7 @@ async function route(){const token=++version;let target=main;
   const p=data.post;document.title=postLabel(p)+' | تنميات';
   main.innerHTML='<div class="detail"><a class="back plain" href="/wall">← الحائط التفاعلي</a>'+card(p,true)+
   '<section class="panel" id="comments"><h2>التعليقات</h2>'+data.comments.map(c=>'<div class="comment">'+meta(c)+'<p>'+esc(c.body)+'</p></div>').join('')+(data.comments.length?'':'<p>كن أول من يعلّق على هذه المشاركة.</p>')+
-  (user?'<form class="fields" id="comment" data-id="'+post[1]+'"><label>تعليقك<textarea name="body" required maxlength="1500"></textarea></label><div role="alert" class="error"></div><button class="btn primary">نشر التعليق</button></form>':'<button class="btn" data-act="login">سجّل الدخول للتعليق</button>')+'</section></div>';
+  (user?'<form class="fields" id="comment" data-id="'+post[1]+'"><label>تعليقك<textarea name="body" required maxlength="8000"></textarea></label><div role="alert" class="error"></div><button class="btn primary">نشر التعليق</button></form>':'<button class="btn" data-act="login">سجّل الدخول للتعليق</button>')+'</section></div>';
   if(location.hash==='#comments')document.querySelector('#comments').scrollIntoView();
  }else if(location.pathname==='/reports'){
   if(!user||user.role!=='admin'){go('/wall');return;}main.innerHTML='<div class="status">جارٍ تحميل البلاغات…</div>';const data=await api('reports');if(token!==version)return;
