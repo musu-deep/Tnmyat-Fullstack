@@ -22,7 +22,7 @@ function signedAccountMenu(){
     '<div class="accountSet">'+
     accountRow('متابعة طلباتي','◈','mint','href="/my-submissions"')+
     accountRow('تعديل الملف الشخصي','✎','sky','data-act="editprofile"')+
-    accountRow('اهتماماتي وتفضيلاتي','✎','mint','href="/onboarding"')+
+    accountRow('الإعدادات والتفضيلات','✎','mint','href="/onboarding"')+
     accountRow('الوضع الليلي','☾','lilac','data-act="night" aria-pressed="'+(document.documentElement.dataset.theme==='dark')+'"')+'</div>'+
     accountRow('تسجيل الخروج','↪','rose','data-act="logout"')+'</section>';
 }
