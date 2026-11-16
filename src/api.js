@@ -3,6 +3,7 @@ import { developmentHubRoute } from './development-hub.js';
 import { memberJourneyRoute } from './member-journey.js';
 import { networkRoute } from './network-engine.js';
 import { developmentWorkRoute } from './development-work.js';
+import { communityNeedsRoute } from './community-needs.js';
 import { socialRoute, validateImage } from './social.js';
 import { writePost, serveFile } from './media.js';
 import { groupRoute } from './groups.js';
@@ -248,6 +249,8 @@ async function route(request,db) {
   if(network)return network;
   const work=await developmentWorkRoute(request,db,user,helpers);
   if(work)return work;
+  const needs=await communityNeedsRoute(request,db,user,helpers);
+  if(needs)return needs;
   const file=path.match(/^\/api\/files\/([0-9a-f-]{36})$/);
   if(file&&['GET','HEAD'].includes(method))return serveFile(request,db,file[1],helpers);
   if (path.startsWith('/api/groups')) return groupRoute(request,db,user,helpers);
