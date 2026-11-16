@@ -37,7 +37,7 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
  }
  if(path==='/api/work/organizations'&&method==='POST'){
   await enforceLimit(db,'work-org',uid,5,86400);
-  const d=await parseBody(request),name=clip(d.name,140),country=clip(d.country,80),description=clip(d.description,700),website=urlOK(d.website);
+  const d=await parseBody(request),name=clip(d.name,140),country=clip(d.country,80),description=clip(d.description,3500),website=urlOK(d.website);
   if(name.length<4||!country||website===null)bad('أدخل اسم جهة واضحاً ودولة ورابطاً صحيحاً إن وجد.');
   const r=await db.prepare('INSERT INTO development_organizations(owner_id,name,country,description,website) VALUES(?,?,?,?,?) RETURNING id').bind(uid,name,country,description,website).first();
   await audit('create','organization',r.id);
@@ -45,8 +45,8 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
  }
  if(path==='/api/work/opportunities'&&method==='POST'){
   await enforceLimit(db,'work-opportunity',uid,8,86400);
-  const d=await parseBody(request),title=clip(d.title,150),description=clip(d.description,1500),category=d.category,
-   arrangement=d.arrangement,mode=d.mode,requirements=clip(d.requirements,650),deadline=d.deadline||null;
+  const d=await parseBody(request),title=clip(d.title,150),description=clip(d.description,8000),category=d.category,
+   arrangement=d.arrangement,mode=d.mode,requirements=clip(d.requirements,3500),deadline=d.deadline||null;
   const hours=Number(d.hours_estimate||0),capacity=Number(d.capacity||1),project=Number(d.project_id||0)||null,need=Number(d.need_id||0)||null;
   if(title.length<5||description.length<25||!categories.has(category)||!['remote','onsite','hybrid'].includes(mode)||
    !['volunteer','paid'].includes(arrangement)||!Number.isSafeInteger(hours)||hours<0||hours>10000||
@@ -183,7 +183,7 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
   await enforceLimit(db,'work-outcomes',uid,30,86400);
   const p=await db.prepare('SELECT owner_id FROM development_projects WHERE id=?').bind(outcomes).first();
   if(!p||p.owner_id!==uid)forbidden('تسجيل النتائج لصاحب المشروع.');
-  const d=await parseBody(request),metric=clip(d.metric,140),unit=clip(d.unit,60),context=clip(d.context,1000),
+  const d=await parseBody(request),metric=clip(d.metric,140),unit=clip(d.unit,60),context=clip(d.context,5000),
     baseline=Number(d.baseline),observed=Number(d.observed),evidence=urlOK(d.evidence_url);
   if(metric.length<5||unit.length<2||!Number.isFinite(baseline)||!Number.isFinite(observed)||
    Math.abs(baseline)>1e12||Math.abs(observed)>1e12||!dateOK(d.measured_on)||evidence===null)bad('أدخل المؤشر ووحدته والقيمة الأساسية والفعلية وتاريخ القياس.');
