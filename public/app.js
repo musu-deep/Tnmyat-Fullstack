@@ -84,6 +84,7 @@ async function route(){const token=++version;let target=main;
  if(isLanding){if(user){history.replaceState(null,'','/wall');await route();return;}renderWelcome();return;}
  if(location.pathname==='/admin'){await renderGovernance(token);return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}
+ if(await renderMySubmissions(token))return;
  if(await renderNeeds(token))return;
  if(await renderDevelopmentWork(token))return;
  if(await renderNetwork(token))return;
@@ -118,6 +119,7 @@ document.addEventListener('click',async event=>{
  if(await workAction(el))return;
  if(await networkAction(el))return;
  if(await journeyAction(el))return;
+ if(await reviewCenterAction(action,el))return;
  if(await governanceAction(action,el))return;
  if(await socialAction(action,el))return;
  switch(action){
