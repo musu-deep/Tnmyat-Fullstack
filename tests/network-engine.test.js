@@ -32,13 +32,19 @@ test('Discovery is opt-in, matches public profile interests, explains reasons an
  try{
   const a=await register('network-a@example.org'),b=await register('network-b@example.org');
   await preferences(a.cookie,'التعليم');await preferences(b.cookie,'التعليم');
+  const focusPatch=async(cookie)=>{
+   const current=(await call('journey/preferences','GET',undefined,cookie)).data.preferences;
+   const saved=await call('journey/preferences','PATCH',{...current,focus_topics:['القراءة المبكرة']},cookie);
+   assert.equal(saved.status,200,JSON.stringify(saved.data));
+  };
+  await focusPatch(a.cookie);await focusPatch(b.cookie);
   assert.deepEqual((await call('network/matches','GET',undefined,a.cookie)).data.people,[]);
   assert.equal((await call('network/settings','PATCH',{enabled:true},a.cookie)).status,200);
   assert.equal((await call('network/settings','PATCH',{enabled:true},b.cookie)).status,200);
   const matching=await call('network/matches','GET',undefined,a.cookie);
   assert.equal(matching.status,200,JSON.stringify(matching.data));
   const person=matching.data.people.find(p=>p.id===b.data.user.id);
-  assert.ok(person);assert.match(person.reason,/التعليم/);
+  assert.ok(person);assert.match(person.reason,/القراءة المبكرة/);
   await preferences(b.cookie,'التعليم','private');
   assert.ok(!(await call('network/matches','GET',undefined,a.cookie)).data.people.some(p=>p.id===b.data.user.id));
   assert.equal((await call('network/relations','POST',{recipient_id:b.data.user.id,purpose:'تطوير أنشطة تعليمية مشتركة'},a.cookie)).status,403);
