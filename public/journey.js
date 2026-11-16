@@ -1,5 +1,6 @@
 'use strict';
 // Member journey UI. Profiles, personal calendars and project selections are scoped to the signed-in member.
+const JOURNEY_FOCUS_TOPICS=["القراءة المبكرة","تدريب المعلمين","التعليم الرقمي","المناهج","تعليم الكبار","إدارة المدارس","التعليم المهني","التغير المناخي","إدارة النفايات","الطاقة النظيفة","الزراعة المستدامة","الصحة المجتمعية","الرعاية الأولية","التأهيل","التطوع","الاقتصاد الاجتماعي","ريادة الأعمال","سلاسل الإمداد","المياه والإصحاح","الأمن الغذائي","التحول الرقمي","البيانات والتحليل","الذكاء الاصطناعي","إدارة المشاريع","بناء القدرات"];
 const JOURNEY_SECTORS=['التعليم','البيئة','المجتمع','الاقتصاد','الصحة','الإغاثة','البنية التحتية','المياه','الطاقة','التقنية'];
 let journeyMapInstance=null;
 const JOURNEY_PARTICIPATION=['تطوع','خبرة واستشارات','بحث علمي','شراكات','استثمار','تدريب','تنفيذ مشاريع'];
@@ -20,6 +21,7 @@ function jFields(p){
  '<div class="journeyFields">'+inputs('professional_role','الصفة المهنية',80)+inputs('organization','الجهة أو المؤسسة',120)+inputs('country','الدولة',80)+inputs('city','المدينة',80)+'</div>'+
  '<label>هدفك من الانضمام<textarea name="goal" maxlength="400" placeholder="مثلاً: تطوير مبادرات تعليمية وبناء شراكات مهنية">'+esc(p.goal||'')+'</textarea></label>'+
  '<fieldset><legend>مجالات اهتمامك (اختر ما يناسبك)</legend><div class="journeySectors">'+JOURNEY_SECTORS.map(s=>'<label><input type="checkbox" name="sectors" value="'+s+'" '+(p.sectors.includes(s)?'checked':'')+'><span>'+s+'</span></label>').join('')+'</div></fieldset>'+
+ '<details class="journeyFocus"><summary>التخصصات والاهتمامات الدقيقة (اختياري)</summary><p>اختر ما يعبر عن اهتماماتك فعلاً. يمكن تعديل الاختيارات في أي وقت.</p><div class="journeySectors">'+JOURNEY_FOCUS_TOPICS.map(t=>'<label><input type="checkbox" name="focus_topics" value="'+t+'" '+((p.focus_topics||[]).includes(t)?'checked':'')+'><span>'+t+'</span></label>').join('')+'</div></details>'+ 
  '<label>المهارات والخبرات (افصل بينها بفاصلة)<input name="skills_text" maxlength="700" value="'+esc(skills.join('، '))+'" placeholder="إدارة المشاريع، البحث، التخطيط الاستراتيجي"></label>'+
  '<fieldset><legend>مجالات المشاركة التي تفضلها</legend><div class="journeySectors">'+JOURNEY_PARTICIPATION.map(s=>'<label><input type="checkbox" name="participation" value="'+s+'" '+(participation.includes(s)?'checked':'')+'><span>'+s+'</span></label>').join('')+'</div></fieldset>'+
  '<div class="journeyFields"><label>ظهور بياناتي المهنية<select name="profile_visibility"><option value="members" '+(p.profile_visibility==='members'?'selected':'')+'>للأعضاء المسجلين</option><option value="private" '+(p.profile_visibility==='private'?'selected':'')+'>خاصة بي فقط</option></select></label><label>تنبيه المواعيد القادمة<select name="notification_window">'+[3,7,14,30].map(n=>'<option value="'+n+'" '+(p.notification_window===n?'selected':'')+'>'+n+' أيام</option>').join('')+'</select></label></div>'+
@@ -171,7 +173,7 @@ async function journeyForm(form,data){
  if(id==='journeyNewsLinkForm'){await api('journey/news-links','POST',data);notify('حُفظ الرابط في أخبارك الخاصة');await route();}
  if(id==='journeyTaskForm'){await api('journey/projects/'+Number(form.dataset.project)+'/tasks','POST',{...data,assigned_to:data.assigned_to?Number(data.assigned_to):null});notify('أُضيفت المهمة');await route();}
  if(id==='journeyPrefs'){
-  const payload={...data,sectors:[...form.querySelectorAll('[name=sectors]:checked')].map(x=>x.value),skills:(data.skills_text||'').split(/[,،\n]/).map(x=>x.trim()).filter(Boolean).slice(0,12),participation:[...form.querySelectorAll('[name=participation]:checked')].map(x=>x.value),notification_window:Number(data.notification_window||14),news_enabled:form.querySelector('[name=news_enabled]').checked,onboarding_complete:true};
+  const payload={...data,sectors:[...form.querySelectorAll('[name=sectors]:checked')].map(x=>x.value),focus_topics:[...form.querySelectorAll('[name=focus_topics]:checked')].map(x=>x.value),skills:(data.skills_text||'').split(/[,،\n]/).map(x=>x.trim()).filter(Boolean).slice(0,12),participation:[...form.querySelectorAll('[name=participation]:checked')].map(x=>x.value),notification_window:Number(data.notification_window||14),news_enabled:form.querySelector('[name=news_enabled]').checked,onboarding_complete:true};
   await api('journey/preferences','PATCH',payload);notify('حُفظت تفضيلاتك');go('/my-space');
  }
  if(id==='journeyCalendarForm'){await api('journey/calendar','POST',data);notify('تمت إضافة الموعد');await route();}
