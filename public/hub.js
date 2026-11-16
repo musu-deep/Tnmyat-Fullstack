@@ -98,7 +98,7 @@ function hubProjectForm(){
  return '<form id="hubProjectForm" class="fields hubForm hubProjectEntry">'+
   '<p class="hubProjectIntro">عرّف بمشروعك وحدد موقعه على الخارطة بخطوة بسيطة. ستراجعه إدارة المجتمع قبل نشره.</p>'+
   '<label>اسم المشروع<input name="title" required minlength="4" maxlength="110" placeholder="مثلاً: مبادرة تطوير المدارس"></label>'+
-  '<label>وصف مختصر للمشروع<textarea name="summary" required minlength="20" maxlength="1500" placeholder="ما الذي يسعى المشروع إلى تحقيقه؟ ومن يستفيد منه؟"></textarea></label>'+
+  '<label>وصف مختصر للمشروع<textarea name="summary" required minlength="20" maxlength="8000" placeholder="ما الذي يسعى المشروع إلى تحقيقه؟ ومن يستفيد منه؟"></textarea></label>'+
   '<div class="hubFormPair"><label>المجال<select name="category" required>'+HUB_TOPICS.map(t=>'<option>'+hubEscape(t)+'</option>').join('')+'</select></label><label>مرحلة المشروع<select name="stage" required><option value="planned">مخطط</option><option value="active">جارٍ تنفيذه</option><option value="completed">مكتمل</option></select></label></div>'+
   '<div class="hubFormPair"><label>الدولة<input name="country" required maxlength="80" autocomplete="country-name" placeholder="اسم الدولة"></label><label>المدينة أو المنطقة<input name="city" maxlength="80" placeholder="اسم المدينة أو المنطقة إن وجد"></label></div>'+
   '<section class="hubPlacePicker" aria-label="تحديد موقع المشروع">'+
