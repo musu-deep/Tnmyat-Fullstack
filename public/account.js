@@ -17,7 +17,7 @@ function signedAccountMenu(){
     '<div class="accountSet">'+accountRow('مشاركاتي','▤','peach','href="'+profile+'"')+accountRow('الأصدقاء وطلبات الصداقة','♧','lilac','href="/people?filter=requests"')+accountRow('الرسائل الخاصة','✉','sky','href="/messages"')+'</div>'+
     '<div class="accountSet">'+accountRow('مساحتي التنموية','◈','mint','href="/my-space"')+accountRow('تنبيهاتي','◉','sky','href="/my-alerts"')+accountRow('شبكتي المهنية','♧','mint','href="/my-people"')+accountRow('علاقاتي المهنية','◇','sky','href="/network"')+accountRow('مشاريعي ومهامي','▣','sky','href="/my-projects"')+accountRow('الإعدادات والتفضيلات','✎','mint','href="/onboarding"')+accountRow('تعديل بياناتي','✎','mint','data-act="editprofile"')+accountRow('اختصارات لوحة المفاتيح','⌨','sky','data-act="shortcuts"')+
     accountRow('الوضع الليلي','☾','lilac','data-act="night" aria-pressed="'+(document.documentElement.dataset.theme==='dark')+'"')+
-    (user.role==='admin'?accountRow('مركز إدارة تنميات','⚑','peach','href="/admin"'):'')+'</div>'+
+    (user.role==='admin'?accountRow('مركز إدارة تنميات','⚑','peach','href="/admin"')+accountRow('مؤشرات العلاقات','▤','mint','href="/network-admin"'):'')+'</div>'+
     accountRow('تسجيل الخروج','↪','rose','data-act="logout"')+'</section>';
 }
 function setNight(on){
