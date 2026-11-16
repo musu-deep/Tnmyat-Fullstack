@@ -35,7 +35,7 @@ export async function writePost(request,db,user,existing,helpers){
   const data=await parseBody(request,14*1024*1024);
   if(existing&&data.version!==existing.version)throw new ApiError(409,'تغيّر المنشور. حدّث الصفحة ثم أعد التعديل.');
   const title=textField(data.title??existing?.title,0,160,'العنوان');
-  const body=textField(data.body??existing?.body,0,8000,'نص المنشور');
+  const body=textField(data.body??existing?.body,0,24000,'نص المنشور');
   const topic=data.topic??existing?.topic??'المجتمع';
   const postKind=data.post_kind??existing?.post_kind??'post';
   if(!['post','article','initiative','question','announcement'].includes(postKind))throw new ApiError(400,'اختر نوع منشور صالحاً.');
