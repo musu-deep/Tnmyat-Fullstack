@@ -24,7 +24,7 @@ async function renderReviewQueue(){
    ?'<button data-act="review-decision" data-kind="outcome" data-id="'+item.id+'" data-status="reviewed" class="btn">مراجعة الدليل</button>'
    :'<button data-act="review-decision" data-kind="'+type+'" data-id="'+item.id+'" data-status="approved" class="btn primary">اعتماد</button> '+
      '<button data-act="review-decision" data-kind="'+type+'" data-id="'+item.id+'" data-status="rejected" class="btn">رفض</button>';
-  return '<article class="reviewItem"><span class="reviewKind">'+esc(reviewLabels[type]||type)+'</span><h3>'+esc(item.title)+'</h3><p>'+esc(item.description||'')+'</p><small>'+esc(item.owner)+' · '+esc(item.created_at||'')+'</small><div class="reviewActions">'+actions+'</div></article>';
+  return '<article class="reviewItem"><span class="reviewKind">'+esc(reviewLabels[type]||type)+'</span><h3>'+esc(item.title)+'</h3><p>'+esc(item.description||'')+'</p>'+(item.evidence_url?'<a href="'+esc(item.evidence_url)+'" target="_blank" rel="noopener noreferrer">فتح دليل النتيجة</a>':'')+'<small>'+esc(item.owner)+' · '+esc(item.created_at||'')+'</small><div class="reviewActions">'+actions+'</div></article>';
  }).join('');
  target.innerHTML='<div class="gov-metrics">'+labels+'</div><p class="gov-tip">تضم هذه القائمة الطلبات المعلقة في جميع خدمات المجتمع. اعتماد النتائج يعني مراجعة دليلها، وليس إثبات أثر مستقل.</p>'+
  '<div class="reviewGrid">'+(cards||'<p class="journeyEmpty">لا توجد طلبات قيد المراجعة حالياً.</p>')+'</div>';
