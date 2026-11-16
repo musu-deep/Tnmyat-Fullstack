@@ -1,5 +1,5 @@
 // Explicit, explainable member matching. No AI inference or automatic contact.
-const fields="SELECT p.user_id,u.name,p.professional_role,p.country,p.city,p.sectors,p.skills,p.participation FROM member_preferences p JOIN users u ON u.id=p.user_id";
+const fields="SELECT p.user_id,u.name,p.professional_role,p.country,p.city,p.sectors,p.focus_topics,p.skills,p.participation FROM member_preferences p JOIN users u ON u.id=p.user_id";
 const parseList=x=>{try{const v=JSON.parse(x||'[]');return Array.isArray(v)?v.filter(y=>typeof y==='string'):[]}catch{return []}};
 const clean=(x,n)=>typeof x==='string'?x.trim().slice(0,n):'';
 const validDate=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&!Number.isNaN(Date.parse(x+'T12:00:00Z'))&&new Date(x+'T12:00:00Z').toISOString().startsWith(x);
@@ -24,19 +24,19 @@ export async function networkRoute(request,db,user,{json,parseBody,requireUser,A
   }
  }
  if(path==='/api/network/matches'&&method==='GET'){
-  const mine=await db.prepare('SELECT sectors,skills,participation,country,network_discovery FROM member_preferences WHERE user_id=?').bind(uid).first();
+  const mine=await db.prepare('SELECT sectors,focus_topics,skills,participation,country,network_discovery FROM member_preferences WHERE user_id=?').bind(uid).first();
   if(!mine?.network_discovery)return json({enabled:false,people:[],groups:[],projects:[]});
-  const sectors=parseList(mine.sectors),skills=parseList(mine.skills),participation=parseList(mine.participation);
+  const sectors=parseList(mine.sectors),focus=parseList(mine.focus_topics),skills=parseList(mine.skills);
   const {results:members}=await db.prepare(fields+` WHERE p.user_id<>? AND p.network_discovery=1
     AND p.profile_visibility='members' AND u.account_status='active'
     ORDER BY p.updated_at DESC LIMIT 200`).bind(uid).all();
   const people=members.map(m=>{
    const common=parseList(m.sectors).filter(x=>sectors.includes(x));
+   const precise=parseList(m.focus_topics).filter(x=>focus.includes(x));
    const skillOverlap=parseList(m.skills).filter(x=>skills.includes(x));
-   const complementary=skills.filter(x=>!parseList(m.skills).includes(x));
-   const score=common.length*4+skillOverlap.length*2+(m.country&&m.country===mine.country?1:0);
-   const reason=common.length?'اهتمام مشترك: '+common.slice(0,2).join('، '):skillOverlap.length?'مهارة مشتركة: '+skillOverlap.slice(0,2).join('، '):'فرصة للتعارف المهني';
-   return {id:m.user_id,name:m.name,professional_role:m.professional_role,country:m.country,score,reason,sectors:parseList(m.sectors),skills:parseList(m.skills),participation:parseList(m.participation)};
+   const score=precise.length*9+common.length*4+skillOverlap.length*2+(m.country&&m.country===mine.country?1:0);
+   const reason=precise.length?'تخصص دقيق مشترك: '+precise.slice(0,2).join('، '):common.length?'اهتمام مشترك: '+common.slice(0,2).join('، '):skillOverlap.length?'مهارة مشتركة: '+skillOverlap.slice(0,2).join('، '):'فرصة للتعارف المهني';
+   return {id:m.user_id,name:m.name,professional_role:m.professional_role,country:m.country,score,reason,sectors:parseList(m.sectors),focus_topics:parseList(m.focus_topics),skills:parseList(m.skills),participation:parseList(m.participation)};
   }).filter(m=>m.score>0).sort((a,b)=>b.score-a.score||a.id-b.id).slice(0,12);
   const {results:groups}=await db.prepare(`SELECT id,name,description FROM community_groups
     WHERE moderation_status='visible' ORDER BY id DESC LIMIT 80`).all();
@@ -44,7 +44,7 @@ export async function networkRoute(request,db,user,{json,parseBody,requireUser,A
   const {results:projects}=await db.prepare(`SELECT id,title,summary,category,country,stage FROM development_projects
     WHERE status='published' AND owner_id<>? ORDER BY id DESC LIMIT 80`).bind(uid).all();
   const matches=projects.filter(p=>sectors.includes(p.category)).slice(0,8).map(p=>({...p,reason:'مجال اهتمامك: '+p.category}));
-  return json({enabled:true,people,groups:matchedGroups,projects:matches,method:'مطابقة قواعد مع اهتمامات معلنة'});
+  return json({enabled:true,people,groups:matchedGroups,projects:matches,method:'مطابقة قواعد مع اهتمامات وتخصصات صريحة'});
  }
  if(path==='/api/network/relations'&&method==='GET'){
   const {results}=await db.prepare(`SELECT r.id,r.initiator_id,r.recipient_id,r.purpose,r.reason,r.status,r.next_step,r.due_date,
