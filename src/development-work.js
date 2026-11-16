@@ -13,7 +13,7 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
  if(path==='/api/work/opportunities'&&method==='GET'){
   const topic=clip(url.searchParams.get('category'),40),mode=clip(url.searchParams.get('mode'),20);
   const {results}=await db.prepare(`SELECT o.id,o.title,o.description,o.category,o.country,o.city,o.mode,o.arrangement,o.requirements,o.hours_estimate,
-    o.capacity,o.deadline,o.project_id,o.created_at,u.name AS owner
+    o.capacity,o.deadline,o.project_id,o.need_id,o.created_at,u.name AS owner
     FROM development_opportunities o JOIN users u ON u.id=o.owner_id
     WHERE o.status='published' AND u.account_status='active'
      AND (o.deadline IS NULL OR o.deadline>=date('now'))
@@ -47,7 +47,7 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
   await enforceLimit(db,'work-opportunity',uid,8,86400);
   const d=await parseBody(request),title=clip(d.title,150),description=clip(d.description,1500),category=d.category,
    arrangement=d.arrangement,mode=d.mode,requirements=clip(d.requirements,650),deadline=d.deadline||null;
-  const hours=Number(d.hours_estimate||0),capacity=Number(d.capacity||1),project=Number(d.project_id||0)||null;
+  const hours=Number(d.hours_estimate||0),capacity=Number(d.capacity||1),project=Number(d.project_id||0)||null,need=Number(d.need_id||0)||null;
   if(title.length<5||description.length<25||!categories.has(category)||!['remote','onsite','hybrid'].includes(mode)||
    !['volunteer','paid'].includes(arrangement)||!Number.isSafeInteger(hours)||hours<0||hours>10000||
    !Number.isSafeInteger(capacity)||capacity<1||capacity>100000||(deadline&&!dateOK(deadline)))bad('تحقق من بيانات الفرصة ومدتها وشروط المشاركة.');
@@ -56,8 +56,12 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
    const owner=await db.prepare("SELECT id FROM development_projects WHERE id=? AND owner_id=? AND status='published'").bind(project,uid).first();
    if(!owner)forbidden('يمكن ربط الفرصة بمشروع منشور تملكه فقط.');
   }
-  const r=await db.prepare(`INSERT INTO development_opportunities(owner_id,project_id,title,description,category,country,city,mode,arrangement,requirements,hours_estimate,capacity,deadline)
-  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`).bind(uid,project,title,description,category,clip(d.country,80),clip(d.city,80),mode,arrangement,requirements,hours,capacity,deadline).first();
+  if(need){
+   const owned=await db.prepare("SELECT id FROM development_needs WHERE id=? AND owner_id=? AND status='published'").bind(need,uid).first();
+   if(!owned)forbidden('يمكن ربط الفرصة باحتياج منشور تملكه فقط.');
+  }
+  const r=await db.prepare(`INSERT INTO development_opportunities(owner_id,project_id,title,description,category,country,city,mode,arrangement,requirements,hours_estimate,capacity,deadline,need_id)
+  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`).bind(uid,project,title,description,category,clip(d.country,80),clip(d.city,80),mode,arrangement,requirements,hours,capacity,deadline,need).first();
   await audit('submit','opportunity',r.id);
   return json({id:r.id,status:'pending'},201);
  }
