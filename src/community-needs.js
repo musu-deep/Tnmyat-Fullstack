@@ -22,14 +22,14 @@ export async function communityNeedsRoute(request,db,user,{json,parseBody,requir
  }
  if(path==='/api/needs/create'&&method==='POST'){
   await enforceLimit(db,'needs-create',uid,10,86400);
-  const d=await parseBody(request),title=trim(d.title,150),description=trim(d.description,1500),project=Number(d.project_id||0)||null,deadline=d.deadline||null;
+  const d=await parseBody(request),title=trim(d.title,150),description=trim(d.description,8000),project=Number(d.project_id||0)||null,deadline=d.deadline||null;
   if(title.length<5||description.length<25||!sectors.has(d.category)||!['normal','high'].includes(d.urgency)||deadline&&!dateValid(deadline)||deadline&&deadline<new Date().toISOString().slice(0,10))bad('تحقق من وصف الاحتياج والمجال والأولوية والتاريخ.');
   if(project){
    const owned=await db.prepare("SELECT id FROM development_projects WHERE id=? AND owner_id=? AND status='published'").bind(project,uid).first();
    if(!owned)deny('يمكن ربط الاحتياج بمشروع منشور تملكه فقط.');
   }
   const r=await db.prepare(`INSERT INTO development_needs(owner_id,project_id,title,description,category,country,city,required_skills,urgency,deadline)
-    VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING id`).bind(uid,project,title,description,d.category,trim(d.country,80),trim(d.city,80),trim(d.required_skills,500),d.urgency,deadline).first();
+    VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING id`).bind(uid,project,title,description,d.category,trim(d.country,80),trim(d.city,80),trim(d.required_skills,3500),d.urgency,deadline).first();
   await log('need',r.id,'submit');return json({id:r.id,status:'pending'},201);
  }
  const close=path.match(/^\/api\/needs\/(\d+)\/close$/);
@@ -67,7 +67,7 @@ export async function communityNeedsRoute(request,db,user,{json,parseBody,requir
  }
  if(path==='/api/partnerships/create'&&method==='POST'){
   await enforceLimit(db,'partnerships-request',uid,10,86400);
-  const d=await parseBody(request),from=Number(d.from_group_id),to=Number(d.to_group_id),purpose=trim(d.purpose,450);
+  const d=await parseBody(request),from=Number(d.from_group_id),to=Number(d.to_group_id),purpose=trim(d.purpose,2000);
   if(!Number.isSafeInteger(from)||!Number.isSafeInteger(to)||from<1||to<1||from===to||purpose.length<15)bad('اختر مجموعتين مختلفتين واكتب غرض التعاون.');
   const [a,b]=await Promise.all([
    db.prepare("SELECT owner_id FROM community_groups WHERE id=? AND moderation_status='visible'").bind(from).first(),
