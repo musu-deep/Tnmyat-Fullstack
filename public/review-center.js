@@ -1,8 +1,14 @@
 'use strict';
 // Separate personal submission tracking and consolidated admin review from the account dropdown.
-const reviewLabels={post:'منشور',project:'مشروع',need:'احتياج',opportunity:'فرصة',organization:'جهة',application:'طلب مشاركة',outcome:'نتيجة'};
+const reviewLabels={post:'منشور',project:'مشروع',need:'احتياج',opportunity:'فرصة',organization:'جهة',application:'طلب مشاركة',received_application:'طلب مشاركة وارد',relation:'تعارف مهني',collaboration:'مشاركة مشروع',partnership:'تعاون مجموعات',group_link:'ربط مجموعة بمشروع',outcome:'نتيجة'};
 const reviewStates={visible:'منشور',published:'منشور',pending:'قيد المراجعة',unverified:'بانتظار التحقق',verified:'تم التحقق',rejected:'مرفوض',hidden:'مخفي',closed:'مغلق',completed:'مكتمل',accepted:'مقبول',reviewed:'تمت مراجعة الدليل',self_reported:'إفادة ذاتية'};
-function reviewCard(x){return '<article class="reviewItem"><span class="reviewKind">'+esc(reviewLabels[x.kind]||x.kind)+'</span><h3>'+esc(x.title||'بدون عنوان')+'</h3><p>'+esc(reviewStates[x.status]||x.status)+'</p><small>'+esc(x.created_at||'')+'</small></article>';}
+function reviewCard(x){
+ const paths={post:'/profile/'+user.id,project:'/my-projects',opportunity:'/my-opportunities',need:'/my-needs',
+ organization:'/my-opportunities',application:'/my-opportunities',received_application:'/my-opportunities',
+ relation:'/network',collaboration:'/my-projects',partnership:'/group-partnerships',group_link:'/my-opportunities'};
+ const href=paths[x.kind];
+ return '<article class="reviewItem"><span class="reviewKind">'+esc(reviewLabels[x.kind]||x.kind)+'</span><h3>'+esc(x.title||'بدون عنوان')+'</h3><p>'+esc(reviewStates[x.status]||x.status)+'</p><small>'+esc(x.created_at||'')+'</small>'+(href?'<a class="journeyLink" href="'+href+'">فتح القسم المختص</a>':'')+'</article>';
+}
 async function renderMySubmissions(token){
  if(location.pathname!=='/my-submissions')return false;
  if(!user){go('/welcome');return true;}
