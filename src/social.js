@@ -103,7 +103,7 @@ export async function socialRoute(request,db,user,helpers) {
     const updates=[];
     const args=[];
     if ('name' in data) { updates.push('name=?'); args.push(textField(data.name,2,60,'الاسم')); }
-    if ('bio' in data) { updates.push('bio=?'); args.push(textField(data.bio,0,500,'النبذة')); }
+    if ('bio' in data) { updates.push('bio=?'); args.push(textField(data.bio,0,3000,'النبذة')); }
     if ('avatar' in data) {
       const image=validateImage(data.avatar,ApiError);
       updates.push('avatar_bytes=?','avatar_mime=?','avatar_version=?');
@@ -199,7 +199,7 @@ export async function socialRoute(request,db,user,helpers) {
     if (!peer) throw new ApiError(404,'هذا العضو غير متاح للمراسلة.');
     if (method==='POST') {
       const data=await parseBody(request);
-      const body=textField(data.body,1,2000,'الرسالة');
+      const body=textField(data.body,1,8000,'الرسالة');
       await enforceLimit(db,'message',viewer,180,3600);
       const message=await db.prepare('INSERT INTO messages(sender_id,recipient_id,body) VALUES(?,?,?) RETURNING id,sender_id,recipient_id,body,created_at').bind(viewer,peer.id,body).first();
       return json({message},201);
