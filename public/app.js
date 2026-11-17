@@ -162,6 +162,7 @@ document.addEventListener('click',async event=>{
 dialog.addEventListener('cancel',()=>{afterAuth=null;});
 document.addEventListener('submit',async e=>{
  const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form));
+ if(await staffAction(form,data))return;
  if(await hubForm(form,data))return;
  if(await needsForm(form,data))return;
  if(await workForm(form,data))return;
