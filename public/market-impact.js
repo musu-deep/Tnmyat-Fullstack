@@ -22,15 +22,6 @@ async function refreshMarket(){
   mine.innerHTML='<div class="marketGrid">'+res.stores.map(s=>'<article class="marketCard"><h3>'+esc(s.name)+'</h3><p>الحالة: '+esc({pending:'قيد المراجعة',approved:'معتمدة',rejected:'مرفوضة',suspended:'معلقة'}[s.status])+'</p>'+(s.status==='approved'?'<form class="marketListingForm" data-store-id="'+s.id+'"><label>عنوان العرض<input name="title" required minlength="3" maxlength="160"></label><label>التفاصيل<textarea name="description" maxlength="2000"></textarea></label><label>نوع العرض<select name="type"><option value="product">منتج</option><option value="service">خدمة</option></select></label><label>السعر بالريال (اختياري)<input name="price_sar" type="number" min="0" step="0.01" placeholder="السعر عند الطلب"></label><button class="btn primary">نشر عرض</button><div class="error"></div></form>':'')+'</article>').join('')+'</div><form id="marketStoreForm" class="marketStoreForm"><h3>طلب مساحة تجارية جديدة</h3><label>اسم المساحة<input name="name" required minlength="3" maxlength="100"></label><label>الصفة التجارية<select name="kind"><option value="producer">منتج</option><option value="manufacturer">مصنّع</option><option value="distributor">موزّع</option><option value="service_provider">مقدم خدمات</option></select></label><label>وصف النشاط<textarea name="description" maxlength="1000"></textarea></label><button class="btn primary">إرسال الطلب للمراجعة</button><div class="error"></div></form>';
  }catch(e){mine.textContent=e.message;}
 }
-async function renderImpactMembers(){
- document.title='أثر الأعضاء | تنميات';
- main.innerHTML='<section class="tnMarket"><div class="marketHero"><small>مجتمع تنميات · قياس الأثر</small><h1>تصنيف الأعضاء وفق الأثر</h1><p>تصنيف نوعي يعتمد على نتائج موثّقة ومراجعة بشرية، وليس على كثرة المنشورات أو الإعجابات.</p></div><div id="impactMembers" class="marketGrid">جارٍ تحميل التصنيفات…</div>'+(user?.role==='admin'?'<section class="marketApply"><h2>اعتماد أثر عضو</h2><form id="impactReviewForm"><label>رقم العضو<input name="member_id" type="number" min="1" required></label><label>تقييم الأثر (0–100)<input name="score" type="number" min="0" max="100" required></label><label>الأدلة والنتائج المحققة<textarea name="evidence" minlength="12" maxlength="1000" required></textarea></label><button class="btn primary">اعتماد التقييم</button><div class="error"></div></form></section>':'')+'</section>';
- await refreshImpactMembers();
-}
-async function refreshImpactMembers(){
- const el=document.getElementById('impactMembers');if(!el)return;
- try{const r=await api('impact/members');el.innerHTML=r.members.length?r.members.map(m=>'<article class="marketCard"><span class="marketTag">'+esc(m.category)+'</span><h3>'+esc(m.name)+'</h3><strong>'+Number(m.score)+' / 100</strong><p>'+esc(m.evidence||'')+'</p></article>').join(''):'<p>لم تُعتمد تصنيفات أثر بعد.</p>';}catch(e){el.textContent=e.message;}
-}
 async function renderMarketAdmin(){
  if(user?.role!=='admin'){go('/wall');return;}
  document.title='إدارة سوق تنميات';
@@ -50,7 +41,6 @@ async function marketImpactForm(form,data){
   await api('market/stores/'+form.dataset.storeId+'/listings','POST',{...data,price_minor:cents});
   notify('نُشر العرض بنجاح.');await refreshMarket();return true;
  }
- if(form.id==='impactReviewForm'){await api('impact/members/'+Number(data.member_id),'PUT',data);notify('اعتمد تصنيف الأثر.');await refreshImpactMembers();return true;}
  }catch(e){const err=form.querySelector('.error');if(err)err.textContent=e.message;else notify(e.message);return true;}
  return false;
 }

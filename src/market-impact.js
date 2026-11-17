@@ -37,7 +37,7 @@ export async function marketImpactRoute(request, db, user, {json,parseBody,textF
   const q=(url.searchParams.get('q')||'').trim().slice(0,80);
   const kind=url.searchParams.get('type')||'';
   if(kind&&!['product','service'].includes(kind))throw new ApiError(400,'نوع العرض غير صحيح.');
-  const rows=await db.prepare(`SELECT l.id,l.title,l.description,l.type,l.price_minor,l.currency,
+  const rows=await db.prepare(`SELECT l.id,l.title,l.description,l.type,l.price_minor,l.currency,l.category,l.image_url,l.stock_qty,l.min_order_qty,
    s.id store_id,s.name store_name,s.kind store_kind
    FROM market_listings l JOIN market_stores s ON s.id=l.store_id
    WHERE s.status='approved' AND l.status='published' AND (?='' OR l.type=?)

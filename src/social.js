@@ -52,6 +52,8 @@ const personFields = `u.id,u.name,u.bio,u.cover_position,
   COALESCE(u.last_seen>unixepoch()-180,0) AS online,
   (u.password_hash IS NOT NULL AND viewer.id>0 AND viewer.id<>u.id) AS can_message,
   EXISTS(SELECT 1 FROM follows f WHERE f.follower=viewer.id AND f.followed=u.id) AS following,
+  (SELECT r.score FROM market_member_impact_ratings r WHERE r.user_id=u.id) AS impact_score,
+  (SELECT r.category FROM market_member_impact_ratings r WHERE r.user_id=u.id) AS impact_category,
   CASE WHEN fr.accepted=1 THEN 'friends' WHEN fr.requester=viewer.id THEN 'outgoing'
        WHEN fr.requester IS NOT NULL THEN 'incoming' ELSE 'none' END AS friend_status`;
 const personFrom = ` FROM users u CROSS JOIN (SELECT ? AS id) viewer
