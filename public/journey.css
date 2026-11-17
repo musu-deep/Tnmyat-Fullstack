@@ -94,3 +94,44 @@
 .reviewActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .reviewItem a{color:#20647b;text-decoration:underline}
 @media(max-width:650px){.reviewGrid{grid-template-columns:1fr}.reviewActions .btn{flex:1}}
+
+
+/* Compact workspace navigation; services grouped by task rather than a long row of pills. */
+.journeyNav{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 15px;position:relative;z-index:3}
+.journeyNavPrimary,.journeyNavMore{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.journeyNavPrimary>a{background:transparent;border:1px solid #dce5ef;padding:9px 15px;border-radius:12px;font-size:.86rem;color:#31536d}
+.journeyNavPrimary>a.active{background:#264e76;color:#fff;border-color:#264e76}
+.journeyNavGroup{position:relative;min-width:0}
+.journeyNavGroup>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #dce5ef;border-radius:12px;background:#f3f7fa;color:#31536d;font-size:.84rem;font-weight:700;white-space:nowrap}
+.journeyNavGroup>summary::-webkit-details-marker{display:none}
+.journeyNavGroup>summary.active{background:#e7f0f5;border-color:#94b3c6;color:#1e4d68}
+.journeyNavGroup[open]>summary{border-color:#729cb3}
+.journeyNavChoices{position:absolute;top:calc(100% + 8px);right:0;width:min(330px,calc(100vw - 40px));background:#fff;border:1px solid #d7e4ed;border-radius:14px;box-shadow:0 16px 36px #122e4a26;display:grid;grid-template-columns:1fr;gap:3px;padding:10px;z-index:5;max-height:min(65dvh,480px);overflow-y:auto}
+.journeyNavChoices a{padding:10px 12px;border-radius:9px;background:transparent;color:#34566c;font-size:.84rem}
+.journeyNavChoices a:hover,.journeyNavChoices a:focus-visible{background:#edf4f8}
+.journeyNavChoices a.active{background:#264e76;color:#fff}
+@media(max-width:780px){.journeyNav{align-items:stretch}.journeyNavPrimary{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}.journeyNavPrimary>a{white-space:nowrap}.journeyNavMore{gap:7px}.journeyNavGroup>summary{font-size:.8rem}.journeyNavChoices{right:auto;left:0}}
+
+/* Floating forms: use screen width and preserve a bounded, accessible scroll region. */
+dialog:has(.fields){width:min(680px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;padding:22px 26px;border-radius:19px}
+dialog:has(#hubProjectForm){width:min(960px,calc(100vw - 32px));}
+dialog:has(.fields) .modalhead{position:sticky;top:-22px;background:#fff;z-index:12;padding:6px 0 12px;border-bottom:1px solid #e2eaf0;margin-bottom:17px}
+#hubProjectForm{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);column-gap:22px;row-gap:14px;align-items:start}
+#hubProjectForm>.hubProjectIntro{grid-column:1/-1}
+#hubProjectForm>label:nth-child(2){grid-column:1;grid-row:2}
+#hubProjectForm>label:nth-child(3){grid-column:1;grid-row:3}
+#hubProjectForm>.hubFormPair:nth-child(4){grid-column:1;grid-row:4}
+#hubProjectForm>.hubFormPair:nth-child(5){grid-column:1;grid-row:5}
+#hubProjectForm>.hubPlacePicker{grid-column:2;grid-row:2/span 4;align-self:stretch;align-content:start;min-width:0}
+#hubProjectForm>.hubProjectOptional,#hubProjectForm>.error,#hubProjectForm>button[type=submit]{grid-column:1/-1}
+#hubProjectForm>button[type=submit]{justify-self:start;min-width:190px}
+#hubProjectForm #hubProjectPickerMap{height:280px}
+#hubProjectForm textarea[name=summary]{min-height:116px}
+@media(max-width:750px){
+ dialog:has(.fields){padding:16px;width:calc(100vw - 20px);max-height:91dvh}
+ dialog:has(.fields) .modalhead{top:-16px}
+ #hubProjectForm{grid-template-columns:minmax(0,1fr)}
+ #hubProjectForm>.hubProjectIntro,#hubProjectForm>label:nth-child(2),#hubProjectForm>label:nth-child(3),#hubProjectForm>.hubFormPair:nth-child(4),#hubProjectForm>.hubFormPair:nth-child(5),#hubProjectForm>.hubPlacePicker,#hubProjectForm>.hubProjectOptional,#hubProjectForm>.error,#hubProjectForm>button[type=submit]{grid-column:1;grid-row:auto}
+ #hubProjectForm #hubProjectPickerMap{height:230px}
+ #hubProjectForm>button[type=submit]{width:100%}
+}
