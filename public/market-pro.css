@@ -1,0 +1,72 @@
+/* Market Pro / TNMYAT — additive, responsive and scoped */
+.marketPro{--mp-navy:#122e4c;--mp-teal:#226d6d;--mp-ink:#173148;--mp-muted:#627587;--mp-line:#d9e4ec;--mp-soft:#f4f8fb;max-width:100%}
+.marketProHero{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.8fr);gap:28px;align-items:center;background:radial-gradient(circle at 12% 14%,#436d8c 0%,transparent 32%),linear-gradient(120deg,#112944,#2e5278 60%,#385d7a);border-radius:24px;padding:clamp(26px,5vw,62px);color:#fff;min-height:335px;overflow:hidden}
+.marketProHero h1{font-size:clamp(38px,5vw,65px);color:#fff;margin:14px 0;line-height:1.2}
+.marketProHero p{font-size:1rem;color:#e5f0f5;line-height:1.9;max-width:660px}
+.marketProEyebrow{letter-spacing:.02em;color:#b9d3e5}
+.marketProHeroActions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+.marketProButton{display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:11px;padding:10px 20px;min-height:44px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;transition:transform .16s,background .16s}
+.marketProButton:hover{transform:translateY(-1px)}
+.marketProButton.main{background:#fff;color:#14344e;border-color:#fff}
+.marketProButton.ghost{background:#ffffff10;color:#fff;border-color:#ffffff75}
+.marketProButton.secondary{background:#e5f0f6;color:#1d506b;border-color:#d0e1ea;margin-top:13px}
+.marketProHeroPanel{padding:26px;border:1px solid #ffffff53;border-radius:20px;background:#ffffff14;box-shadow:inset 0 0 30px #ffffff0b;backdrop-filter:blur(14px)}
+.marketProHeroPanel span{font-size:.8rem;color:#e0e8f1}.marketProHeroPanel strong{display:block;font-size:1.55rem;margin-top:10px;color:#fff}.marketProHeroPanel p{font-size:.86rem}
+.marketProPillRow{display:flex;gap:9px}.marketProPillRow span{border:1px solid #ffffff88;border-radius:20px;padding:4px 12px;color:#fff}
+.marketProStats,.marketProDashboardStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0 26px}
+.marketProStats article,.marketProDashboardStats article{background:var(--panel,#fff);border:1px solid var(--mp-line);border-radius:14px;padding:19px}
+.marketProStats span,.marketProDashboardStats span{display:block;font-size:.82rem;color:var(--mp-muted)}
+.marketProStats strong,.marketProDashboardStats strong{display:block;font-size:1.8rem;color:var(--mp-navy);margin-top:9px;font-variant-numeric:tabular-nums}
+.marketProSection,.marketProServices{padding:24px 0 32px}
+.marketProSectionHead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:4px 0 17px}
+.marketProSectionHead small{font-size:.76rem;color:var(--mp-teal);font-weight:700}
+.marketProSection h2,.marketProServices h2{font-size:1.65rem;color:var(--mp-navy);margin:5px 0}
+.marketProSectionHead a{color:#235a7f;font-weight:700}
+.marketProServiceGrid,.marketProRoadmapGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.marketProService,.marketProRoadmapItem{background:var(--panel,#fff);border:1px solid var(--mp-line);border-radius:17px;padding:23px;box-shadow:0 8px 24px #24476209}
+.marketProServiceIcon{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:#e9f2f6;color:#266073;font-size:23px}
+.marketProService h3,.marketProRoadmapItem h3{margin:13px 0 8px;font-size:1rem;color:var(--mp-ink)}
+.marketProService p,.marketProRoadmapItem p{font-size:.84rem;line-height:1.9;color:var(--mp-muted)}
+.marketProSearch{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(130px,1fr)) auto;gap:10px;align-items:end;padding:16px;border-radius:15px;background:#edf3f8;border:1px solid #d8e5ec}
+.marketProSearch label,.marketProForm label{display:grid;gap:6px;color:#36536b;font-size:.81rem;font-weight:700}
+.marketProSearch input,.marketProSearch select,.marketProForm input,.marketProForm select,.marketProForm textarea{border:1px solid #d0dee8!important;border-radius:9px;padding:11px!important;width:100%;background:#fff!important;color:#203f57!important;font:inherit;box-sizing:border-box}
+.marketProCardGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:15px;margin-top:17px}
+.marketProProduct,.marketProStore,.marketProPane,.marketProRfq{border:1px solid var(--mp-line);background:var(--panel,#fff);border-radius:17px;overflow:hidden;box-shadow:0 5px 22px #1e4e6710}
+.marketProProductImage{height:160px;background:linear-gradient(120deg,#e4edf3,#d2e1e9);display:grid;place-items:center;color:#47708a;font-size:3rem}
+.marketProProductImage img{height:100%;width:100%;object-fit:cover}
+.marketProProductBody{padding:17px}
+.marketProMeta{display:flex;justify-content:space-between;gap:8px;color:#4c7586;font-size:.74rem}
+.marketProProduct h3{font-size:1.04rem;margin:12px 0;color:var(--mp-ink)}
+.marketProProduct p{font-size:.84rem;color:var(--mp-muted);line-height:1.7;min-height:44px;overflow-wrap:anywhere}
+.marketProProduct strong{display:block;color:#205d70;margin:12px 0 4px}
+.marketProProduct small{display:block;color:#607687;margin:6px 0}
+.marketProProduct .marketProButton{width:100%}
+.marketProStore{padding:22px}
+.marketProAvatar{width:54px;height:54px;border-radius:15px;background:linear-gradient(145deg,#244b69,#397c86);display:grid;place-items:center;color:#fff;font-size:1.5rem;font-weight:700}
+.marketProStore h3{font-size:1.04rem;margin:14px 0 4px;color:var(--mp-ink)}
+.marketProStore>span{font-size:.76rem;color:var(--mp-teal)}
+.marketProStore p{font-size:.86rem;color:var(--mp-muted);line-height:1.7;min-height:50px}.marketProStore small{color:#526b7b}
+.marketProTwo{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:17px;margin:15px 0}
+.marketProPane{padding:22px}.marketProPane h3{margin:0 0 15px;color:var(--mp-navy)}
+.marketProForm{display:grid;gap:13px}.marketProForm textarea{min-height:85px}
+.marketProLead{color:var(--mp-muted);max-width:840px;line-height:1.9}
+.marketProRfqList{display:grid;gap:12px;align-content:start}
+.marketProRfq{padding:19px}.marketProRfq>span{font-size:.75rem;color:var(--mp-teal)}
+.marketProRfq h3{color:var(--mp-ink);margin:10px 0}.marketProRfq p{line-height:1.8;color:var(--mp-muted)}
+.marketProRfq small{display:block;margin:9px 0;color:#536b7a}
+.marketProDashboardStats{grid-template-columns:repeat(6,minmax(0,1fr))}
+.marketProDashboardStats strong{font-size:1.4rem}
+.marketProMini{padding:14px 0;border-bottom:1px solid var(--mp-line);overflow-wrap:anywhere}.marketProMini:last-child{border-bottom:none}
+.marketProMini strong{display:block;color:var(--mp-ink)}.marketProMini span,.marketProMini small{font-size:.77rem;color:var(--mp-muted)}
+.marketProMini p{font-size:.84rem;color:var(--mp-muted)}
+.marketProLine{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--mp-line)}
+.marketProLine strong,.marketProLine small{display:block}.marketProLine small{color:var(--mp-muted);margin-top:5px}
+.marketProActionGroup{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.marketProRoadmap{margin-top:18px;padding:24px;background:#edf4f8;border-radius:20px}
+.marketProRoadmapItem small{display:inline-block;font-size:.72rem;color:#357280;font-weight:700;background:#e5f1f1;border-radius:20px;padding:4px 9px}
+.marketProNote{margin-top:20px;color:#566f80;font-size:.85rem}
+.marketEmpty{padding:25px;border:1px dashed #c6d9e3;border-radius:14px;color:#657b87}
+@media(max-width:1100px){.marketProDashboardStats{grid-template-columns:repeat(3,minmax(0,1fr))}.marketProSearch{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:750px){.marketProHero{grid-template-columns:1fr;padding:25px;min-height:0}.marketProHeroPanel{padding:17px}.marketProStats{grid-template-columns:repeat(2,minmax(0,1fr))}.marketProServiceGrid,.marketProRoadmapGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.marketProTwo{grid-template-columns:1fr}.marketProSearch{grid-template-columns:1fr}.marketProSearch .marketProButton{width:100%}.marketProLine{align-items:start;flex-direction:column}.marketProLine .btn{align-self:start}}
+@media(max-width:475px){.marketProStats,.marketProDashboardStats{grid-template-columns:repeat(2,minmax(0,1fr))}.marketProServiceGrid,.marketProRoadmapGrid{grid-template-columns:1fr}.marketProHeroActions{flex-direction:column}.marketProHeroActions .marketProButton{width:100%}}
+@media(prefers-reduced-motion:reduce){.marketProButton{transition:none}.marketProButton:hover{transform:none}}
