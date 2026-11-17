@@ -32,6 +32,16 @@ async function renderMarketPro(){
  ].map(([status,title,desc])=>'<article class="marketProRoadmapItem"><small>'+status+'</small><h3>'+title+'</h3><p>'+desc+'</p></article>').join('')+'</div><p class="marketProNote">المنصة حالياً لإدارة العروض والتفاوض والفرص؛ لا تتضمن دفعاً إلكترونياً أو أوامر شحن أو توثيقاً تلقائياً للموردين.</p></section></section>';
  await Promise.all([marketProLoadCatalog(),marketProLoadRfqs(),marketProLoadWorkspace()]);
 }
+async function renderMarketStore(storeId){
+ document.title='المساحة التجارية | سوق تنميات';
+ main.innerHTML='<section class="tnMarket marketPro"><div id="marketStorefrontView" class="marketProSection">جارٍ تحميل المساحة التجارية…</div></section>';
+ const box=document.getElementById('marketStorefrontView');if(!box)return;
+ try{
+  const res=await api('market/storefront/'+Number(storeId)),store=res.store,items=res.listings;
+  document.title=store.name+' | سوق تنميات';
+  box.innerHTML='<div class="marketProHero"><div class="marketProHeroText"><div class="marketProEyebrow">سوق تنميات · مساحة تجارية معتمدة</div><h1>'+esc(store.name)+'</h1><p>'+esc(store.description||'مساحة أعمال ضمن سوق تنميات')+'</p><a class="marketProButton main" href="/market">العودة إلى سوق تنميات</a></div><div class="marketProHeroPanel"><span>النشاط</span><strong>'+esc(marketKindLabels[store.kind]||store.kind)+'</strong><p>إدارة: '+esc(store.owner_name)+'</p><div class="marketProPillRow"><span>'+items.length+' عروض</span></div></div></div><div class="marketProSectionHead"><div><small>كتالوج المورد</small><h2>المنتجات والخدمات</h2></div></div>'+(items.length?'<div class="marketProCardGrid">'+items.map(l=>'<article class="marketProProduct">'+(l.image_url?'<div class="marketProProductImage"><img src="'+esc(l.image_url)+'" alt="'+esc(l.title)+'" loading="lazy" referrerpolicy="no-referrer"></div>':'<div class="marketProProductImage placeholder">▣</div>')+'<div class="marketProProductBody"><div class="marketProMeta"><span>'+esc(l.type==='service'?'خدمة':'منتج')+'</span><span>'+esc(l.category||'عام')+'</span></div><h3>'+esc(l.title)+'</h3><p>'+esc(l.description)+'</p><strong>'+esc(marketProPrice(l.price_minor))+'</strong><small>الحد الأدنى للطلب: '+Number(l.min_order_qty||1)+'</small><button class="marketProButton secondary" type="button" data-act="mp-request" data-listing-id="'+l.id+'" data-title="'+esc(l.title)+'">طلب عرض سعر</button></div></article>').join('')+'</div>':marketProPending);
+ }catch(e){box.textContent=e.message;}
+}
 async function marketProLoadCatalog(){
  const box=document.getElementById('marketProCatalog'),storesBox=document.getElementById('marketProStoreGrid');if(!box||!storesBox)return;
  try{
@@ -44,7 +54,7 @@ async function marketProLoadCatalog(){
   document.getElementById('mpStatListings').textContent=offers.listings.length;
   box.innerHTML=all.length?'<div class="marketProCardGrid">'+all.map(l=>'<article class="marketProProduct">'+(l.image_url?'<div class="marketProProductImage"><img src="'+esc(l.image_url)+'" alt="'+esc(l.title)+'" loading="lazy" referrerpolicy="no-referrer"></div>':'<div class="marketProProductImage placeholder">▣</div>')+'<div class="marketProProductBody"><div class="marketProMeta"><span>'+esc(l.type==='service'?'خدمة':'منتج')+'</span><span>'+esc(l.category||'عام')+'</span></div><h3>'+esc(l.title)+'</h3><p>'+esc(l.description)+'</p><strong>'+esc(marketProPrice(l.price_minor))+'</strong><small>بواسطة '+esc(l.store_name)+'</small>'+(l.stock_qty!==null&&l.type==='product'?'<small>المخزون المعلن: '+Number(l.stock_qty)+'</small>':'')+(user?'<button type="button" class="marketProButton secondary" data-act="mp-request" data-listing-id="'+l.id+'" data-title="'+esc(l.title)+'">طلب عرض سعر</button>':'<button type="button" class="marketProButton secondary" data-act="login">سجّل الدخول لطلب السعر</button>')+'</div></article>').join('')+'</div>':marketProPending;
   marketProStores=stores.stores;
-  storesBox.innerHTML=stores.stores.length?stores.stores.map(s=>'<article class="marketProStore"><div class="marketProAvatar">'+esc(s.name.slice(0,1))+'</div><h3>'+esc(s.name)+'</h3><span>'+esc(marketKindLabels[s.kind]||s.kind)+'</span><p>'+esc(s.description)+'</p><small>'+Number(s.listings)+' عروض منشورة</small></article>').join(''):marketProPending;
+  storesBox.innerHTML=stores.stores.length?stores.stores.map(s=>'<article class="marketProStore"><div class="marketProAvatar">'+esc(s.name.slice(0,1))+'</div><h3>'+esc(s.name)+'</h3><span>'+esc(marketKindLabels[s.kind]||s.kind)+'</span><p>'+esc(s.description)+'</p><small>'+Number(s.listings)+' عروض منشورة</small><a class="marketProButton secondary" href="/market/store/'+s.id+'">زيارة المساحة التجارية</a></article>').join(''):marketProPending;
  }catch(e){box.textContent=e.message;storesBox.textContent='تعذر تحميل المساحات.';}
 }
 async function marketProLoadRfqs(){
