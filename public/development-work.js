@@ -54,7 +54,7 @@ async function renderDevelopmentWork(token){
   return true;
  }
  if(path==='/work-admin'){
-  if(user.role!=='admin'){go('/my-opportunities');return true;}
+  if(!['organizations_review','opportunities_review','outcomes_review'].some(staffAllowed)){go('/my-opportunities');return true;}
   const [queue,metrics]=await Promise.all([api('work/admin/queue'),api('work/metrics')]);if(token!==version)return true;
   const nums=[['الفرص المنشورة',metrics.opportunities],['الطلبات',metrics.applications],['طلبات مقبولة',metrics.accepted],['مشاركات مكتملة',metrics.completed],['الجهات المتحققة',metrics.verified_organizations],['نتائج مسجلة',metrics.outcomes],['نتائج روجعت أدلتها',metrics.reviewed_outcomes]];
   const review=(items,type,action)=>items.map(o=>{
@@ -71,9 +71,9 @@ async function renderDevelopmentWork(token){
   }).join('');
   jShell('مراجعة الفرص والنتائج','قرارات بشرية موثقة للجهات والفرص وأدلة النتائج.',
    '<div class="journeyStats">'+nums.map(([l,n])=>'<div class="journeyStat"><strong>'+Number(n||0).toLocaleString('ar')+'</strong><span>'+l+'</span></div>').join('')+'</div>'+
-   '<section class="journeyPanel">'+wtitle('جهات تنتظر التحقق')+'<div class="workGrid">'+(review(queue.organizations,'organizations','verified')||wblank('لا توجد جهات معلقة.'))+'</div></section>'+
-   '<section class="journeyPanel">'+wtitle('فرص تنتظر النشر')+'<div class="workGrid">'+(review(queue.opportunities,'opportunities','published')||wblank('لا توجد فرص معلقة.'))+'</div></section>'+
-   '<section class="journeyPanel">'+wtitle('نتائج تنتظر مراجعة الدليل')+'<div class="workGrid">'+(review(queue.outcomes,'outcomes','reviewed')||wblank('لا توجد نتائج قيد المراجعة.'))+'</div></section>');
+   '<section class="journeyPanel" '+(staffAllowed('organizations_review')?'':'hidden')+'>'+wtitle('جهات تنتظر التحقق')+'<div class="workGrid">'+(review(queue.organizations,'organizations','verified')||wblank('لا توجد جهات معلقة.'))+'</div></section>'+
+   '<section class="journeyPanel" '+(staffAllowed('opportunities_review')?'':'hidden')+'>'+wtitle('فرص تنتظر النشر')+'<div class="workGrid">'+(review(queue.opportunities,'opportunities','published')||wblank('لا توجد فرص معلقة.'))+'</div></section>'+
+   '<section class="journeyPanel" '+(staffAllowed('outcomes_review')?'':'hidden')+'>'+wtitle('نتائج تنتظر مراجعة الدليل')+'<div class="workGrid">'+(review(queue.outcomes,'outcomes','reviewed')||wblank('لا توجد نتائج قيد المراجعة.'))+'</div></section>');
   return true;
  }
  return false;
