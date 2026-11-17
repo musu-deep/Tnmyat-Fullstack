@@ -127,3 +127,12 @@ body.wallCoverView .rail,body.wallCoverView .latest{top:90px}
 
 /* Built-in cover image until a member selects a personal one. */
 .profileCoverV2,.wallIdentityCover,.memberPassCoverImage,.identityCover{background-image:linear-gradient(0deg,#08253f44,#08253f10),url("/welcome-valley.webp");background-size:cover;background-position:center}
+
+/* Reviewed impact is an identity distinction, not an independent page or role. */
+.impactDistinction{display:inline-flex;align-items:center;gap:5px;max-width:100%;margin-inline:5px;vertical-align:middle;padding:3px 9px;border:1px solid #bcd4d2;border-radius:999px;background:#e7f5f1;color:#205c57;font-size:.72rem;font-weight:800;line-height:1.5;white-space:normal}
+.impactDistinction>span{color:#b48726;letter-spacing:1px;white-space:nowrap}
+.identityCopy .impactDistinction{margin-top:5px;margin-inline:0;font-size:.65rem;width:max-content}
+.identity-tiny .impactDistinction{font-size:.59rem;padding:2px 6px}
+.memberPassCompact>.impactDistinction{margin-top:9px}
+.profileIdentityText>.impactDistinction,.wallIdentityInfo>.impactDistinction{margin-top:7px}
+@media(max-width:540px){.impactDistinction{font-size:.66rem;padding:3px 7px}}
