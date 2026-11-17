@@ -1,5 +1,5 @@
 -- Evidence-based member impact and a curated hybrid marketplace.
-CREATE TABLE member_impact_reviews (
+CREATE TABLE market_member_impact_ratings (
  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
  score INTEGER NOT NULL DEFAULT 0 CHECK(score BETWEEN 0 AND 100),
  evidence TEXT NOT NULL DEFAULT '',
