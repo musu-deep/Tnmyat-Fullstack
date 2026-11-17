@@ -21,7 +21,7 @@ async function renderStaff(token){
  main.innerHTML='<div class="staffWorkPage"><div class="staffWorkHeading"><span>مجتمع تنميات</span><h1>مركز الإشراف</h1><p>'+(isAdmin?'صلاحيات الإدارة العامة والمراجعة.':canAssign?'إدارة توزيع المهام وفق التفويض الممنوح.':'تظهر الأقسام التي مُنحت لك صلاحية مراجعتها فقط.')+'</p></div><div class="staffWorkGrid">'+cards+'</div>'+
  (canAssign?'<section class="staffGrants"><h2>صلاحيات المشرفين</h2><p>ابحث عن العضو بالاسم أو البريد، ثم اختر مهام المراجعة المسموحة له. يمكن تعديل الصلاحيات أو سحبها في أي وقت.</p>'+
  '<form id="staffSearchForm" class="staffSearch"><input name="q" minlength="2" required placeholder="اسم العضو أو البريد الإلكتروني" aria-label="البحث عن عضو للإشراف"><button class="btn primary" type="submit">بحث</button></form>'+
- '<div class="staffAssignTools"><h3>توزيع مهام الإشراف</h3><p>يمكن إسناد المهمة لأكثر من مشرف، أو حجبها عن الجميع وإبقاؤها مع المدير العام فقط.</p><div id="staffScopeOverview" aria-live="polite">جارٍ تحميل الصلاحيات…</div><button class="btn" type="button" data-act="staff-clear-all">سحب جميع الصلاحيات المفوضة</button></div>'+ '<div id="staffSearchResults" aria-live="polite"></div></section>':'')+'</div>';
+ '<div class="staffAssignTools"><h3>توزيع مهام الإشراف</h3><p>يمكن إسناد المهمة لأكثر من مشرف، أو حجبها عن الجميع وإبقاؤها مع المدير العام فقط.</p><div id="staffScopeOverview" aria-live="polite">جارٍ تحميل الصلاحيات…</div><button class="btn" type="button" data-act="staff-clear-all">سحب جميع الصلاحيات المفوضة</button></div>'+ '<div id="staffSearchResults" aria-live="polite"></div>'+ (isAdmin?'<section class="staffRecovery"><h3>استعادة كلمة مرور عضو</h3><p>تحقق من هوية صاحب الحساب، ثم أنشئ رابطاً لمرة واحدة وأرسله له عبر قناة خاصة موثوقة. لا تطلب كلمة مروره الحالية.</p><form id="adminRecoveryForm" class="journeyForm"><label>البريد الإلكتروني للعضو<input name="email" type="email" required maxlength="254"></label><label>سبب الإجراء<input name="reason" required minlength="12" maxlength="500"></label><div class="error" role="alert"></div><button class="btn primary" type="submit">إنشاء رابط استعادة</button></form><div id="staffRecoveryLink" aria-live="polite"></div></section>':'')+'</section>':'')+'</div>';
 
  await staffReloadOverview();
 }
@@ -42,6 +42,19 @@ async function staffReloadOverview(){
  }catch(e){box.textContent=e.message;}
 }
 async function staffAction(form,data){
+ if(form?.id==='adminRecoveryForm'){
+  const btn=form.querySelector('[type=submit]'),error=form.querySelector('.error'),target=document.getElementById('staffRecoveryLink');
+  btn.disabled=true;error.textContent='';target.replaceChildren();
+  try{
+   const result=await api('admin/password-recovery','POST',data);
+   const description=document.createElement('p');description.textContent='الرابط صالح لمدة 30 دقيقة، ولمرة واحدة. تأكد من هوية المستلم قبل مشاركته.';
+   const field=document.createElement('input');field.readOnly=true;field.dir='ltr';field.value=result.reset_url;field.setAttribute('aria-label','رابط استعادة كلمة المرور');
+   const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='نسخ رابط الاستعادة';
+   button.addEventListener('click',()=>navigator.clipboard.writeText(field.value).then(()=>notify('نُسخ رابط الاستعادة')).catch(()=>{field.select();notify('انسخ الرابط المحدد')})); 
+   target.append(description,field,button);
+  }catch(e){error.textContent=e.message;}finally{btn.disabled=false;}
+  return true;
+ }
  if(form?.id==='staffSearchForm'){
   const box=document.getElementById('staffSearchResults');
   try{
