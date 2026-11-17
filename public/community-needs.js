@@ -32,7 +32,7 @@ async function renderNeeds(token){
    '<div class="journeyColumns"><section class="journeyPanel"><h2>طلب تعاون بين مجموعتين</h2><form class="journeyForm" id="partnershipForm"><label>المجموعة التي تديرها<select name="from_group_id">'+ownChoices+'</select></label><label>المجموعة المدعوة<select name="to_group_id">'+choices+'</select></label><label>غرض التعاون<textarea name="purpose" required minlength="15" maxlength="2000" placeholder="مثلاً: تنظيم مبادرة مشتركة بين فريقين متخصصين"></textarea></label><div class="error" role="alert"></div><button type="submit" class="btn primary">إرسال طلب التعاون</button></form></section><section class="journeyPanel"><h2>طلبات التعاون</h2><div class="workGrid">'+(existing||nempty('لا توجد طلبات بين مجموعاتك.'))+'</div></section></div>');return true;
  }
  if(path==='/needs-admin'){
-  if(user.role!=='admin'){go('/needs');return true;}
+  if(!staffAllowed('needs_review')){go('/needs');return true;}
   const {needs}=await api('needs/admin/queue');if(token!==version)return true;
   jShell('مراجعة الاحتياجات','اعتماد الاحتياجات قبل نشرها، مع تسجيل مبرر القرار.',
    '<section class="journeyPanel"><h2>الاحتياجات قيد المراجعة</h2><div class="workGrid">'+(needs.map(n=>nbox(n.title,'<p>'+ne(n.description)+'</p><small>'+ne(n.owner)+' · '+ne(n.category)+'</small><div class="networkActions">'+nbtn('review-need',n.id,'نشر','data-status="published"')+nbtn('review-need',n.id,'رفض','data-status="rejected"')+'</div>')).join('')||nempty('لا توجد احتياجات معلقة.'))+'</div></section>');return true;
