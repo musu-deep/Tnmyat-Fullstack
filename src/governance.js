@@ -7,11 +7,11 @@ export async function governanceRoute(request, db, user, helpers) {
   const {json,parseBody,textField,ApiError,enforceLimit}=helpers;
   const url=new URL(request.url),path=url.pathname,method=request.method;
   const isAdmin=user?.role==='admin';
-  const canModerate=isAdmin||await canReview(db,user,'content_moderation');
   const isAppeal=path==='/api/appeals' && method==='POST';
   const isReport=path==='/api/moderation/report' && method==='POST';
   if (!path.startsWith('/api/admin/') && !isAppeal && !isReport) return null;
   if (!user) throw new ApiError(401,'سجّل الدخول أولاً.');
+  const canModerate=isAdmin||await canReview(db,user,'content_moderation');
   if (!canModerate && !isAppeal && !isReport) throw new ApiError(403,'إدارة المجتمع مخصصة للمشرفين.');
   if(!isAdmin&&!isAppeal&&!isReport){
     const allowed=/^\/api\/admin\/(posts|groups|reports)(?:\/\d+)?$/;
