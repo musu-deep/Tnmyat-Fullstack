@@ -25,7 +25,9 @@ function hubUpdateDock(){
  // Anchor remains in normal document flow, even when bands are fixed.
  const topbar=document.querySelector('body > header')?.getBoundingClientRect().height||66;
  const dock=anchor.getBoundingClientRect().bottom<topbar;
- anchor.style.minHeight=bands.offsetHeight+'px';
+ // Preserve the undocked stack height while the compact horizontal dock is fixed.
+ // Re-measuring the fixed row would shrink the placeholder and cause scroll jumps.
+ if(!bands.classList.contains('hubTickersDocked'))anchor.style.minHeight=bands.offsetHeight+'px';
  bands.classList.toggle('hubTickersDocked',dock);
  document.body.classList.toggle('hubTickerDocked',dock);
 }

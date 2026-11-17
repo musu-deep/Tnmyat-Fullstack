@@ -142,3 +142,41 @@ body.hubTickerDocked main.wrap{padding-bottom:110px}
 .hubProjectOptional[open]{display:grid;gap:13px}
 .hubProjectOptional[open]>summary{margin-bottom:6px}
 @media(max-width:650px){.hubPlacePicker{padding:12px}#hubProjectPickerMap{height:245px}.hubPlaceActions{align-items:stretch;flex-direction:column}.hubPlaceActions button{width:100%}}
+
+/* Compact horizontal news dock: each available lane occupies an equal viewport share.
+   Original in-page bands retain their existing vertical layout. */
+#hubTickers .hubTickersDocked{
+ display:flex;
+ flex-direction:row;
+ flex-wrap:nowrap;
+ gap:0;
+ align-items:stretch;
+}
+#hubTickers .hubTickersDocked > .hubTicker{
+ flex:1 1 0;
+ width:0;
+ min-width:0;
+ max-width:none;
+ border-radius:0;
+}
+#hubTickers .hubTickersDocked .hubTickerLabel{
+ max-width:43%;
+ min-width:0;
+ overflow:hidden;
+ text-overflow:ellipsis;
+ padding:7px 9px;
+}
+#hubTickers .hubTickersDocked .hubTickerViewport{
+ flex:1 1 0;
+ min-width:0;
+}
+#hubTickers .hubTickersDocked .hubTickerTrack{min-width:100%}
+body.hubTickerDocked main.wrap{padding-bottom:60px}
+@media(max-width:680px){
+ #hubTickers .hubTickersDocked .hubTicker{min-height:39px}
+ #hubTickers .hubTickersDocked .hubTickerLabel{font-size:.62rem;max-width:43%;padding:6px 4px}
+ #hubTickers .hubTickersDocked .hubTickerTrack{gap:18px}
+ #hubTickers .hubTickersDocked .hubNewsItem small,
+ #hubTickers .hubTickersDocked .hubNewsTag{display:none}
+ body.hubTickerDocked main.wrap{padding-bottom:105px}
+}

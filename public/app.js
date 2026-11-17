@@ -106,6 +106,9 @@ async function route(){const token=++version;let target=main;
   '<div class="error" role="alert"></div><button class="btn primary">تعيين كلمة المرور</button></form>':'<p>رابط الاستعادة غير صحيح. اطلب رابطاً جديداً من إدارة تنميات.</p>')+
   '</section>';return;
  }
+ if(location.pathname==='/market'){await renderMarket();return;}
+ if(location.pathname==='/market-admin'){await renderMarketAdmin();return;}
+ if(location.pathname==='/impact-members'){await renderImpactMembers();return;}
  if(location.pathname==='/staff'){await renderStaff(token);return;}
  if(location.pathname==='/admin'){await renderGovernance(token);return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}
@@ -139,6 +142,7 @@ document.addEventListener('click',async event=>{
  if(el.tagName==='A'){if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||el.target||el.hasAttribute('download')||el.getAttribute('href').startsWith('#'))return;const url=new URL(el.href);if(url.origin===location.origin){event.preventDefault();go(url.pathname+url.search+url.hash);}return;}
  const action=el.dataset.act,id=el.dataset.id;
  try{
+ if(await marketImpactAction(action,el))return;
  if(await hubAction(action,el))return;
  if(await needsAction(el))return;
  if(await workAction(el))return;
@@ -191,6 +195,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('submit',async e=>{
  const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form,e.submitter||undefined));
+ if(await marketImpactForm(form,data))return;
  if(await staffAction(form,data))return;
  if(await hubForm(form,data))return;
  if(await needsForm(form,data))return;
