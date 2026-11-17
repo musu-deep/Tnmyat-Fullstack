@@ -78,6 +78,20 @@ function marketProBids(items,received){
 }
 async function marketProForm(form,data){
  try{
+  if(form.id==='marketStoreForm'&&document.querySelector('.marketPro')){
+   await api('market/stores','POST',data);
+   notify('أُرسل طلب المساحة للإدارة.');
+   await marketProLoadWorkspace();return true;
+  }
+  if(form.classList.contains('marketListingForm')&&document.querySelector('.marketPro')){
+   const storeId=Number(data.market_store_choice||form.dataset.storeId);
+   if(!Number.isSafeInteger(storeId)||storeId<=0)throw new Error('اختر مساحة صحيحة.');
+   const price=data.price_sar===''||data.price_sar===undefined?null:Math.round(Number(data.price_sar)*100);
+   if(price!==null&&(!Number.isSafeInteger(price)||price<0))throw new Error('السعر غير صحيح.');
+   await api('market/stores/'+storeId+'/listings','POST',{title:data.title,description:data.description,type:data.type,price_minor:price});
+   notify('أُضيف العرض إلى المساحة التجارية.');
+   await marketProLoadWorkspace();await marketProLoadCatalog();return true;
+  }
   if(form.id==='marketProSearch'){await marketProLoadCatalog();return true;}
   if(form.id==='marketProRfqForm'){await api('market/rfqs','POST',data);notify('نُشرت المنافسة.');form.reset();await marketProLoadRfqs();await marketProLoadWorkspace();return true;}
   if(form.id==='marketProRequestForm'){await api('market/inquiries','POST',data);dialog.close();notify('تم إرسال طلب السعر.');await marketProLoadWorkspace();return true;}
