@@ -1,0 +1,26 @@
+name: Market Pro checks
+on:
+  push:
+    branches:
+      - feature/tnmyat-market-pro
+  pull_request:
+    branches:
+      - release/market-impact-recovery-tickers
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check market module syntax
+        run: |
+          node --check src/market-commerce.js
+          node --check public/market-pro.js
+          node --check tests/market-pro.test.js
+      - name: Run project tests
+        run: npm test
