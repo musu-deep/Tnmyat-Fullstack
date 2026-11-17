@@ -190,7 +190,7 @@ document.addEventListener('input',event=>{
  }
 });
 document.addEventListener('submit',async e=>{
- const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form,e.submitter));
+ const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form,e.submitter||undefined));
  if(await staffAction(form,data))return;
  if(await hubForm(form,data))return;
  if(await needsForm(form,data))return;
