@@ -45,3 +45,23 @@
  header .topbar{grid-template-columns:72px minmax(0,1fr) 35px auto}
  .staffMobileEntry{width:35px}
 }
+
+/* Scoped delegation overview and flexible administrator assignment controls */
+.staffAssignTools{padding:18px;border:1px solid #d7e7ee;border-radius:16px;background:linear-gradient(140deg,#f5fafc,#ecf5f9);margin:18px 0 24px}
+.staffAssignTools h3{font-size:1.03rem;color:#214f6b;margin:0 0 6px}
+.staffAssignTools p{font-size:.83rem;margin:0 0 14px}
+#staffScopeOverview{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:11px;margin:13px 0}
+.staffScope{border:1px solid #d6e4ec;background:rgba(255,255,255,.8);border-radius:13px;padding:13px;display:grid;align-content:start;gap:11px}
+.staffScope>div:first-child{display:grid;gap:4px}
+.staffScope strong{font-size:.89rem;color:#234d66}
+.staffScope small{font-size:.72rem;color:#678396}
+.staffScopeAssignees{display:flex;gap:5px;flex-wrap:wrap;min-height:24px}
+.staffScopeAssignees span{font-size:.73rem;border-radius:999px;background:#e9f2f6;color:#295c77;padding:4px 9px;overflow-wrap:anywhere}
+.staffScopeAssignees em{font-size:.74rem;color:#708799}
+.staffScope>button{font-size:.76rem;justify-self:start}
+.staffAssignTools>button{border-color:#cdb2b2;color:#87444a;background:#fff8f8}
+.staffQuickActions{display:flex;flex-wrap:wrap;gap:7px;width:100%;margin:2px 0}
+.staffQuickActions .btn{font-size:.75rem;padding:7px 9px}
+.staffQuickActions [data-act=staff-exclusive]{border:1px solid #b4c6d8;background:#eaf3f8;color:#204c69}
+.staffPermissionForm{border-top:1px solid #e1e9ee;padding-top:12px}
+@media(max-width:680px){.staffAssignTools{padding:13px}#staffScopeOverview{grid-template-columns:1fr}.staffQuickActions{display:grid;grid-template-columns:1fr 1fr}.staffQuickActions [data-act=staff-exclusive]{grid-column:1/-1}}
