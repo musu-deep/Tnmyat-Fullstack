@@ -119,6 +119,7 @@ async function passwordRecoveryRoute(request,db,user){
  const ip=request.headers.get('CF-Connecting-IP')||'local';
  if(path==='/api/admin/password-recovery'){
   requireAdmin(user);
+  if(user.account_status!=='active')throw new ApiError(403,'الحساب الإداري غير نشط.');
   if(method!=='POST')throw new ApiError(405,'طريقة الطلب غير مدعومة.');
   await enforceLimit(db,'admin-recovery',user.id,12,3600);
   const body=await parseBody(request);
