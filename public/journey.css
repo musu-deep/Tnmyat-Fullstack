@@ -217,3 +217,62 @@ dialog:has(.fields) .modalhead{position:sticky;top:-22px;background:#fff;z-index
 }
 @media(max-width:365px){.journeyNavTiles{grid-template-columns:1fr}.journeyNavChoices a.journeyNavTile{min-height:64px}}
 @media(prefers-reduced-motion:reduce){.journeyNavGroup .journeyNavChoices{animation:none}.journeyNavChoices a.journeyNavTile{transition:none}}
+
+
+/* Centered translucent panels and subdued page backdrop */
+.journeyNav{z-index:50;isolation:isolate}
+.journeyNavBackdrop{
+ position:fixed;inset:0;z-index:20;
+ background:rgba(10,31,51,.37);
+ backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+ animation:journeyBackdropIn .18s ease both;
+ cursor:default;
+}
+.journeyNavBackdrop[hidden]{display:none!important}
+.journeyNavGroup[open]{z-index:31}
+.journeyNavGroup .journeyNavChoices{
+ position:fixed!important;
+ top:50%!important;
+ left:50%!important;
+ right:auto!important;
+ bottom:auto!important;
+ width:min(720px,calc(100vw - 32px))!important;
+ max-width:calc(100vw - 32px);
+ max-height:min(82dvh,730px)!important;
+ transform:translate(-50%,-50%);
+ z-index:32;
+ border:1px solid rgba(255,255,255,.76);
+ border-radius:24px;
+ background:linear-gradient(145deg,rgba(250,253,255,.94),rgba(223,237,247,.9));
+ box-shadow:0 30px 90px rgba(8,31,54,.29),inset 0 1px rgba(255,255,255,.93);
+ backdrop-filter:blur(24px) saturate(145%);
+ -webkit-backdrop-filter:blur(24px) saturate(145%);
+ animation:journeyCenterIn .2s ease-out both;
+}
+.journeyNavPanelIntro{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.journeyNavPanelIntro>span{display:grid;gap:4px}
+.journeyNavClose{
+ flex:none;display:grid;place-items:center;width:36px;height:36px;
+ border:1px solid rgba(73,126,158,.24);border-radius:11px;
+ background:rgba(255,255,255,.72);color:#2b5770;
+ font-size:1.45rem;line-height:1;cursor:pointer;
+}
+.journeyNavClose:hover,.journeyNavClose:focus-visible{background:#fff;border-color:#78a7c2}
+.journeyNavTiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@keyframes journeyCenterIn{
+ from{opacity:0;transform:translate(-50%,-47%) scale(.975)}
+ to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes journeyBackdropIn{from{opacity:0}to{opacity:1}}
+@media(max-width:590px){
+ .journeyNavGroup .journeyNavChoices{
+  width:calc(100vw - 22px)!important;
+  max-width:calc(100vw - 22px);
+  max-height:calc(100dvh - 34px)!important;
+  border-radius:19px;
+ }
+ .journeyNavTiles{gap:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ .journeyNavBackdrop,.journeyNavGroup .journeyNavChoices{animation:none}
+}
