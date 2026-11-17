@@ -31,7 +31,8 @@ function memberRank(p) {
  const comments=Math.max(0,Number(p?.comments_count)||0);
  const likes=Math.max(0,Number(p?.received_likes_count)||0);
  const followers=Math.max(0,Number(p?.followers_count)||0);
- const points=posts*5+comments*2+likes*3+followers*2;
+ const verifiedImpact=(p?.impact_score!==null&&p?.impact_score!==undefined)?Math.max(0,Math.min(100,Number(p.impact_score)||0)):0;
+ const points=posts*5+comments*2+likes*3+followers*2+verifiedImpact*2;
  const levels=[
   {min:0,name:'عضو جديد'},
   {min:20,name:'عضو مشارك'},
@@ -44,7 +45,7 @@ function memberRank(p) {
 }
 function rankBadge(p) {
  const rank=memberRank(p);
- return '<span class="memberRank" title="رتبة تشجيعية محسوبة من نشاطك وتفاعلاتك؛ لا تمنح صلاحيات إدارية"><span class="rankStars" aria-hidden="true">'+('★'.repeat(rank.stars))+'</span><span>'+rank.name+'</span><small>'+rank.points.toLocaleString('ar')+' نقطة</small></span>';
+ return '<span class="memberRank" title="رتبة تشجيعية محسوبة من النشاط والتفاعلات والأثر المعتمد؛ لا تمنح صلاحيات إدارية"><span class="rankStars" aria-hidden="true">'+('★'.repeat(rank.stars))+'</span><span>'+rank.name+'</span><small>'+rank.points.toLocaleString('ar')+' نقطة</small></span>';
 }
 function wallIdentityHero(p){
  const id=encodeURIComponent(p.id);
