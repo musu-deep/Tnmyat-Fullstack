@@ -28,7 +28,7 @@ test('Marketplace quotations, catalog and RFQ workflows enforce ownership and re
   }
   async function joinAs(email,name){
    const r=await call('register','POST',{name,email,password:'Test-only-12345'});
-   assert.equal(r.status,200,JSON.stringify(r.body));
+   assert.equal(r.status,201,JSON.stringify(r.body));
    assert.ok(r.cookie);
    return r.cookie;
   }
