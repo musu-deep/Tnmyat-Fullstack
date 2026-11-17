@@ -73,3 +73,41 @@ async function staffAction(form,data){
  }
  return false;
 }
+
+async function staffDelegationAction(action,el){
+ if(!['staff-select-all','staff-select-none','staff-exclusive','staff-scope-clear','staff-clear-all'].includes(action))return false;
+ if(user?.role!=='admin'){notify('إدارة التفويض مخصصة للمدير العام.');return true;}
+ const form=el.closest('.staffPermissionForm');
+ if(action==='staff-select-all'||action==='staff-select-none'){
+  if(form)form.querySelectorAll('input[name="permissions"]').forEach(input=>input.checked=action==='staff-select-all');
+  return true;
+ }
+ let payload;
+ if(action==='staff-exclusive'){
+  const id=Number(el.dataset.staffId);
+  if(!Number.isSafeInteger(id)||id<1)return true;
+  if(!confirm('سيحصل هذا العضو على جميع صلاحيات الإشراف، وتُسحب من جميع المشرفين الآخرين. هل تؤكد؟'))return true;
+  payload={mode:'consolidate',target_user_id:id};
+ }else if(action==='staff-scope-clear'){
+  const permission=el.dataset.permission;
+  if(!STAFF_REVIEW_ITEMS.some(p=>p.permission===permission))return true;
+  if(!confirm('هل تريد سحب هذا الاختصاص من جميع المشرفين؟ سيبقى متاحاً للمدير العام.'))return true;
+  payload={mode:'replace_scope',permission,user_ids:[]};
+ }else{
+  if(!confirm('سيتم سحب كل الصلاحيات الإشرافية المفوضة عن جميع المشرفين، وتبقى للمدير العام فقط. هل تؤكد؟'))return true;
+  payload={mode:'clear_all'};
+ }
+ const reason=prompt('اكتب سبب الإجراء في سجل الإدارة (12 حرفاً على الأقل):');
+ if(reason===null)return true;
+ if(reason.trim().length<12){notify('يجب توثيق سبب واضح من 12 حرفاً على الأقل.');return true;}
+ el.disabled=true;
+ try{
+  await api('staff/assignments','PATCH',{...payload,reason:reason.trim()});
+  await staffReloadOverview();
+  const search=document.getElementById('staffSearchForm');
+  if(search?.elements?.q?.value)await staffAction(search,{q:search.elements.q.value});
+  notify('تم تعديل توزيع الصلاحيات وتوثيق الإجراء.');
+ }catch(e){notify(e.message);}
+ finally{if(el.isConnected)el.disabled=false;}
+ return true;
+}
