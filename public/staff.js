@@ -50,7 +50,7 @@ async function staffAction(form,data){
     const admin=member.role==='admin',active=member.account_status==='active',manager=member.permissions.includes('staff_manage'),fullAdmin=user.role==='admin';
     return '<article class="staffMember"><div><strong>'+esc(member.name)+'</strong><small>'+esc(member.email)+'</small></div>'+
      (admin?'<p>مدير عام — صلاحيات كاملة</p>':!active?'<p>حساب غير نشط — لا يمكن منح صلاحيات</p>':
-      (manager&&!fullAdmin?'<p>مشرف مفوض بتوزيع المهام — تعديله للمدير العام فقط.</p>':'<form class="staffPermissionForm" data-staff-user="'+member.id+'">')+STAFF_REVIEW_ITEMS.map(item=>
+      manager&&!fullAdmin?'<p>مشرف مفوض بتوزيع المهام — تعديله للمدير العام فقط.</p>':'<form class="staffPermissionForm" data-staff-user="'+member.id+'">'+STAFF_REVIEW_ITEMS.map(item=>
       '<label><input type="checkbox" name="permissions" value="'+item.permission+'" '+(member.permissions.includes(item.permission)?'checked':'')+'><span>'+item.title+'</span></label>').join('')+
       (fullAdmin?'<button type="button" class="btn" data-act="staff-manager-flag" data-staff-id="'+member.id+'" data-enabled="'+(manager?'false':'true')+'">'+(manager?'سحب تفويض إدارة المهام':'تفويض إدارة المهام')+'</button>':'')+'<div class="staffQuickActions"><button type="button" class="btn" data-act="staff-select-all">اختيار جميع المهام</button><button type="button" class="btn" data-act="staff-select-none">إلغاء جميع المهام</button><button type="button" class="btn" data-act="staff-exclusive" data-staff-id="'+member.id+'">تجميع الإشراف حصرياً لهذا العضو</button></div>'+ '<button class="btn primary" type="submit">حفظ الصلاحيات</button><div class="error" role="alert"></div></form>')+'</article>';
    }).join(''):'<p>لم يُعثر على أعضاء مطابقين.</p>';
