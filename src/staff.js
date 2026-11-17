@@ -40,7 +40,7 @@ export async function staffRoute(request,db,user,{json,parseBody,ApiError,enforc
   if(reason.length<12)throw new ApiError(400,'دوّن سبب منح أو سحب التفويض.');
   const target=await db.prepare('SELECT id,role,account_status FROM users WHERE id=? AND password_hash IS NOT NULL').bind(id).first();
   if(!target)throw new ApiError(404,'الحساب غير موجود.');
-  if(target.role==='admin'||target.id===user.id||target.account_status!=='active')throw new ApiError(403,'لا يمكن منح صلاحية إدارة التفويض لهذا الحساب.');
+  if(target.role==='admin'||target.id===user.id||(body.enabled&&target.account_status!=='active'))throw new ApiError(403,'لا يمكن منح صلاحية إدارة التفويض لهذا الحساب.');
   const statements=[body.enabled
    ?db.prepare('INSERT INTO staff_assignment_managers(user_id,granted_by) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET granted_by=excluded.granted_by,granted_at=strftime(\'%Y-%m-%dT%H:%M:%fZ\',\'now\')').bind(id,user.id)
    :db.prepare('DELETE FROM staff_assignment_managers WHERE user_id=?').bind(id),
