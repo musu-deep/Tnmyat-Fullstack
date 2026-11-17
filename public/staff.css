@@ -1,0 +1,47 @@
+/* Staff-only administration entry and delegated review dashboard */
+#staffNavEntry[hidden],#staffMobileEntry[hidden]{display:none!important}
+.topbar .desktopNav #staffNavEntry{border-color:rgba(151,209,228,.45);background:linear-gradient(130deg,rgba(113,169,198,.32),rgba(255,255,255,.1))}
+.topbar .desktopNav #staffNavEntry .icon{width:23px;height:23px}
+.staffMobileEntry{display:none;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);border-radius:12px;width:37px;height:40px;font-weight:800;font-size:1.15rem;backdrop-filter:blur(12px)}
+.staffMobileEntry:hover,.staffMobileEntry:focus-visible{background:rgba(255,255,255,.27)}
+.staffWorkPage{max-width:1150px;margin:0 auto;display:grid;gap:22px}
+.staffWorkHeading{border-radius:20px;padding:30px;background:linear-gradient(120deg,#153854,#256885);color:#fff}
+.staffWorkHeading h1{font-size:clamp(1.4rem,2.4vw,2rem);margin:3px 0}
+.staffWorkHeading p{color:#e2edf4;margin:4px 0}
+.staffWorkHeading>span{font-size:.8rem;color:#cce1ef}
+.staffWorkGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:14px}
+.staffWorkCard{display:flex;align-items:center;gap:12px;min-width:0;border:1px solid #d8e6ef;border-radius:16px;padding:18px;background:rgba(255,255,255,.88);box-shadow:0 6px 20px #143a5412}
+.staffWorkCard>span:nth-child(2){flex:1;display:grid;gap:4px;min-width:0}
+.staffWorkCard strong{font-size:.95rem;color:#214e6d}
+.staffWorkCard small{font-size:.74rem;color:#6a8292}
+.staffWorkCard:hover,.staffWorkCard:focus-visible{border-color:#87acc5;box-shadow:0 10px 25px #16395223;transform:translateY(-1px)}
+.staffWorkIcon{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:12px;background:#e6f1f8;color:#295e80}
+.staffGrants{padding:23px;border-radius:19px;border:1px solid #dbe8ef;background:white}
+.staffGrants h2{color:#244d67;margin:0 0 7px}
+.staffGrants p{color:#657f91}
+.staffSearch{display:flex;gap:10px;margin:14px 0}
+.staffSearch input{flex:1;min-width:0;border:1px solid #cddde7;border-radius:10px;padding:10px 13px}
+.staffMember{border:1px solid #e0eaf0;border-radius:13px;padding:14px;margin:12px 0}
+.staffMember>div:first-child{display:grid;gap:2px}
+.staffMember small{color:#597a8e}
+.staffPermissionForm{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:13px}
+.staffPermissionForm label{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;background:#f1f6f9;border-radius:10px;font-size:.85rem}
+.staffPermissionForm .error{width:100%}
+@media(min-width:851px){.staffMobileEntry{display:none!important}}
+@media(max-width:850px) and (min-width:681px){
+ header .topbar{grid-template-columns:100px minmax(120px,1fr) 40px minmax(132px,180px)}
+ .topbar>.staffMobileEntry:not([hidden]){display:flex;grid-column:3}
+ .topbar>#account{grid-column:4}
+}
+@media(max-width:680px){
+ header .topbar{grid-template-columns:90px minmax(0,1fr) 37px auto}
+ .topbar>.staffMobileEntry:not([hidden]){display:flex;grid-column:3;grid-row:1}
+ .topbar>#account{grid-column:4}
+ .staffWorkHeading{padding:20px}
+ .staffWorkGrid{grid-template-columns:1fr}
+ .staffSearch{flex-wrap:wrap}
+}
+@media(max-width:370px){
+ header .topbar{grid-template-columns:72px minmax(0,1fr) 35px auto}
+ .staffMobileEntry{width:35px}
+}
