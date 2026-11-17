@@ -3,9 +3,11 @@ const govEsc = s => esc(s);
 let governanceTab='overview';
 const govTabs=[['overview','المؤشرات'],['queue','طلبات المراجعة'],['users','الأعضاء'],['posts','المحتوى'],['groups','المجموعات'],['reports','البلاغات'],['appeals','التظلمات'],['editorial','الأخبار والتحرير'],['audit','سجل الإجراءات']];
 async function renderGovernance(token){
-  if(!user||user.role!=='admin'){go('/wall');return;}
-  document.title='مركز إدارة تنميات';
-  main.innerHTML='<section class="gov"><div class="gov-intro"><a href="/wall">← العودة إلى المجتمع</a><span>مركز القيادة والرقابة</span><h1>إدارة مجتمع تنميات</h1><p>الأعضاء، المحتوى، الشكاوى، التظلمات، وسجل القرارات الإدارية.</p></div><nav class="gov-tabs" aria-label="أقسام الإدارة">'+govTabs.map(([key,title])=>'<button data-act="gov-tab" data-tab="'+key+'" class="'+(key===governanceTab?'active':'')+'">'+title+'</button>').join('')+'</nav><div id="govContent" class="gov-content">جارٍ تحميل البيانات…</div></section>';
+  if(!user||(user.role!=='admin'&&!staffAllowed('content_moderation'))){go('/wall');return;}
+  const visibleTabs=user.role==='admin'?govTabs:govTabs.filter(([key])=>['posts','groups','reports'].includes(key));
+  if(!visibleTabs.some(([key])=>key===governanceTab))governanceTab=visibleTabs[0][0];
+  document.title=user.role==='admin'?'مركز إدارة تنميات':'إشراف المحتوى | تنميات';
+  main.innerHTML='<section class="gov"><div class="gov-intro"><a href="/wall">← العودة إلى المجتمع</a><span>مركز القيادة والرقابة</span><h1>إدارة مجتمع تنميات</h1><p>الأعضاء، المحتوى، الشكاوى، التظلمات، وسجل القرارات الإدارية.</p></div><nav class="gov-tabs" aria-label="أقسام الإدارة">'+visibleTabs.map(([key,title])=>'<button data-act="gov-tab" data-tab="'+key+'" class="'+(key===governanceTab?'active':'')+'">'+title+'</button>').join('')+'</nav><div id="govContent" class="gov-content">جارٍ تحميل البيانات…</div></section>';
   try{await governanceLoad();}catch(error){if(token===version)document.querySelector('#govContent').textContent=error.message;}
 }
 function govTable(head,rows){return '<div class="gov-tablewrap"><table class="gov-table"><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';}
