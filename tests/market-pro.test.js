@@ -48,6 +48,9 @@ test('Marketplace quotations, catalog and RFQ workflows enforce ownership and re
   assert.equal((await call('market/admin/stores/'+store.id,'PATCH',{status:'approved'},admin)).status,200);
   assert.equal((await call('market/stores/'+store.id+'/listings','POST',
    {title:'لوح نموذجي للصناعة',description:'مواصفات تفصيلية',type:'product',price_minor:250000},seller)).status,201);
+  const storefront=(await call('market/storefront/'+store.id)).body;
+  assert.equal(storefront.store.name,'مصنع تنميات');
+  assert.equal(storefront.listings.length,1);
   const listings=(await call('market/my-listings','GET',undefined,seller)).body.listings;
   assert.equal(listings.length,1);
   const listingId=listings[0].id;
