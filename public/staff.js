@@ -16,7 +16,7 @@ async function renderStaff(token){
  document.title='مركز الإشراف | تنميات';
  const sections=(isAdmin?[{title:'مركز إدارة المجتمع',description:'إدارة الأعضاء والمحتوى والبلاغات وسجل الإجراءات',href:'/admin',icon:'⚑'}]:[])
   .concat(STAFF_REVIEW_ITEMS.filter(item=>staffAllowed(item.permission)))
-  .concat(isAdmin?[{title:'مراجعة الأثر',description:'نتائج العضوية والأدلة',href:'/impact-review',icon:'◎'},{title:'مؤشرات العلاقات',description:'مؤشرات التشابك المهني',href:'/network-admin',icon:'▤'}]:[]);
+  .concat(isAdmin?[{title:'مراجعة الأثر',description:'نتائج العضوية والأدلة',href:'/impact-review',icon:'◎'},{title:'تصنيف أثر الأعضاء',description:'اعتماد تقييم الأثر المدعوم بالأدلة',href:'/impact-members',icon:'✦'},{title:'إدارة سوق تنميات',description:'اعتماد مساحات المنتجين والمصنعين والموزعين',href:'/market-admin',icon:'▣'},{title:'مؤشرات العلاقات',description:'مؤشرات التشابك المهني',href:'/network-admin',icon:'▤'}]:[]);
  const cards=sections.map(item=>'<a href="'+item.href+'" class="staffWorkCard"><span class="staffWorkIcon">'+item.icon+'</span><span><strong>'+item.title+'</strong><small>'+item.description+'</small></span><span aria-hidden="true">‹</span></a>').join('');
  main.innerHTML='<div class="staffWorkPage"><div class="staffWorkHeading"><span>مجتمع تنميات</span><h1>مركز الإشراف</h1><p>'+(isAdmin?'صلاحيات الإدارة العامة والمراجعة.':canAssign?'إدارة توزيع المهام وفق التفويض الممنوح.':'تظهر الأقسام التي مُنحت لك صلاحية مراجعتها فقط.')+'</p></div><div class="staffWorkGrid">'+cards+'</div>'+
  (canAssign?'<section class="staffGrants"><h2>صلاحيات المشرفين</h2><p>ابحث عن العضو بالاسم أو البريد، ثم اختر مهام المراجعة المسموحة له. يمكن تعديل الصلاحيات أو سحبها في أي وقت.</p>'+
