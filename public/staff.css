@@ -65,3 +65,17 @@
 .staffQuickActions [data-act=staff-exclusive]{border:1px solid #b4c6d8;background:#eaf3f8;color:#204c69}
 .staffPermissionForm{border-top:1px solid #e1e9ee;padding-top:12px}
 @media(max-width:680px){.staffAssignTools{padding:13px}#staffScopeOverview{grid-template-columns:1fr}.staffQuickActions{display:grid;grid-template-columns:1fr 1fr}.staffQuickActions [data-act=staff-exclusive]{grid-column:1/-1}}
+
+/* Recovery alternatives within the administration center */
+.staffRecovery{margin-top:20px;padding:18px;border:1px solid #d6e5ed;border-radius:16px;background:linear-gradient(135deg,#f8fbfd,#eef5f9)}
+.staffRecovery h3{font-size:1.04rem;color:#24506e;margin:0 0 6px}
+.staffRecovery p{font-size:.84rem;color:#58758a}
+.staffRecovery form{display:grid;gap:12px;margin-top:14px}
+.staffRecovery form label{display:grid;gap:5px;font-size:.86rem;color:#365c75;font-weight:600}
+.staffRecovery form input{min-width:0;width:100%;border-radius:10px;border:1px solid #c9dce7;background:white;padding:10px 13px;font:inherit}
+.staffRecoveryOptions{display:flex;flex-wrap:wrap;gap:10px}
+.staffRecoveryOptions .btn{flex:1 1 180px}
+#staffRecoveryLink{display:grid;gap:10px;margin-top:12px}
+#staffRecoveryLink input{direction:ltr;text-align:left;width:100%;padding:11px;border-radius:10px;border:1px solid #d0e1e9}
+#staffRecoveryLink button{justify-self:start}
+@media(max-width:680px){.staffRecovery{padding:13px}}
