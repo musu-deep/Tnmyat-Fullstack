@@ -12,13 +12,14 @@ async function renderStaff(token){
  const permissions=Array.isArray(user.permissions)?user.permissions:[];
  if(user.role!=='admin'&&!permissions.length){go('/wall');return;}
  const isAdmin=user.role==='admin';
+ const canAssign=isAdmin||permissions.includes('staff_manage');
  document.title='مركز الإشراف | تنميات';
  const sections=(isAdmin?[{title:'مركز إدارة المجتمع',description:'إدارة الأعضاء والمحتوى والبلاغات وسجل الإجراءات',href:'/admin',icon:'⚑'}]:[])
   .concat(STAFF_REVIEW_ITEMS.filter(item=>staffAllowed(item.permission)))
   .concat(isAdmin?[{title:'مراجعة الأثر',description:'نتائج العضوية والأدلة',href:'/impact-review',icon:'◎'},{title:'مؤشرات العلاقات',description:'مؤشرات التشابك المهني',href:'/network-admin',icon:'▤'}]:[]);
  const cards=sections.map(item=>'<a href="'+item.href+'" class="staffWorkCard"><span class="staffWorkIcon">'+item.icon+'</span><span><strong>'+item.title+'</strong><small>'+item.description+'</small></span><span aria-hidden="true">‹</span></a>').join('');
- main.innerHTML='<div class="staffWorkPage"><div class="staffWorkHeading"><span>مجتمع تنميات</span><h1>مركز الإشراف</h1><p>'+(isAdmin?'صلاحيات الإدارة العامة والمراجعة.':'تظهر الأقسام التي مُنحت لك صلاحية مراجعتها فقط.')+'</p></div><div class="staffWorkGrid">'+cards+'</div>'+
- (isAdmin?'<section class="staffGrants"><h2>صلاحيات المشرفين</h2><p>ابحث عن العضو بالاسم أو البريد، ثم اختر مهام المراجعة المسموحة له. يمكن تعديل الصلاحيات أو سحبها في أي وقت.</p>'+
+ main.innerHTML='<div class="staffWorkPage"><div class="staffWorkHeading"><span>مجتمع تنميات</span><h1>مركز الإشراف</h1><p>'+(isAdmin?'صلاحيات الإدارة العامة والمراجعة.':canAssign?'إدارة توزيع المهام وفق التفويض الممنوح.':'تظهر الأقسام التي مُنحت لك صلاحية مراجعتها فقط.')+'</p></div><div class="staffWorkGrid">'+cards+'</div>'+
+ (canAssign?'<section class="staffGrants"><h2>صلاحيات المشرفين</h2><p>ابحث عن العضو بالاسم أو البريد، ثم اختر مهام المراجعة المسموحة له. يمكن تعديل الصلاحيات أو سحبها في أي وقت.</p>'+
  '<form id="staffSearchForm" class="staffSearch"><input name="q" minlength="2" required placeholder="اسم العضو أو البريد الإلكتروني" aria-label="البحث عن عضو للإشراف"><button class="btn primary" type="submit">بحث</button></form>'+
  '<div class="staffAssignTools"><h3>توزيع مهام الإشراف</h3><p>يمكن إسناد المهمة لأكثر من مشرف، أو حجبها عن الجميع وإبقاؤها مع المدير العام فقط.</p><div id="staffScopeOverview" aria-live="polite">جارٍ تحميل الصلاحيات…</div><button class="btn" type="button" data-act="staff-clear-all">سحب جميع الصلاحيات المفوضة</button></div>'+ '<div id="staffSearchResults" aria-live="polite"></div></section>':'')+'</div>';
 
@@ -46,12 +47,12 @@ async function staffAction(form,data){
   try{
    const res=await api('staff/users?q='+encodeURIComponent(data.q));
    box.innerHTML=res.users.length?res.users.map(member=>{
-    const admin=member.role==='admin',active=member.account_status==='active';
+    const admin=member.role==='admin',active=member.account_status==='active',manager=member.permissions.includes('staff_manage'),fullAdmin=user.role==='admin';
     return '<article class="staffMember"><div><strong>'+esc(member.name)+'</strong><small>'+esc(member.email)+'</small></div>'+
      (admin?'<p>مدير عام — صلاحيات كاملة</p>':!active?'<p>حساب غير نشط — لا يمكن منح صلاحيات</p>':
-      '<form class="staffPermissionForm" data-staff-user="'+member.id+'">'+STAFF_REVIEW_ITEMS.map(item=>
+      (manager&&!fullAdmin?'<p>مشرف مفوض بتوزيع المهام — تعديله للمدير العام فقط.</p>':'<form class="staffPermissionForm" data-staff-user="'+member.id+'">')+STAFF_REVIEW_ITEMS.map(item=>
       '<label><input type="checkbox" name="permissions" value="'+item.permission+'" '+(member.permissions.includes(item.permission)?'checked':'')+'><span>'+item.title+'</span></label>').join('')+
-      '<div class="staffQuickActions"><button type="button" class="btn" data-act="staff-select-all">اختيار جميع المهام</button><button type="button" class="btn" data-act="staff-select-none">إلغاء جميع المهام</button><button type="button" class="btn" data-act="staff-exclusive" data-staff-id="'+member.id+'">تجميع الإشراف حصرياً لهذا العضو</button></div>'+ '<button class="btn primary" type="submit">حفظ الصلاحيات</button><div class="error" role="alert"></div></form>')+'</article>';
+      (fullAdmin?'<button type="button" class="btn" data-act="staff-manager-flag" data-staff-id="'+member.id+'" data-enabled="'+(manager?'false':'true')+'">'+(manager?'سحب تفويض إدارة المهام':'تفويض إدارة المهام')+'</button>':'')+'<div class="staffQuickActions"><button type="button" class="btn" data-act="staff-select-all">اختيار جميع المهام</button><button type="button" class="btn" data-act="staff-select-none">إلغاء جميع المهام</button><button type="button" class="btn" data-act="staff-exclusive" data-staff-id="'+member.id+'">تجميع الإشراف حصرياً لهذا العضو</button></div>'+ '<button class="btn primary" type="submit">حفظ الصلاحيات</button><div class="error" role="alert"></div></form>')+'</article>';
    }).join(''):'<p>لم يُعثر على أعضاء مطابقين.</p>';
   }catch(e){box.textContent=e.message;}
   return true;
@@ -75,9 +76,26 @@ async function staffAction(form,data){
 }
 
 async function staffDelegationAction(action,el){
- if(!['staff-select-all','staff-select-none','staff-exclusive','staff-scope-clear','staff-clear-all'].includes(action))return false;
- if(user?.role!=='admin'){notify('إدارة التفويض مخصصة للمدير العام.');return true;}
+ if(!['staff-select-all','staff-select-none','staff-exclusive','staff-scope-clear','staff-clear-all','staff-manager-flag'].includes(action))return false;
+ if(!user||(user.role!=='admin'&&!(user.permissions||[]).includes('staff_manage'))){notify('إدارة التفويض مخصصة للمخولين.');return true;}
  const form=el.closest('.staffPermissionForm');
+ if(action==='staff-manager-flag'){
+  if(user.role!=='admin'){notify('تفويض إدارة المهام للمدير العام فقط.');return true;}
+  const id=Number(el.dataset.staffId),enabled=el.dataset.enabled==='true';
+  if(!Number.isSafeInteger(id)||id<1)return true;
+  if(!confirm(enabled?'تعيين هذا العضو لتوزيع مهام المشرفين؟':'سحب صلاحية إدارة توزيع المهام من هذا العضو؟'))return true;
+  const reason=prompt('سبب منح أو سحب تفويض إدارة المهام (12 حرفاً على الأقل):');
+  if(reason===null)return true;
+  if(reason.trim().length<12){notify('اكتب سبباً واضحاً.');return true;}
+  el.disabled=true;
+  try{
+   await api('staff/managers/'+id,'PATCH',{enabled,reason:reason.trim()});
+   const search=document.getElementById('staffSearchForm');
+   if(search?.elements?.q?.value)await staffAction(search,{q:search.elements.q.value});
+   notify('تم تحديث تفويض إدارة المهام.');
+  }catch(e){notify(e.message)}finally{if(el.isConnected)el.disabled=false;}
+  return true;
+ }
  if(action==='staff-select-all'||action==='staff-select-none'){
   if(form)form.querySelectorAll('input[name="permissions"]').forEach(input=>input.checked=action==='staff-select-all');
   return true;
