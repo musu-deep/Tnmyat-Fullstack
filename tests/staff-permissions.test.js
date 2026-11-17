@@ -67,3 +67,26 @@ test('Supervisor sees only assigned review domains and cannot approve out-of-sco
   assert.equal((await call('staff/users/'+owner.data.user.id+'/permissions','PATCH',{permissions:['needs_review']},supervisor.cookie)).status,403);
  }finally{db.close();}
 });
+
+
+test('Content moderator can review community posts, groups and reports but cannot manage members or appeals',async()=>{
+ const {db,call,create}=setup();
+ try{
+  const admin=await create('content-admin@example.org');
+  const moderator=await create('content-moderator@example.org');
+  const member=await create('content-member@example.org');
+  db.prepare("UPDATE users SET role='admin' WHERE id=?").bind(admin.data.user.id).run();
+  const grant=await call('staff/users/'+moderator.data.user.id+'/permissions','PATCH',{permissions:['content_moderation']},admin.cookie);
+  assert.equal(grant.status,200,JSON.stringify(grant.data));
+  assert.equal((await call('admin/posts','GET',undefined,moderator.cookie)).status,200);
+  assert.equal((await call('admin/groups','GET',undefined,moderator.cookie)).status,200);
+  assert.equal((await call('admin/reports','GET',undefined,moderator.cookie)).status,200);
+  assert.equal((await call('admin/users','GET',undefined,moderator.cookie)).status,403);
+  assert.equal((await call('admin/appeals','GET',undefined,moderator.cookie)).status,403);
+  assert.equal((await call('admin/audit','GET',undefined,moderator.cookie)).status,403);
+  assert.equal((await call('admin/posts','GET',undefined,member.cookie)).status,403);
+  assert.equal((await call('staff/users?q=content','GET',undefined,moderator.cookie)).status,403);
+  assert.equal((await call('staff/users/'+moderator.data.user.id+'/permissions','PATCH',{permissions:[]},admin.cookie)).status,200);
+  assert.equal((await call('admin/posts','GET',undefined,moderator.cookie)).status,403);
+ }finally{db.close();}
+});
