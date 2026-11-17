@@ -30,13 +30,6 @@ const jNav=()=>{
    ['/my-needs','احتياجاتي','متابعة الاحتياجات المسجلة','◇']
   ]}
  ];
- if(user?.role==='admin')sections.push({label:'الإدارة',intro:'متابعة العمليات ومراجعة الطلبات والمخرجات',icon:'⚑',items:[
-  ['/admin','مركز الإدارة','العضوية والمحتوى والطلبات','▦'],
-  ['/impact-review','مراجعة الأثر','تقييم تقارير النتائج','◎'],
-  ['/network-admin','مؤشرات العلاقات','ملخص التشابك المهني','♧'],
-  ['/work-admin','مراجعة الفرص','الفرص والجهات والنتائج','▤'],
-  ['/needs-admin','مراجعة الاحتياجات','طلبات الاحتياج الجديدة','◇']
- ]});
  const link=([url,label])=>'<a href="'+url+'" class="'+(path===url?'active':'')+'" '+(path===url?'aria-current="page"':'')+'>'+label+'</a>';
  const card=([url,label,description,icon])=>
   '<a class="journeyNavTile'+(path===url?' active':'')+'" href="'+url+'" '+(path===url?'aria-current="page"':'')+'>'+
