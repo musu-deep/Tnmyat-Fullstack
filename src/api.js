@@ -1,4 +1,5 @@
 import { governanceRoute } from './governance.js';
+import { marketImpactRoute } from './market-impact.js';
 import { developmentHubRoute } from './development-hub.js';
 import { memberJourneyRoute } from './member-journey.js';
 import { networkRoute } from './network-engine.js';
@@ -383,6 +384,8 @@ async function route(request,db) {
   const recovery=await passwordRecoveryRoute(request,db,user);
   if(recovery)return recovery;
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
+  const marketImpact=await marketImpactRoute(request,db,user,helpers);
+  if(marketImpact)return marketImpact;
   const governance=await governanceRoute(request,db,user,helpers);
   if(governance)return governance;
   if(user&&(user.account_status==='banned'||(user.account_status==='suspended'&&(!user.status_until||user.status_until>Math.floor(Date.now()/1000)))))throw new ApiError(403,'الحساب موقوف؛ تواصل مع إدارة المجتمع.');
