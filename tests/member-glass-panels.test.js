@@ -15,7 +15,9 @@ test('Workspace categories render individual accessible glass cards without losi
 });
 test('Glass panels fit the viewport and support keyboard, outside-click and screen sizes',()=>{
  const js=read('journey.js'),css=read('journey.css');
- assert.match(js,/positionJourneyPanel/);
+ assert.match(js,/syncJourneyNav/);
+ assert.match(js,/journeyNavBackdrop/);
+ assert.match(js,/journeyNavClose/);
  assert.match(js,/requestAnimationFrame/);
  assert.match(js,/closeJourneyNav/);
  assert.match(js,/event\.key==='Escape'/);
