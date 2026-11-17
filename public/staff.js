@@ -20,7 +20,25 @@ async function renderStaff(token){
  main.innerHTML='<div class="staffWorkPage"><div class="staffWorkHeading"><span>مجتمع تنميات</span><h1>مركز الإشراف</h1><p>'+(isAdmin?'صلاحيات الإدارة العامة والمراجعة.':'تظهر الأقسام التي مُنحت لك صلاحية مراجعتها فقط.')+'</p></div><div class="staffWorkGrid">'+cards+'</div>'+
  (isAdmin?'<section class="staffGrants"><h2>صلاحيات المشرفين</h2><p>ابحث عن العضو بالاسم أو البريد، ثم اختر مهام المراجعة المسموحة له. يمكن تعديل الصلاحيات أو سحبها في أي وقت.</p>'+
  '<form id="staffSearchForm" class="staffSearch"><input name="q" minlength="2" required placeholder="اسم العضو أو البريد الإلكتروني" aria-label="البحث عن عضو للإشراف"><button class="btn primary" type="submit">بحث</button></form>'+
- '<div id="staffSearchResults" aria-live="polite"></div></section>':'')+'</div>';
+ '<div class="staffAssignTools"><h3>توزيع مهام الإشراف</h3><p>يمكن إسناد المهمة لأكثر من مشرف، أو حجبها عن الجميع وإبقاؤها مع المدير العام فقط.</p><div id="staffScopeOverview" aria-live="polite">جارٍ تحميل الصلاحيات…</div><button class="btn" type="button" data-act="staff-clear-all">سحب جميع الصلاحيات المفوضة</button></div>'+ '<div id="staffSearchResults" aria-live="polite"></div></section>':'')+'</div>';
+
+ await staffReloadOverview();
+}
+async function staffReloadOverview(){
+ const box=document.getElementById('staffScopeOverview');
+ if(!box)return;
+ try{
+  const {scopes}=await api('staff/overview');
+  box.innerHTML=STAFF_REVIEW_ITEMS.map(item=>{
+   const current=scopes[item.permission]||[];
+   return '<div class="staffScope"><div><strong>'+item.title+'</strong><small>'+
+    (current.length?'مُسندة إلى '+current.length+' مشرف/مشرفين':'محفوظة للمدير العام فقط')+
+    '</small></div><div class="staffScopeAssignees">'+
+    (current.map(u=>'<span>'+esc(u.name)+(u.active?'':' (حساب غير نشط)')+'</span>').join('')||'<em>لا يوجد مشرف مفوض</em>')+
+    '</div><button type="button" class="btn" data-act="staff-scope-clear" data-permission="'+item.permission+'" '+
+    (current.length?'':'disabled')+'>حجبها عن جميع المشرفين</button></div>';
+  }).join('');
+ }catch(e){box.textContent=e.message;}
 }
 async function staffAction(form,data){
  if(form?.id==='staffSearchForm'){
@@ -33,7 +51,7 @@ async function staffAction(form,data){
      (admin?'<p>مدير عام — صلاحيات كاملة</p>':!active?'<p>حساب غير نشط — لا يمكن منح صلاحيات</p>':
       '<form class="staffPermissionForm" data-staff-user="'+member.id+'">'+STAFF_REVIEW_ITEMS.map(item=>
       '<label><input type="checkbox" name="permissions" value="'+item.permission+'" '+(member.permissions.includes(item.permission)?'checked':'')+'><span>'+item.title+'</span></label>').join('')+
-      '<button class="btn primary" type="submit">حفظ الصلاحيات</button><div class="error" role="alert"></div></form>')+'</article>';
+      '<div class="staffQuickActions"><button type="button" class="btn" data-act="staff-select-all">اختيار جميع المهام</button><button type="button" class="btn" data-act="staff-select-none">إلغاء جميع المهام</button><button type="button" class="btn" data-act="staff-exclusive" data-staff-id="'+member.id+'">تجميع الإشراف حصرياً لهذا العضو</button></div>'+ '<button class="btn primary" type="submit">حفظ الصلاحيات</button><div class="error" role="alert"></div></form>')+'</article>';
    }).join(''):'<p>لم يُعثر على أعضاء مطابقين.</p>';
   }catch(e){box.textContent=e.message;}
   return true;
@@ -47,6 +65,7 @@ async function staffAction(form,data){
    const permissions=[...form.querySelectorAll('input[name=permissions]:checked')].map(x=>x.value);
    await api('staff/users/'+id+'/permissions','PATCH',{permissions});
    notify('حُفظت صلاحيات الإشراف.');
+   await staffReloadOverview();
    error.textContent='';
   }catch(e){error.textContent=e.message;}
   finally{button.disabled=false;}
