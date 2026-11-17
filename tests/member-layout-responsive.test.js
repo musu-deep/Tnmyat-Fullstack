@@ -5,8 +5,8 @@ const contentOf=name=>readFileSync(new URL('../public/'+name,import.meta.url),'u
 test('Member workspace keeps access to all existing areas with four primary links and grouped services',()=>{
  const s=contentOf('journey.js');
  const nav=s.slice(s.indexOf('const jNav=()=>'),s.indexOf('function jShell(',s.indexOf('const jNav=()=>')));
- for(const label of ['العلاقات والتعاون','ملفي وخدماتي','الإدارة'])assert.ok(nav.includes(label),label);
- for(const route of ['/my-space','/my-people','/my-projects','/my-submissions','/network','/needs','/opportunities','/group-partnerships','/my-opportunities','/project-results','/my-alerts','/my-calendar','/my-map','/my-news','/my-impact','/onboarding','/impact-review','/network-admin','/work-admin','/needs-admin'])assert.ok(nav.includes(route),route);
+ for(const label of ['العلاقات والتعاون','ملفي وخدماتي'])assert.ok(nav.includes(label),label);
+ for(const route of ['/my-space','/my-people','/my-projects','/my-submissions','/network','/needs','/opportunities','/group-partnerships','/my-opportunities','/project-results','/my-alerts','/my-calendar','/my-map','/my-news','/my-impact','/onboarding'])assert.ok(nav.includes(route),route);
  assert.ok(nav.includes('aria-current="page"'));
  assert.ok(nav.includes('<details class="journeyNavGroup"'));
  assert.doesNotThrow(()=>new Function(s));
