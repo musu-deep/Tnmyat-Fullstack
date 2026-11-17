@@ -33,9 +33,17 @@ function account(){
  }
 }
 function showModal(title,body){modal.innerHTML='<div class="modalhead"><h2 id="dialogTitle">'+esc(title)+'</h2><button class="iconbtn" data-act="close" aria-label="إغلاق">×</button></div>'+body;if(!dialog.open)dialog.showModal();}
+let failedLoginEmail='',failedLoginAttempts=0;
+function noteFailedLogin(email){
+ const normalized=String(email||'').trim().toLowerCase();
+ if(normalized!==failedLoginEmail){failedLoginEmail=normalized;failedLoginAttempts=0;}
+ failedLoginAttempts++;
+ return failedLoginAttempts>3;
+}
+function resetFailedLogin(){failedLoginEmail='';failedLoginAttempts=0;}
 function auth(mode){const reg=mode==='register';showModal(reg?'إنشاء حساب':'تسجيل الدخول',
  '<form id="auth" class="fields" data-mode="'+mode+'">'+(reg?'<label>الاسم<input name="name" required minlength="2" maxlength="60" autocomplete="name"></label>':'')+
- '<label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>كلمة المرور<input name="password" type="password" required '+(reg?'minlength="8" maxlength="256" placeholder="حروف مع أرقام أو رموز، 8 أحرف على الأقل" autocomplete="new-password"':'autocomplete="current-password"')+'></label><div role="alert" class="error"></div><button class="btn primary">'+(reg?'إنشاء حساب':'دخول')+'</button></form><p class="switch">'+(reg?'لديك حساب؟ <button class="plain" data-act="login">سجّل الدخول</button>':'نسيت كلمة المرور؟ <button class="plain" data-act="forgot-password">طلب استعادة الحساب</button> · عضو جديد؟ <button class="plain" data-act="register">أنشئ حسابًا</button>')+'</p>');}
+ '<label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>كلمة المرور<input name="password" type="password" required '+(reg?'minlength="8" maxlength="256" placeholder="حروف مع أرقام أو رموز، 8 أحرف على الأقل" autocomplete="new-password"':'autocomplete="current-password"')+'></label><div role="alert" class="error"></div><button class="btn primary">'+(reg?'إنشاء حساب':'دخول')+'</button></form><p class="switch">'+(reg?'لديك حساب؟ <button class="plain" data-act="login">سجّل الدخول</button>':'<span id="loginRecoveryHint" hidden>تعذّر تسجيل الدخول عدة مرات؟ <button class="plain" type="button" data-act="forgot-password">استعادة كلمة المرور</button> · </span>عضو جديد؟ <button class="plain" data-act="register">أنشئ حسابًا</button>')+'</p>');}
 function requireUser(next){if(user){next();return;}afterAuth=next;auth('login');}
 function date(value){const raw=String(value||'');const dt=new Date(/^\d{4}-\d\d-\d\d /.test(raw)?raw.replace(' ','T')+'Z':raw);return Number.isNaN(+dt)?'':new Intl.DateTimeFormat('ar',{day:'numeric',month:'short',year:'numeric'}).format(dt);}
 function homeShell(){
@@ -173,6 +181,14 @@ document.addEventListener('click',async event=>{
  }catch(e){notify(e.message);}
 });
 dialog.addEventListener('cancel',()=>{afterAuth=null;});
+document.addEventListener('input',event=>{
+ const input=event.target;
+ if(input?.form?.id==='auth'&&input.name==='email'&&input.value.trim().toLowerCase()!==failedLoginEmail){
+  resetFailedLogin();
+  const hint=document.getElementById('loginRecoveryHint');
+  if(hint)hint.hidden=true;
+ }
+});
 document.addEventListener('submit',async e=>{
  const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form));
  if(await staffAction(form,data))return;
@@ -191,7 +207,16 @@ document.addEventListener('submit',async e=>{
  }
  else if(form.id==='auth'){
   const isNew=form.dataset.mode==='register';
-  await api(form.dataset.mode,'POST',data);
+  try{
+   await api(form.dataset.mode,'POST',data);
+  }catch(ex){
+   if(!isNew && ex.status===401 && noteFailedLogin(data.email)){
+    const hint=document.getElementById('loginRecoveryHint');
+    if(hint)hint.hidden=false;
+   }
+   throw ex;
+  }
+  resetFailedLogin();
   user=(await api('me')).user;account();if(dialog.open)dialog.close();
   const next=afterAuth;afterAuth=null;await pulse();
   if(isNew){go('/onboarding');}
