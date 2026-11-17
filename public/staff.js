@@ -21,7 +21,7 @@ async function renderStaff(token){
  main.innerHTML='<div class="staffWorkPage"><div class="staffWorkHeading"><span>مجتمع تنميات</span><h1>مركز الإشراف</h1><p>'+(isAdmin?'صلاحيات الإدارة العامة والمراجعة.':canAssign?'إدارة توزيع المهام وفق التفويض الممنوح.':'تظهر الأقسام التي مُنحت لك صلاحية مراجعتها فقط.')+'</p></div><div class="staffWorkGrid">'+cards+'</div>'+
  (canAssign?'<section class="staffGrants"><h2>صلاحيات المشرفين</h2><p>ابحث عن العضو بالاسم أو البريد، ثم اختر مهام المراجعة المسموحة له. يمكن تعديل الصلاحيات أو سحبها في أي وقت.</p>'+
  '<form id="staffSearchForm" class="staffSearch"><input name="q" minlength="2" required placeholder="اسم العضو أو البريد الإلكتروني" aria-label="البحث عن عضو للإشراف"><button class="btn primary" type="submit">بحث</button></form>'+
- '<div class="staffAssignTools"><h3>توزيع مهام الإشراف</h3><p>يمكن إسناد المهمة لأكثر من مشرف، أو حجبها عن الجميع وإبقاؤها مع المدير العام فقط.</p><div id="staffScopeOverview" aria-live="polite">جارٍ تحميل الصلاحيات…</div><button class="btn" type="button" data-act="staff-clear-all">سحب جميع الصلاحيات المفوضة</button></div>'+ '<div id="staffSearchResults" aria-live="polite"></div>'+ (isAdmin?'<section class="staffRecovery"><h3>استعادة الدخول للعضو</h3><p>تحقق من هوية صاحب الحساب، ثم اختر إرسال رابط استعادة أو كلمة مرور مؤقتة. لا تطلب كلمة مروره الحالية.</p><form id="adminRecoveryForm" class="journeyForm"><label>البريد الإلكتروني للعضو<input name="email" type="email" required maxlength="254"></label><label>سبب الإجراء<input name="reason" required minlength="12" maxlength="500"></label><div class="error" role="alert"></div><div class="staffRecoveryOptions" role="group" aria-label="طريقة استعادة حساب العضو"><button class="btn primary" type="submit" name="method" value="link">🔗 إنشاء رابط استعادة</button><button class="btn primary" type="submit" name="method" value="temporary">🔑 إنشاء كلمة مرور مؤقتة</button></div></form><div id="staffRecoveryLink" aria-live="polite"></div></section>':'')+'</section>':'')+'</div>';
+ '<div class="staffAssignTools"><h3>توزيع مهام الإشراف</h3><p>يمكن إسناد المهمة لأكثر من مشرف، أو حجبها عن الجميع وإبقاؤها مع المدير العام فقط.</p><div id="staffScopeOverview" aria-live="polite">جارٍ تحميل الصلاحيات…</div><button class="btn" type="button" data-act="staff-clear-all">سحب جميع الصلاحيات المفوضة</button></div>'+ '<div id="staffSearchResults" aria-live="polite"></div>'+ (isAdmin?'<section class="staffRecovery"><h3>استعادة الدخول للعضو</h3><p>تحقق من هوية صاحب الحساب، ثم اختر إرسال رابط استعادة أو كلمة مرور مؤقتة. لا تطلب كلمة مروره الحالية.</p><form id="adminRecoveryForm" class="journeyForm"><label>البريد الإلكتروني للعضو<input name="email" type="email" required maxlength="254"></label><label>سبب الإجراء<input name="reason" required minlength="12" maxlength="500"></label><div class="error" role="alert"></div><div class="staffRecoveryOptions" role="group" aria-label="طريقة استعادة حساب العضو"><button class="btn primary" type="submit" name="method" value="link">🔗 إنشاء رابط استعادة</button><button class="btn primary" type="submit" name="method" value="temporary">🔑 إنشاء كلمة مرور مؤقتة</button></div></form><div id="staffRecoveryLink" aria-live="polite"></div></section><section class="staffRecovery"><h3>تميّز الأعضاء بالأثر</h3><p>اعتماد رتبة أثر موثّقة تظهر كشارات ونجوم بجوار اسم العضو، دون صفحة منفصلة أو منح صلاحيات.</p><form id="staffImpactRankForm" class="journeyForm"><label>معرّف العضو<input name="member_id" type="number" min="1" required></label><label>درجة الأثر المعتمدة (0–100)<input name="score" type="number" min="0" max="100" required></label><label>النتائج والأدلة الداعمة<textarea name="evidence" minlength="12" maxlength="1000" required></textarea></label><button class="btn primary" type="submit">اعتماد تميّز العضو</button><div class="error" role="alert"></div></form></section>':'')+'</section>':'')+'</div>';
 
  await staffReloadOverview();
 }
@@ -42,6 +42,19 @@ async function staffReloadOverview(){
  }catch(e){box.textContent=e.message;}
 }
 async function staffAction(form,data){
+ if(form?.id==='staffImpactRankForm'){
+  const button=form.querySelector('[type=submit]'),error=form.querySelector('.error');
+  button.disabled=true;error.textContent='';
+  try{
+   const memberId=Number(data.member_id);
+   if(!Number.isSafeInteger(memberId)||memberId<=0)throw new Error('اختر معرّف عضو صحيحاً.');
+   const result=await api('impact/members/'+memberId,'PUT',{score:Number(data.score),evidence:data.evidence});
+   notify('اعتُمد التميّز: '+result.category+'. ستظهر شارة الأثر في هوية العضو.');
+   form.reset();
+  }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
+  return true;
+ }
+
  if(form?.id==='adminRecoveryForm'){
   const buttons=[...form.querySelectorAll('[type=submit]')],error=form.querySelector('.error'),target=document.getElementById('staffRecoveryLink');
   buttons.forEach(btn=>btn.disabled=true);error.textContent='';target.replaceChildren();
