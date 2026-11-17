@@ -107,6 +107,8 @@ async function route(){const token=++version;let target=main;
   '</section>';return;
  }
  if(location.pathname==='/market'){await renderMarketPro();return;}
+ const marketStorePath=location.pathname.match(/^\/market\/store\/(\d+)\/?$/);
+ if(marketStorePath){await renderMarketStore(Number(marketStorePath[1]));return;}
  if(location.pathname==='/market-admin'){await renderMarketAdmin();return;}
  if(location.pathname==='/impact-members'){await renderImpactMembers();return;}
  if(location.pathname==='/staff'){await renderStaff(token);return;}
