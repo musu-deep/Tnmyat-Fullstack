@@ -104,6 +104,67 @@ function cookie(request,token,age) {
   const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
   return 'tn_session=' + token + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=' + age + secure;
 }
+function validateNewPassword(value){
+ const password=textField(value,8,256,'كلمة المرور الجديدة',false);
+ if(!/\p{L}/u.test(password)||!/[\p{N}\p{P}\p{S}]/u.test(password)||/\s/u.test(password)||
+    /^(?:password|12345678|qwerty123|admin123|password123)$/i.test(password)){
+  throw new ApiError(400,'اختر كلمة مرور قوية تتضمن حروفاً وأرقاماً أو رموزاً، دون مسافات.');
+ }
+ return password;
+}
+// Password reset links are generated only by a signed-in director, never exposed by public email lookup.
+async function passwordRecoveryRoute(request,db,user){
+ const {pathname:path}=new URL(request.url),method=request.method;
+ if(!['/api/admin/password-recovery','/api/password-recovery/complete'].includes(path))return null;
+ const ip=request.headers.get('CF-Connecting-IP')||'local';
+ if(path==='/api/admin/password-recovery'){
+  requireAdmin(user);
+  if(method!=='POST')throw new ApiError(405,'طريقة الطلب غير مدعومة.');
+  await enforceLimit(db,'admin-recovery',user.id,12,3600);
+  const body=await parseBody(request);
+  const email=textField(body.email,3,254,'البريد الإلكتروني').toLowerCase();
+  const reason=textField(body.reason,12,500,'سبب استعادة الحساب');
+  const account=await db.prepare('SELECT id,name,role,account_status,password_hash FROM users WHERE email=?').bind(email).first();
+  if(!account)throw new ApiError(404,'لا يوجد حساب بهذا البريد في قاعدة البيانات.');
+  if(account.account_status!=='active')throw new ApiError(403,'الحساب موقوف أو غير نشط. راجع حالة الحساب قبل إعادة كلمة المرور.');
+  if(account.role==='admin'&&account.id!==user.id)throw new ApiError(403,'لا يمكن إنشاء رابط لحساب مدير آخر من هذا المسار.');
+  if(!account.password_hash)throw new ApiError(400,'هذا الحساب لا يستخدم كلمة مرور محلية.');
+  const token=randomHex(32),tokenHash=await digest(token);
+  await db.batch([
+   db.prepare('DELETE FROM password_reset_tokens WHERE user_id=? OR expires_at<=unixepoch()').bind(account.id),
+   db.prepare('INSERT INTO password_reset_tokens(token_hash,user_id,issued_by,expires_at) VALUES(?,?,?,unixepoch()+1800)').bind(tokenHash,account.id,user.id),
+   db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason) VALUES(?,?,?,?,?)')
+    .bind(user.id,'user',account.id,'password_recovery_issued',reason)
+  ]);
+  // Only show the bearer link once. Deliver it through an identity-verified private channel.
+  const url=new URL(request.url);
+  const resetUrl=url.origin+'/reset-password?token='+encodeURIComponent(token);
+  return json({reset_url:resetUrl,expires_minutes:30,account_name:account.name});
+ }
+ if(method!=='POST')throw new ApiError(405,'طريقة الطلب غير مدعومة.');
+ await enforceLimit(db,'password-recovery',ip,16,900);
+ const body=await parseBody(request),token=textField(body.token,64,64,'رمز الاستعادة',false);
+ if(!/^[0-9a-f]{64}$/.test(token))throw new ApiError(400,'رابط الاستعادة غير صالح أو منتهي الصلاحية.');
+ const password=validateNewPassword(body.password);
+ if(body.confirm_password!==password)throw new ApiError(400,'تأكيد كلمة المرور غير مطابق.');
+ const hash=await digest(token);
+ const userRow=await db.prepare(\`SELECT u.id FROM password_reset_tokens t JOIN users u ON u.id=t.user_id
+  WHERE t.token_hash=? AND t.expires_at>unixepoch() AND u.account_status='active'\`).bind(hash).first();
+ if(!userRow)throw new ApiError(400,'رابط الاستعادة غير صالح أو منتهي الصلاحية.');
+ const salt=randomHex(16),password_hash=await passwordHash(password,salt);
+ const changes=await db.batch([
+  db.prepare(\`UPDATE users SET password_hash=?,salt=? WHERE id=?
+   AND account_status='active'
+   AND EXISTS(SELECT 1 FROM password_reset_tokens WHERE token_hash=? AND user_id=users.id AND expires_at>unixepoch())
+   RETURNING id\`).bind(password_hash,salt,userRow.id,hash),
+  db.prepare('DELETE FROM password_reset_tokens WHERE user_id=?').bind(userRow.id),
+  db.prepare('DELETE FROM sessions WHERE user_id=?').bind(userRow.id),
+  db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason) VALUES(?,?,?,?,?)')
+   .bind(userRow.id,'user',userRow.id,'password_recovery_completed','اكتملت إعادة تعيين كلمة المرور باستخدام رابط مؤقت')
+ ]);
+ if(!changes[0].results.length)throw new ApiError(400,'رابط الاستعادة لم يعد صالحاً.');
+ return json({ok:true});
+}
 async function currentUser(request,db) {
   const token = sessionToken(request);
   if (!token) return null;
@@ -248,6 +309,8 @@ async function route(request,db) {
     return json({ok:true},200,{'Set-Cookie':cookie(request,'',0)});
   }
   const user = await currentUser(request,db);
+  const recovery=await passwordRecoveryRoute(request,db,user);
+  if(recovery)return recovery;
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
   const governance=await governanceRoute(request,db,user,helpers);
   if(governance)return governance;
