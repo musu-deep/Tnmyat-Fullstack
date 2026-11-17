@@ -119,7 +119,7 @@ function postMedia(post) {
 function composer(post) {
   const existing=post?.id ? post : null;
   const selectedTopic=existing?.topic || 'المجتمع';
-  const kindOptions=Object.entries(kindNames).map(([key,label])=>'<option value=+key+ '+((existing?.post_kind||'post')===key?'selected':'')+'>'+label+'</option>').join('');
+  const kindOptions=Object.entries(kindNames).map(([key,label])=>'<option value="'+key+'" '+((existing?.post_kind||'post')===key?'selected':'')+'>'+label+'</option>').join('');
   const options=topics.map(t=>'<option '+(t===selectedTopic?'selected':'')+'>'+esc(t)+'</option>').join('');
   showModal(existing?'تعديل المنشور':'مشاركة جديدة',
     '<form id="composeSocial" class="fields mediaEditor">'+
