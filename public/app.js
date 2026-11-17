@@ -190,7 +190,7 @@ document.addEventListener('input',event=>{
  }
 });
 document.addEventListener('submit',async e=>{
- const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form));
+ const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form,e.submitter));
  if(await staffAction(form,data))return;
  if(await hubForm(form,data))return;
  if(await needsForm(form,data))return;
@@ -201,20 +201,37 @@ document.addEventListener('submit',async e=>{
  if(form.id==='search'){go(homeUrl(location.pathname==='/wall'?topic:'',data.q.trim()));return;}
  const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;const error=form.querySelector('.error');error.textContent='';
  try{
- if(form.id==='passwordResetForm'){
+ if(form.id==='temporaryPasswordChangeForm'){
+  await api('password-recovery/temporary-complete','POST',data);
+  resetFailedLogin();afterAuth=null;
+  form.innerHTML='<div class="status"><h2>تم تعيين كلمة مرور جديدة</h2><p>انتهت صلاحية كلمة المرور المؤقتة. سجّل الدخول الآن باستخدام كلمة المرور التي اخترتها.</p><button class="btn primary" type="button" data-act="login">تسجيل الدخول</button></div>';
+ }
+ else if(form.id==='passwordResetForm'){
   await api('password-recovery/complete','POST',data);
   form.innerHTML='<div class="status"><h2>تم تغيير كلمة المرور</h2><p>انتهت الجلسات السابقة. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.</p><button class="btn primary" type="button" data-act="login">تسجيل الدخول</button></div>';
  }
  else if(form.id==='auth'){
   const isNew=form.dataset.mode==='register';
+  let loginResult;
   try{
-   await api(form.dataset.mode,'POST',data);
+   loginResult=await api(form.dataset.mode,'POST',data);
   }catch(ex){
    if(!isNew && ex.status===401 && noteFailedLogin(data.email)){
     const hint=document.getElementById('loginRecoveryHint');
     if(hint)hint.hidden=false;
    }
    throw ex;
+  }
+  if(!isNew&&loginResult?.password_change_required){
+   const tokenValue=loginResult.change_token;
+   showModal('تغيير كلمة المرور المؤقتة',
+     '<p>تم التحقق من كلمة المرور المؤقتة. يجب تعيين كلمة مرور جديدة قبل الدخول إلى الحساب. هذه الخطوة صالحة لمدة 10 دقائق.</p>'+
+     '<form id="temporaryPasswordChangeForm" class="fields">'+
+     '<input type="hidden" name="token" value="'+esc(tokenValue)+'">'+
+     '<label>كلمة المرور الجديدة<input type="password" name="password" required minlength="8" maxlength="256" autocomplete="new-password"></label>'+
+     '<label>تأكيد كلمة المرور<input type="password" name="confirm_password" required minlength="8" maxlength="256" autocomplete="new-password"></label>'+
+     '<div class="error" role="alert"></div><button class="btn primary">تغيير كلمة المرور والمتابعة</button></form>');
+   return;
   }
   resetFailedLogin();
   user=(await api('me')).user;account();if(dialog.open)dialog.close();
