@@ -5,6 +5,7 @@ import { networkRoute } from './network-engine.js';
 import { developmentWorkRoute } from './development-work.js';
 import { communityNeedsRoute } from './community-needs.js';
 import { reviewCenterRoute } from './review-center.js';
+import { staffRoute, staffCapabilities } from './staff.js';
 import { socialRoute, validateImage } from './social.js';
 import { writePost, serveFile } from './media.js';
 import { groupRoute } from './groups.js';
@@ -248,6 +249,8 @@ async function route(request,db) {
   }
   const user = await currentUser(request,db);
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
+  const staff=await staffRoute(request,db,user,helpers);
+  if(staff)return staff;
   const governance=await governanceRoute(request,db,user,helpers);
   if(governance)return governance;
   if(user&&(user.account_status==='banned'||(user.account_status==='suspended'&&(!user.status_until||user.status_until>Math.floor(Date.now()/1000)))))throw new ApiError(403,'الحساب موقوف؛ تواصل مع إدارة المجتمع.');
@@ -268,7 +271,7 @@ async function route(request,db) {
   if (path.startsWith('/api/groups')) return groupRoute(request,db,user,helpers);
   const social=await socialRoute(request,db,user,helpers);
   if (social) return social;
-  if (method === 'GET' && path === '/api/me') return json({user:user ? {id:user.id,name:user.name,role:user.role,bio:user.bio,avatar:user.avatar,cover:user.cover,cover_position:user.cover_position} : null});
+  if (method === 'GET' && path === '/api/me') return json({user:user ? {id:user.id,name:user.name,role:user.role,permissions:await staffCapabilities(db,user),bio:user.bio,avatar:user.avatar,cover:user.cover,cover_position:user.cover_position} : null});
   if (path === '/api/posts' && method === 'GET') {
     const q = textField(url.searchParams.get('q') || '',0,160,'عبارة البحث');
     const topic = url.searchParams.get('topic') || '';
