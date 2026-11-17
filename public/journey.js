@@ -49,50 +49,67 @@ const jNav=()=>{
    return '<details class="journeyNavGroup" data-nav-group="'+i+'"><summary class="'+(active?'active':'')+'" aria-label="عرض أقسام '+section.label+'">'+
     '<span aria-hidden="true" class="journeyNavHeadingIcon">'+section.icon+'</span>'+section.label+
     '<span aria-hidden="true" class="journeyNavChevron">⌄</span></summary>'+
-    '<div class="journeyNavChoices" aria-label="أقسام '+section.label+'">'+
-     '<div class="journeyNavPanelIntro"><strong>'+section.label+'</strong><small>'+section.intro+'</small></div>'+
+    '<div class="journeyNavChoices" role="dialog" aria-modal="true" aria-label="أقسام '+section.label+'">'+
+     '<div class="journeyNavPanelIntro"><span><strong>'+section.label+'</strong><small>'+section.intro+'</small></span>'+
+     '<button type="button" class="journeyNavClose" aria-label="إغلاق القائمة" data-close-journey-nav>×</button></div>'+
      '<div class="journeyNavTiles">'+section.items.map(card).join('')+'</div></div></details>';
-  }).join('')+'</div></nav>';
+  }).join('')+'</div>'+
+  '<div class="journeyNavBackdrop" data-close-journey-nav hidden aria-hidden="true"></div></nav>';
 };
-// Open one glass panel at a time. Clicking outside or pressing Escape closes all panels.
+function syncJourneyNav(){
+ const nav=document.querySelector('.journeyNav');
+ if(!nav)return;
+ const open=nav.querySelector('.journeyNavGroup[open]');
+ const backdrop=nav.querySelector('.journeyNavBackdrop');
+ if(backdrop)backdrop.hidden=!open;
+ document.body.classList.toggle('journeyMenuOpen',Boolean(open));
+}
 function closeJourneyNav(except){
  document.querySelectorAll('.journeyNavGroup[open]').forEach(group=>{
   if(group!==except)group.open=false;
  });
-}
-function positionJourneyPanel(group){
- const panel=group.querySelector('.journeyNavChoices');
- if(!panel)return;
- const trigger=group.querySelector('summary').getBoundingClientRect();
- const width=Math.min(570,window.innerWidth-24);
- const left=Math.max(12,Math.min(trigger.right-width,window.innerWidth-width-12));
- panel.style.width=width+'px';
- panel.style.left=left+'px';
- panel.style.right='auto';
- panel.style.top=Math.min(trigger.bottom+9,window.innerHeight-100)+'px';
- panel.style.maxHeight=Math.max(160,window.innerHeight-trigger.bottom-25)+'px';
+ syncJourneyNav();
 }
 document.addEventListener('click',event=>{
+ if(event.target.closest('[data-close-journey-nav]')){
+  const trigger=document.querySelector('.journeyNavGroup[open]>summary');
+  closeJourneyNav();
+  if(event.target.closest('button'))trigger?.focus();
+  return;
+ }
  const current=event.target.closest('.journeyNavGroup');
  if(!current){closeJourneyNav();return;}
  if(event.target.closest('summary')){
   closeJourneyNav(current);
-  requestAnimationFrame(()=>{if(current.open)positionJourneyPanel(current)});
+  requestAnimationFrame(()=>{
+   syncJourneyNav();
+   if(current.open)current.querySelector('.journeyNavTile')?.focus();
+  });
  }
  if(event.target.closest('.journeyNavTile'))closeJourneyNav();
 });
 document.addEventListener('keydown',event=>{
+ const open=document.querySelector('.journeyNavGroup[open]');
+ if(!open)return;
  if(event.key==='Escape'){
-  const open=document.querySelector('.journeyNavGroup[open]');
-  if(open){closeJourneyNav();open.querySelector('summary')?.focus();}
+  event.preventDefault();
+  closeJourneyNav();
+  open.querySelector('summary')?.focus();
+ }else if(event.key==='Tab'){
+  const panel=open.querySelector('.journeyNavChoices');
+  const focusables=[...panel.querySelectorAll('button:not([disabled]),a[href]')];
+  if(!focusables.length)return;
+  const first=focusables[0],last=focusables[focusables.length-1];
+  if(event.shiftKey&&document.activeElement===first){
+   event.preventDefault();last.focus();
+  }else if(!event.shiftKey&&document.activeElement===last){
+   event.preventDefault();first.focus();
+  }
  }
 });
-window.addEventListener('resize',()=>{
- document.querySelectorAll('.journeyNavGroup[open]').forEach(positionJourneyPanel);
-});
-window.addEventListener('scroll',event=>{
- if(event.target===document||event.target===document.documentElement)closeJourneyNav();
-},{passive:true});
+document.addEventListener('toggle',event=>{
+ if(event.target?.classList?.contains('journeyNavGroup'))syncJourneyNav();
+},true);
 function jShell(title,subtitle,body){document.title=title+' | تنميات';main.innerHTML='<div class="journeyPage"><div class="journeyHeader"><span>مساحتي التنموية</span><h1>'+title+'</h1><p>'+subtitle+'</p></div>'+jNav()+body+'</div>';}
 function jFields(p){
  const skills=Array.isArray(p.skills)?p.skills:[];
