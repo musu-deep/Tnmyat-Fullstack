@@ -8,9 +8,22 @@ const JOURNEY_MONTHS=['يناير','فبراير','مارس','أبريل','ما�
 const journeyDate=s=>new Date(s+'T12:00:00Z').toLocaleDateString('ar',{year:'numeric',month:'long',day:'numeric'});
 const jlink=(url,label)=>'<a class="journeyLink" href="'+url+'">'+label+'</a>';
 const jempty=t=>'<p class="journeyEmpty">'+t+'</p>';
-const jNav=()=>'<nav class="journeyNav" aria-label="مساحتي التنموية">'+[
- ['/my-space','لوحتي'],['/my-people','شبكتي المهنية'],['/network','علاقاتي المهنية'],['/my-submissions','متابعة طلباتي'],['/needs','الاحتياجات'],['/opportunities','الفرص'],['/group-partnerships','تعاون المجموعات'],['/my-opportunities','فرصي'],['/project-results','نتائج المشاريع'],['/my-alerts','تنبيهاتي'],['/my-calendar','تقويمي'],['/my-map','خارطتي'],['/my-projects','مشاريعي'],['/my-news','أخباري'],['/my-impact','أهدافي وأثري'],['/onboarding','تفضيلاتي'],...(user?.role==='admin'?[['/impact-review','مراجعة الأثر'],['/network-admin','مؤشرات العلاقات'],['/work-admin','مراجعة الفرص'],['/needs-admin','مراجعة الاحتياجات']]:[])
-].map(([url,label])=>'<a href="'+url+'" class="'+(location.pathname===url?'active':'')+'">'+label+'</a>').join('')+'</nav>';
+const jNav=()=>{
+ const path=location.pathname;
+ const mainItems=[['/my-space','لوحتي'],['/my-people','شبكتي'],['/my-projects','مشاريعي'],['/my-submissions','متابعة طلباتي']];
+ const sections=[
+  {label:'العلاقات والتعاون',items:[['/network','علاقاتي المهنية'],['/group-partnerships','تعاون المجموعات'],['/opportunities','الفرص التنموية'],['/my-opportunities','إدارة فرصي'],['/needs','الاحتياجات']]},
+  {label:'ملفي وخدماتي',items:[['/my-alerts','التنبيهات'],['/my-calendar','التقويم'],['/my-map','خارطتي'],['/my-news','أخباري'],['/my-impact','أهدافي ونتائجي'],['/project-results','نتائج المشاريع'],['/onboarding','التفضيلات'],['/my-needs','احتياجاتي']]}
+ ];
+ if(user?.role==='admin')sections.push({label:'الإدارة',items:[['/admin','مركز الإدارة'],['/impact-review','مراجعة الأثر'],['/network-admin','مؤشرات العلاقات'],['/work-admin','مراجعة الفرص'],['/needs-admin','مراجعة الاحتياجات']]});
+ const link=([url,label])=>'<a href="'+url+'" class="'+(path===url?'active':'')+'" '+(path===url?'aria-current="page"':'')+'>'+label+'</a>';
+ return '<nav class="journeyNav" aria-label="تنقل مساحة العضو">'+
+  '<div class="journeyNavPrimary">'+mainItems.map(link).join('')+'</div>'+
+  '<div class="journeyNavMore">'+sections.map(section=>{
+   const active=section.items.some(item=>item[0]===path);
+   return '<details class="journeyNavGroup" '+(active?'open':'')+'><summary class="'+(active?'active':'')+'">'+section.label+'<span aria-hidden="true">⌄</span></summary><div class="journeyNavChoices">'+section.items.map(link).join('')+'</div></details>';
+  }).join('')+'</div></nav>';
+};
 function jShell(title,subtitle,body){document.title=title+' | تنميات';main.innerHTML='<div class="journeyPage"><div class="journeyHeader"><span>مساحتي التنموية</span><h1>'+title+'</h1><p>'+subtitle+'</p></div>'+jNav()+body+'</div>';}
 function jFields(p){
  const skills=Array.isArray(p.skills)?p.skills:[];
