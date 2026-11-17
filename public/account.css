@@ -10,3 +10,38 @@
 [data-theme=dark] :is(.railHome,.pill.active,.avatar,.tag,.bubble,.composeRow button,.conversation.active,.action[aria-pressed=true]){background:#2e425e}
 [data-theme=dark] :is(.btn.primary,.accountSwitch){background:#375992;color:white}
 @media(max-width:680px){.accountSwitch{max-width:122px}.accountPanel{position:fixed;inset-inline-end:10px;top:68px}}
+
+
+/* Account menu: own foreground layer, separated from the horizontal workspace navigation. */
+header:has(#accountPanel:not([hidden])){z-index:110}
+header .topbar:has(#accountPanel:not([hidden]))::before{
+ content:"";position:fixed;inset:72px 0 0;z-index:1;
+ background:rgba(14,35,55,.19);
+ backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+header .topbar:has(#accountPanel:not([hidden])) #account{z-index:2}
+#account .accountPanel{
+ position:fixed;
+ top:82px;
+ right:auto;
+ left:max(16px,calc((100vw - 1580px)/2));
+ width:min(330px,calc(100vw - 32px));
+ max-height:calc(100dvh - 98px);
+ overflow:auto;
+ z-index:140;
+ background:rgba(255,255,255,.97);
+ border:1px solid rgba(216,229,240,.94);
+ box-shadow:0 22px 65px rgba(12,34,54,.25);
+ border-radius:17px;
+ backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
+@media(max-width:680px){
+ header .topbar:has(#accountPanel:not([hidden]))::before{inset:64px 0 0}
+ #account .accountPanel{
+  top:72px;
+  left:10px;
+  right:auto;
+  width:min(310px,calc(100vw - 20px));
+  max-height:calc(100dvh - 84px);
+ }
+}
