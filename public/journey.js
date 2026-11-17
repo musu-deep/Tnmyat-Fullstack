@@ -12,18 +12,87 @@ const jNav=()=>{
  const path=location.pathname;
  const mainItems=[['/my-space','لوحتي'],['/my-people','شبكتي'],['/my-projects','مشاريعي'],['/my-submissions','متابعة طلباتي']];
  const sections=[
-  {label:'العلاقات والتعاون',items:[['/network','علاقاتي المهنية'],['/group-partnerships','تعاون المجموعات'],['/opportunities','الفرص التنموية'],['/my-opportunities','إدارة فرصي'],['/needs','الاحتياجات']]},
-  {label:'ملفي وخدماتي',items:[['/my-alerts','التنبيهات'],['/my-calendar','التقويم'],['/my-map','خارطتي'],['/my-news','أخباري'],['/my-impact','أهدافي ونتائجي'],['/project-results','نتائج المشاريع'],['/onboarding','التفضيلات'],['/my-needs','احتياجاتي']]}
+  {label:'العلاقات والتعاون',intro:'التواصل المهني وفرص المشاركة والتعاون التنموي',icon:'◎',items:[
+   ['/network','علاقاتي المهنية','التعارف وخطوات التعاون','♧'],
+   ['/group-partnerships','تعاون المجموعات','مشاريع مشتركة بين المجتمعات','◈'],
+   ['/opportunities','الفرص التنموية','اكتشاف فرص المشاركة','✦'],
+   ['/my-opportunities','إدارة فرصي','الفرص والطلبات الخاصة بي','▤'],
+   ['/needs','الاحتياجات','احتياجات المجتمع المفتوحة','◇']
+  ]},
+  {label:'ملفي وخدماتي',intro:'أدوات العضو الخاصة ومعلوماته ونتائجه',icon:'▣',items:[
+   ['/my-alerts','التنبيهات','المواعيد والطلبات الجديدة','◉'],
+   ['/my-calendar','التقويم','أنشطتي ومواعيدي','▦'],
+   ['/my-map','خارطتي','المشاريع والمواقع المحفوظة','⌾'],
+   ['/my-news','أخباري','الأخبار والمراجع المحفوظة','✧'],
+   ['/my-impact','أهدافي ونتائجي','الإنجازات والمساهمات','◎'],
+   ['/project-results','نتائج المشاريع','المؤشرات والأدلة','▤'],
+   ['/onboarding','التفضيلات','تخصصاتي واهتماماتي','⚙'],
+   ['/my-needs','احتياجاتي','متابعة الاحتياجات المسجلة','◇']
+  ]}
  ];
- if(user?.role==='admin')sections.push({label:'الإدارة',items:[['/admin','مركز الإدارة'],['/impact-review','مراجعة الأثر'],['/network-admin','مؤشرات العلاقات'],['/work-admin','مراجعة الفرص'],['/needs-admin','مراجعة الاحتياجات']]});
+ if(user?.role==='admin')sections.push({label:'الإدارة',intro:'متابعة العمليات ومراجعة الطلبات والمخرجات',icon:'⚑',items:[
+  ['/admin','مركز الإدارة','العضوية والمحتوى والطلبات','▦'],
+  ['/impact-review','مراجعة الأثر','تقييم تقارير النتائج','◎'],
+  ['/network-admin','مؤشرات العلاقات','ملخص التشابك المهني','♧'],
+  ['/work-admin','مراجعة الفرص','الفرص والجهات والنتائج','▤'],
+  ['/needs-admin','مراجعة الاحتياجات','طلبات الاحتياج الجديدة','◇']
+ ]});
  const link=([url,label])=>'<a href="'+url+'" class="'+(path===url?'active':'')+'" '+(path===url?'aria-current="page"':'')+'>'+label+'</a>';
+ const card=([url,label,description,icon])=>
+  '<a class="journeyNavTile'+(path===url?' active':'')+'" href="'+url+'" '+(path===url?'aria-current="page"':'')+'>'+
+   '<span class="journeyTileIcon" aria-hidden="true">'+icon+'</span>'+
+   '<span class="journeyTileText"><strong>'+label+'</strong><small>'+description+'</small></span></a>';
  return '<nav class="journeyNav" aria-label="تنقل مساحة العضو">'+
   '<div class="journeyNavPrimary">'+mainItems.map(link).join('')+'</div>'+
-  '<div class="journeyNavMore">'+sections.map(section=>{
+  '<div class="journeyNavMore">'+sections.map((section,i)=>{
    const active=section.items.some(item=>item[0]===path);
-   return '<details class="journeyNavGroup" '+(active?'open':'')+'><summary class="'+(active?'active':'')+'">'+section.label+'<span aria-hidden="true">⌄</span></summary><div class="journeyNavChoices">'+section.items.map(link).join('')+'</div></details>';
+   return '<details class="journeyNavGroup" data-nav-group="'+i+'"><summary class="'+(active?'active':'')+'" aria-label="عرض أقسام '+section.label+'">'+
+    '<span aria-hidden="true" class="journeyNavHeadingIcon">'+section.icon+'</span>'+section.label+
+    '<span aria-hidden="true" class="journeyNavChevron">⌄</span></summary>'+
+    '<div class="journeyNavChoices" aria-label="أقسام '+section.label+'">'+
+     '<div class="journeyNavPanelIntro"><strong>'+section.label+'</strong><small>'+section.intro+'</small></div>'+
+     '<div class="journeyNavTiles">'+section.items.map(card).join('')+'</div></div></details>';
   }).join('')+'</div></nav>';
 };
+// Open one glass panel at a time. Clicking outside or pressing Escape closes all panels.
+function closeJourneyNav(except){
+ document.querySelectorAll('.journeyNavGroup[open]').forEach(group=>{
+  if(group!==except)group.open=false;
+ });
+}
+function positionJourneyPanel(group){
+ const panel=group.querySelector('.journeyNavChoices');
+ if(!panel)return;
+ const trigger=group.querySelector('summary').getBoundingClientRect();
+ const width=Math.min(570,window.innerWidth-24);
+ const left=Math.max(12,Math.min(trigger.right-width,window.innerWidth-width-12));
+ panel.style.width=width+'px';
+ panel.style.left=left+'px';
+ panel.style.right='auto';
+ panel.style.top=Math.min(trigger.bottom+9,window.innerHeight-100)+'px';
+ panel.style.maxHeight=Math.max(160,window.innerHeight-trigger.bottom-25)+'px';
+}
+document.addEventListener('click',event=>{
+ const current=event.target.closest('.journeyNavGroup');
+ if(!current){closeJourneyNav();return;}
+ if(event.target.closest('summary')){
+  closeJourneyNav(current);
+  requestAnimationFrame(()=>{if(current.open)positionJourneyPanel(current)});
+ }
+ if(event.target.closest('.journeyNavTile'))closeJourneyNav();
+});
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'){
+  const open=document.querySelector('.journeyNavGroup[open]');
+  if(open){closeJourneyNav();open.querySelector('summary')?.focus();}
+ }
+});
+window.addEventListener('resize',()=>{
+ document.querySelectorAll('.journeyNavGroup[open]').forEach(positionJourneyPanel);
+});
+window.addEventListener('scroll',event=>{
+ if(event.target===document||event.target===document.documentElement)closeJourneyNav();
+},{passive:true});
 function jShell(title,subtitle,body){document.title=title+' | تنميات';main.innerHTML='<div class="journeyPage"><div class="journeyHeader"><span>مساحتي التنموية</span><h1>'+title+'</h1><p>'+subtitle+'</p></div>'+jNav()+body+'</div>';}
 function jFields(p){
  const skills=Array.isArray(p.skills)?p.skills:[];
