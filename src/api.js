@@ -149,15 +149,15 @@ async function passwordRecoveryRoute(request,db,user){
  const password=validateNewPassword(body.password);
  if(body.confirm_password!==password)throw new ApiError(400,'تأكيد كلمة المرور غير مطابق.');
  const hash=await digest(token);
- const userRow=await db.prepare(\`SELECT u.id FROM password_reset_tokens t JOIN users u ON u.id=t.user_id
-  WHERE t.token_hash=? AND t.expires_at>unixepoch() AND u.account_status='active'\`).bind(hash).first();
+ const userRow=await db.prepare(`SELECT u.id FROM password_reset_tokens t JOIN users u ON u.id=t.user_id
+  WHERE t.token_hash=? AND t.expires_at>unixepoch() AND u.account_status='active'`).bind(hash).first();
  if(!userRow)throw new ApiError(400,'رابط الاستعادة غير صالح أو منتهي الصلاحية.');
  const salt=randomHex(16),password_hash=await passwordHash(password,salt);
  const changes=await db.batch([
-  db.prepare(\`UPDATE users SET password_hash=?,salt=? WHERE id=?
+  db.prepare(`UPDATE users SET password_hash=?,salt=? WHERE id=?
    AND account_status='active'
    AND EXISTS(SELECT 1 FROM password_reset_tokens WHERE token_hash=? AND user_id=users.id AND expires_at>unixepoch())
-   RETURNING id\`).bind(password_hash,salt,userRow.id,hash),
+   RETURNING id`).bind(password_hash,salt,userRow.id,hash),
   db.prepare('DELETE FROM password_reset_tokens WHERE user_id=?').bind(userRow.id),
   db.prepare('DELETE FROM sessions WHERE user_id=?').bind(userRow.id),
   db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason) VALUES(?,?,?,?,?)')
