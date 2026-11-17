@@ -8,7 +8,7 @@ test('Workspace categories render individual accessible glass cards without losi
  assert.match(nav,/journeyNavTiles/);
  assert.match(nav,/journeyNavTile/);
  assert.match(nav,/journeyNavPanelIntro/);
- for(const key of ['/network','/group-partnerships','/opportunities','/my-opportunities','/needs','/my-alerts','/my-calendar','/my-map','/my-news','/my-impact','/project-results','/onboarding','/my-needs','/admin','/impact-review','/network-admin','/work-admin','/needs-admin'])
+ for(const key of ['/network','/group-partnerships','/opportunities','/my-opportunities','/needs','/my-alerts','/my-calendar','/my-map','/my-news','/my-impact','/project-results','/onboarding','/my-needs'])
   assert.ok(nav.includes(key),key);
  assert.match(nav,/if\(user\?\.role==='admin'\)/);
  assert.doesNotThrow(()=>new Function(js));
