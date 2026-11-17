@@ -20,7 +20,7 @@ function signedAccountMenu(){
     accountRow('من أتابعهم والمتابعون','◎','mint','href="/people?filter=followers"')+
     accountRow('الرسائل الخاصة','✉','sky','href="/messages"')+'</div>'+
     '<div class="accountSet">'+
-    accountRow('متابعة طلباتي','◈','mint','href="/my-submissions"')+
+    accountRow('مساحتي التنموية','◈','mint','href="/my-submissions"')+
     accountRow('تعديل الملف الشخصي','✎','sky','data-act="editprofile"')+
     accountRow('الإعدادات والتفضيلات','✎','mint','href="/onboarding"')+
     accountRow('الوضع الليلي','☾','lilac','data-act="night" aria-pressed="'+(document.documentElement.dataset.theme==='dark')+'"')+'</div>'+
