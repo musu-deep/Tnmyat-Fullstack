@@ -182,6 +182,8 @@ async function passwordRecoveryRoute(request,db,user){
   await db.batch([
    db.prepare('DELETE FROM password_reset_tokens WHERE user_id=? OR expires_at<=unixepoch()').bind(account.id),
    db.prepare('INSERT INTO password_reset_tokens(token_hash,user_id,issued_by,expires_at) VALUES(?,?,?,unixepoch()+1800)').bind(tokenHash,account.id,user.id),
+   db.prepare('DELETE FROM temporary_password_challenges WHERE user_id=?').bind(account.id),
+   db.prepare('DELETE FROM temporary_passwords WHERE user_id=?').bind(account.id),
    db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason) VALUES(?,?,?,?,?)')
     .bind(user.id,'user',account.id,'password_recovery_issued',reason)
   ]);
