@@ -26,6 +26,11 @@ function account(){
  document.querySelector('#account').innerHTML=user
  ? signedAccountMenu()
  : '<button class="plain" data-act="login">دخول</button><button class="btn primary" data-act="register">إنشاء حساب</button>';
+ const isStaff=Boolean(user&&(user.role==='admin'||(Array.isArray(user.permissions)&&user.permissions.length)));
+ for(const id of ['staffNavEntry','staffMobileEntry']){
+  const item=document.getElementById(id);
+  if(item)item.hidden=!isStaff;
+ }
 }
 function showModal(title,body){modal.innerHTML='<div class="modalhead"><h2 id="dialogTitle">'+esc(title)+'</h2><button class="iconbtn" data-act="close" aria-label="إغلاق">×</button></div>'+body;if(!dialog.open)dialog.showModal();}
 function auth(mode){const reg=mode==='register';showModal(reg?'إنشاء حساب':'تسجيل الدخول',
@@ -82,6 +87,7 @@ async function route(){const token=++version;let target=main;
  document.body.classList.toggle('wallCoverView', ['/wall','/wall/'].includes(location.pathname));
  updateWallNavState();
  if(isLanding){if(user){history.replaceState(null,'','/wall');await route();return;}renderWelcome();return;}
+ if(location.pathname==='/staff'){await renderStaff(token);return;}
  if(location.pathname==='/admin'){await renderGovernance(token);return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}
  if(await renderMySubmissions(token))return;
