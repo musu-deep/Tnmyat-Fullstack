@@ -35,7 +35,7 @@ function account(){
 function showModal(title,body){modal.innerHTML='<div class="modalhead"><h2 id="dialogTitle">'+esc(title)+'</h2><button class="iconbtn" data-act="close" aria-label="إغلاق">×</button></div>'+body;if(!dialog.open)dialog.showModal();}
 function auth(mode){const reg=mode==='register';showModal(reg?'إنشاء حساب':'تسجيل الدخول',
  '<form id="auth" class="fields" data-mode="'+mode+'">'+(reg?'<label>الاسم<input name="name" required minlength="2" maxlength="60" autocomplete="name"></label>':'')+
- '<label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>كلمة المرور<input name="password" type="password" required '+(reg?'minlength="8" maxlength="256" placeholder="حروف مع أرقام أو رموز، 8 أحرف على الأقل" autocomplete="new-password"':'autocomplete="current-password"')+'></label><div role="alert" class="error"></div><button class="btn primary">'+(reg?'إنشاء حساب':'دخول')+'</button></form><p class="switch">'+(reg?'لديك حساب؟ <button class="plain" data-act="login">سجّل الدخول</button>':'عضو جديد؟ <button class="plain" data-act="register">أنشئ حسابًا</button>')+'</p>');}
+ '<label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>كلمة المرور<input name="password" type="password" required '+(reg?'minlength="8" maxlength="256" placeholder="حروف مع أرقام أو رموز، 8 أحرف على الأقل" autocomplete="new-password"':'autocomplete="current-password"')+'></label><div role="alert" class="error"></div><button class="btn primary">'+(reg?'إنشاء حساب':'دخول')+'</button></form><p class="switch">'+(reg?'لديك حساب؟ <button class="plain" data-act="login">سجّل الدخول</button>':'نسيت كلمة المرور؟ <button class="plain" data-act="forgot-password">طلب استعادة الحساب</button> · عضو جديد؟ <button class="plain" data-act="register">أنشئ حسابًا</button>')+'</p>');}
 function requireUser(next){if(user){next();return;}afterAuth=next;auth('login');}
 function date(value){const raw=String(value||'');const dt=new Date(/^\d{4}-\d\d-\d\d /.test(raw)?raw.replace(' ','T')+'Z':raw);return Number.isNaN(+dt)?'':new Intl.DateTimeFormat('ar',{day:'numeric',month:'short',year:'numeric'}).format(dt);}
 function homeShell(){
@@ -87,6 +87,17 @@ async function route(){const token=++version;let target=main;
  document.body.classList.toggle('wallCoverView', ['/wall','/wall/'].includes(location.pathname));
  updateWallNavState();
  if(isLanding){if(user){history.replaceState(null,'','/wall');await route();return;}renderWelcome();return;}
+ if(location.pathname==='/reset-password'){
+  const tokenValue=new URLSearchParams(location.search).get('token')||'';
+  const valid=/^[0-9a-f]{64}$/.test(tokenValue);
+  main.innerHTML='<section class="resetPasswordPage"><h1>إعادة تعيين كلمة المرور</h1>'+
+  (valid?'<p>أدخل كلمة مرور جديدة. ينتهي رابط الاستعادة بعد 30 دقيقة ولا يمكن استخدامه أكثر من مرة.</p>'+
+  '<form id="passwordResetForm" class="fields"><input type="hidden" name="token" value="'+esc(tokenValue)+'">'+
+  '<label>كلمة المرور الجديدة<input name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="256"></label>'+
+  '<label>تأكيد كلمة المرور<input name="confirm_password" type="password" autocomplete="new-password" required minlength="8" maxlength="256"></label>'+
+  '<div class="error" role="alert"></div><button class="btn primary">تعيين كلمة المرور</button></form>':'<p>رابط الاستعادة غير صحيح. اطلب رابطاً جديداً من إدارة تنميات.</p>')+
+  '</section>';return;
+ }
  if(location.pathname==='/staff'){await renderStaff(token);return;}
  if(location.pathname==='/admin'){await renderGovernance(token);return;}
  if(/^\/groups(?:\/\d+)?\/?$/.test(location.pathname)){await renderGroups(token);return;}
@@ -141,6 +152,7 @@ document.addEventListener('click',async event=>{
  case 'close':afterAuth=null;dialog.close();return;
  case 'retry':return route();
  case 'register':case 'login':return auth(action);
+ case 'forgot-password':return showModal('طلب استعادة كلمة المرور','<p>لأمان حسابك، اطلب رابط استعادة خاصاً بك من إدارة تنميات عبر البريد، ولا ترسل كلمة مرورك الحالية أو الجديدة لأي شخص.</p><p><a class="btn primary" href="mailto:info@tnmyat.com?subject='+encodeURIComponent('طلب استعادة كلمة المرور - مجتمع تنميات')+'">مراسلة إدارة تنميات</a></p><button class="btn" data-act="login">العودة لتسجيل الدخول</button>');
  case 'logout':await api('logout','POST');user=null;afterAuth=null;account();history.replaceState(null,'','/welcome');await route();return notify('تم تسجيل الخروج');
  case 'compose':return requireUser(composer);
  case 'reports':return go('/reports');
@@ -173,7 +185,11 @@ document.addEventListener('submit',async e=>{
  if(form.id==='search'){go(homeUrl(location.pathname==='/wall'?topic:'',data.q.trim()));return;}
  const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;const error=form.querySelector('.error');error.textContent='';
  try{
- if(form.id==='auth'){
+ if(form.id==='passwordResetForm'){
+  await api('password-recovery/complete','POST',data);
+  form.innerHTML='<div class="status"><h2>تم تغيير كلمة المرور</h2><p>انتهت الجلسات السابقة. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.</p><button class="btn primary" type="button" data-act="login">تسجيل الدخول</button></div>';
+ }
+ else if(form.id==='auth'){
   const isNew=form.dataset.mode==='register';
   await api(form.dataset.mode,'POST',data);
   user=(await api('me')).user;account();if(dialog.open)dialog.close();
