@@ -125,6 +125,7 @@ document.addEventListener('click',async event=>{
  if(await workAction(el))return;
  if(await networkAction(el))return;
  if(await journeyAction(el))return;
+ if(await staffDelegationAction(action,el))return;
  if(await reviewCenterAction(action,el))return;
  if(await governanceAction(action,el))return;
  if(await socialAction(action,el))return;
