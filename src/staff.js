@@ -2,9 +2,14 @@ const PERMISSIONS=['needs_review','opportunities_review','organizations_review',
 export const staffPermissionKeys=PERMISSIONS;
 export async function staffCapabilities(db,user){
  if(!user)return [];
- if(user.role==='admin')return [...PERMISSIONS];
- const rows=await db.prepare('SELECT permission FROM staff_permissions WHERE user_id=? ORDER BY permission').bind(user.id).all();
- return rows.results.map(r=>r.permission).filter(p=>PERMISSIONS.includes(p));
+ if(user.role==='admin')return [...PERMISSIONS,'staff_manage'];
+ const [rows,manager]=await Promise.all([
+  db.prepare('SELECT permission FROM staff_permissions WHERE user_id=? ORDER BY permission').bind(user.id).all(),
+  db.prepare('SELECT 1 AS allowed FROM staff_assignment_managers WHERE user_id=?').bind(user.id).first()
+ ]);
+ const permissions=rows.results.map(r=>r.permission).filter(p=>PERMISSIONS.includes(p));
+ if(manager)permissions.push('staff_manage');
+ return permissions;
 }
 export async function canReview(db,user,permission){
  if(!user||!PERMISSIONS.includes(permission))return false;
@@ -16,7 +21,34 @@ export async function staffRoute(request,db,user,{json,parseBody,ApiError,enforc
  if(!path.startsWith('/api/staff/'))return null;
  if(!user)throw new ApiError(401,'سجّل الدخول أولاً.');
  if(path==='/api/staff/me'&&method==='GET')return json({role:user.role,permissions:await staffCapabilities(db,user)});
- if(user.role!=='admin')throw new ApiError(403,'تعيين المشرفين متاح لمدير المنصة فقط.');
+ const isAdmin=user.role==='admin';
+ const delegatedManager=!isAdmin&&Boolean(await db.prepare('SELECT 1 FROM staff_assignment_managers WHERE user_id=?').bind(user.id).first());
+ if(!isAdmin&&!delegatedManager)throw new ApiError(403,'تعيين المشرفين متاح لمدير المنصة أو المفوض المعتمد فقط.');
+ const isAssignmentManager=async(id)=>Boolean(await db.prepare('SELECT 1 FROM staff_assignment_managers WHERE user_id=?').bind(id).first());
+ if(path==='/api/staff/managers'&&method==='GET'){
+  if(!isAdmin)throw new ApiError(403,'إدارة تفويض مشرفي التوزيع للمدير العام فقط.');
+  const {results}=await db.prepare('SELECT m.user_id,u.name,u.email,m.granted_at FROM staff_assignment_managers m JOIN users u ON u.id=m.user_id ORDER BY m.granted_at DESC').all();
+  return json({managers:results});
+ }
+ const managerTarget=path.match(/^\/api\/staff\/managers\/(\d+)$/);
+ if(managerTarget&&method==='PATCH'){
+  if(!isAdmin)throw new ApiError(403,'منح صلاحية توزيع المهام للمدير العام فقط.');
+  await enforceLimit(db,'staff-managers',user.id,25,3600);
+  const id=Number(managerTarget[1]),body=await parseBody(request);
+  if(typeof body.enabled!=='boolean')throw new ApiError(400,'حالة التفويض غير صحيحة.');
+  const reason=typeof body.reason==='string'?body.reason.trim().slice(0,500):'';
+  if(reason.length<12)throw new ApiError(400,'دوّن سبب منح أو سحب التفويض.');
+  const target=await db.prepare('SELECT id,role,account_status FROM users WHERE id=? AND password_hash IS NOT NULL').bind(id).first();
+  if(!target)throw new ApiError(404,'الحساب غير موجود.');
+  if(target.role==='admin'||target.id===user.id||target.account_status!=='active')throw new ApiError(403,'لا يمكن منح صلاحية إدارة التفويض لهذا الحساب.');
+  const statements=[body.enabled
+   ?db.prepare('INSERT INTO staff_assignment_managers(user_id,granted_by) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET granted_by=excluded.granted_by,granted_at=strftime(\'%Y-%m-%dT%H:%M:%fZ\',\'now\')').bind(id,user.id)
+   :db.prepare('DELETE FROM staff_assignment_managers WHERE user_id=?').bind(id),
+   db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason) VALUES(?,?,?,?,?)').bind(user.id,'user',id,body.enabled?'staff_manager_grant':'staff_manager_revoke',reason)];
+  await db.batch(statements);
+  return json({ok:true,enabled:body.enabled});
+ }
+
  if(path==='/api/staff/users'&&method==='GET'){
   const q=(url.searchParams.get('q')||'').trim().slice(0,100);
   if(q.length<2)throw new ApiError(400,'أدخل حرفين على الأقل للبحث.');
@@ -51,6 +83,9 @@ export async function staffRoute(request,db,user,{json,parseBody,ApiError,enforc
    targets=[d.target_user_id];
   }
   if(targets.length){
+   if(delegatedManager){
+    for(const targetId of targets)if(await isAssignmentManager(targetId))throw new ApiError(403,'لا يحق للمشرف المفوض تعديل صلاحيات مفوض آخر.');
+   }
    const checked=await db.prepare(`SELECT id,role,account_status FROM users WHERE id IN (${targets.map(()=>'?').join(',')}) AND password_hash IS NOT NULL`).bind(...targets).all();
    if(checked.results.length!==targets.length||checked.results.some(t=>t.role==='admin'||t.account_status!=='active'||t.id===user.id))throw new ApiError(403,'لا يمكن إسناد المهمة إلا إلى حساب عضو نشط وغير إداري.');
   }
@@ -77,6 +112,7 @@ export async function staffRoute(request,db,user,{json,parseBody,ApiError,enforc
   if(!Array.isArray(permissions)||permissions.length>PERMISSIONS.length||new Set(permissions).size!==permissions.length||permissions.some(p=>!PERMISSIONS.includes(p)))throw new ApiError(400,'اختر صلاحيات مراجعة معتمدة فقط.');
   const target=await db.prepare('SELECT id,role,account_status FROM users WHERE id=? AND password_hash IS NOT NULL').bind(id).first();
   if(!target)throw new ApiError(404,'العضو غير موجود.');
+  if(delegatedManager&&await isAssignmentManager(id))throw new ApiError(403,'لا يحق للمشرف المفوض تعديل صلاحيات مفوض آخر.');
   if(target.role==='admin'||id===user.id)throw new ApiError(403,'لا يمكن تعديل صلاحيات المدير بهذا الإجراء.');
   if(target.account_status!=='active')throw new ApiError(403,'يجب تفعيل حساب العضو قبل منحه صلاحيات إشراف.');
   const before=await staffCapabilities(db,target);
