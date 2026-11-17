@@ -89,6 +89,13 @@ export async function staffRoute(request,db,user,{json,parseBody,ApiError,enforc
    const checked=await db.prepare(`SELECT id,role,account_status FROM users WHERE id IN (${targets.map(()=>'?').join(',')}) AND password_hash IS NOT NULL`).bind(...targets).all();
    if(checked.results.length!==targets.length||checked.results.some(t=>t.role==='admin'||t.account_status!=='active'||t.id===user.id))throw new ApiError(403,'لا يمكن إسناد المهمة إلا إلى حساب عضو نشط وغير إداري.');
   }
+  if(delegatedManager){
+   // Delegated supervisors may distribute work, but cannot alter peer delegation managers.
+   const {results:peerAssignments}=await db.prepare(`SELECT p.user_id,p.permission FROM staff_permissions p
+     JOIN staff_assignment_managers m ON m.user_id=p.user_id`).all();
+   const changesPeer=peerAssignments.some(p=>d.mode!=='replace_scope'||p.permission===permission);
+   if(changesPeer)throw new ApiError(403,'لا يحق للمشرف المفوض إعادة توزيع صلاحيات مشرف عام آخر؛ يلزم المدير العام.');
+  }
   const previous=await db.prepare('SELECT user_id,permission FROM staff_permissions ORDER BY user_id,permission').all();
   const statements=[];
   if(d.mode==='replace_scope'){
