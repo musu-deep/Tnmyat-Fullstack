@@ -1,3 +1,4 @@
+import {canReview} from './staff.js';
 const protectedEmails = new Set(['araakdevelopment@gmail.com', 'louiabdalla1@gmail.com']);
 const targetTables = {post:'posts', comment:'comments',group:'community_groups',group_note:'group_notes'};
 const allowedStates = {post:['visible','hidden'],comment:['visible','hidden'],group:['visible','hidden'],group_note:['visible','hidden']};
@@ -6,11 +7,16 @@ export async function governanceRoute(request, db, user, helpers) {
   const {json,parseBody,textField,ApiError,enforceLimit}=helpers;
   const url=new URL(request.url),path=url.pathname,method=request.method;
   const isAdmin=user?.role==='admin';
+  const canModerate=isAdmin||await canReview(db,user,'content_moderation');
   const isAppeal=path==='/api/appeals' && method==='POST';
   const isReport=path==='/api/moderation/report' && method==='POST';
   if (!path.startsWith('/api/admin/') && !isAppeal && !isReport) return null;
   if (!user) throw new ApiError(401,'سجّل الدخول أولاً.');
-  if (!isAdmin && !isAppeal && !isReport) throw new ApiError(403,'إدارة المجتمع مخصصة للمشرفين.');
+  if (!canModerate && !isAppeal && !isReport) throw new ApiError(403,'إدارة المجتمع مخصصة للمشرفين.');
+  if(!isAdmin&&!isAppeal&&!isReport){
+    const allowed=/^\/api\/admin\/(posts|groups|reports)(?:\/\d+)?$/;
+    if(!allowed.test(path))throw new ApiError(403,'هذه الوظيفة مخصصة للإدارة العامة.');
+  }
   const audit=async(type,id,action,reason,details='')=>db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason,details) VALUES(?,?,?,?,?,?)').bind(user.id,type,id,action,reason,details).run();
   const readId=value=>{const id=Number(value);if(!Number.isSafeInteger(id)||id<1)throw new ApiError(400,'معرف غير صالح');return id;};
   if(isReport){
