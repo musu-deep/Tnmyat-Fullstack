@@ -8,7 +8,7 @@ export async function marketImpactRoute(request, db, user, {json,parseBody,textF
  const id=idPart?Number(idPart[1]):0;
  if(method==='GET'&&path==='/api/impact/members'){
   const rows=await db.prepare(`SELECT u.id,u.name,COALESCE(i.score,0) score,COALESCE(i.category,'قيد التقييم') category,i.evidence,i.updated_at
-    FROM member_impact_reviews i JOIN users u ON u.id=i.user_id
+    FROM market_member_impact_ratings i JOIN users u ON u.id=i.user_id
     WHERE u.account_status='active' ORDER BY i.score DESC,u.id ASC LIMIT 100`).all();
   return json({members:rows.results});
  }
@@ -20,7 +20,7 @@ export async function marketImpactRoute(request, db, user, {json,parseBody,textF
   const found=await db.prepare("SELECT id FROM users WHERE id=? AND account_status='active'").bind(id).first();
   if(!found)throw new ApiError(404,'العضو غير موجود أو غير نشط.');
   const category=score>=80?'أثر رائد':score>=60?'أثر متقدم':score>=40?'أثر نامٍ':'أثر ناشئ';
-  await db.prepare(`INSERT INTO member_impact_reviews(user_id,score,evidence,category,reviewed_by)
+  await db.prepare(`INSERT INTO market_member_impact_ratings(user_id,score,evidence,category,reviewed_by)
    VALUES(?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET score=excluded.score,evidence=excluded.evidence,
    category=excluded.category,reviewed_by=excluded.reviewed_by,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
    .bind(id,score,evidence,category,user.id).run();
