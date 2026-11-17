@@ -90,3 +90,63 @@ test('Content moderator can review community posts, groups and reports but canno
   assert.equal((await call('admin/posts','GET',undefined,moderator.cookie)).status,403);
  }finally{db.close();}
 });
+
+
+test('Director can overlap, consolidate and revoke permissions for all supervisors while retaining access',async()=>{
+ const {db,call,create}=setup();
+ try{
+  const admin=await create('allocation-admin@example.org');
+  const first=await create('allocation-first@example.org');
+  const second=await create('allocation-second@example.org');
+  const third=await create('allocation-third@example.org');
+  db.prepare("UPDATE users SET role='admin' WHERE id=?").bind(admin.data.user.id).run();
+  const ids=[first.data.user.id,second.data.user.id,third.data.user.id];
+  const path='staff/assignments';
+  const reason='إعادة تنظيم الإشراف وتوزيع المسؤوليات وفق حاجة المجتمع';
+  assert.equal((await call(path,'PATCH',{mode:'clear_all',reason},first.cookie)).status,403);
+  assert.equal((await call(path,'PATCH',{mode:'replace_scope',permission:'needs_review',user_ids:[ids[0],ids[1]],reason},admin.cookie)).status,200);
+  assert.equal((await call(path,'PATCH',{mode:'replace_scope',permission:'opportunities_review',user_ids:[ids[1],ids[2]],reason},admin.cookie)).status,200);
+  let overview=await call('staff/overview','GET',undefined,admin.cookie);
+  assert.equal(overview.status,200);
+  assert.equal(overview.data.scopes.needs_review.length,2);
+  assert.equal(overview.data.scopes.opportunities_review.length,2);
+  assert.deepEqual((await call('staff/me','GET',undefined,second.cookie)).data.permissions,['needs_review','opportunities_review']);
+  assert.equal((await call(path,'PATCH',{mode:'replace_scope',permission:'needs_review',user_ids:[],reason},admin.cookie)).status,200);
+  assert.equal((await call('needs/admin/queue','GET',undefined,first.cookie)).status,403);
+  assert.equal((await call('needs/admin/queue','GET',undefined,admin.cookie)).status,200);
+  const consolidate=await call(path,'PATCH',{mode:'consolidate',target_user_id:ids[0],reason},admin.cookie);
+  assert.equal(consolidate.status,200,JSON.stringify(consolidate.data));
+  assert.equal((await call('staff/me','GET',undefined,first.cookie)).data.permissions.length,5);
+  assert.deepEqual((await call('staff/me','GET',undefined,second.cookie)).data.permissions,[]);
+  assert.deepEqual((await call('staff/me','GET',undefined,third.cookie)).data.permissions,[]);
+  const clear=await call(path,'PATCH',{mode:'clear_all',reason},admin.cookie);
+  assert.equal(clear.status,200);
+  overview=await call('staff/overview','GET',undefined,admin.cookie);
+  for(const users of Object.values(overview.data.scopes))assert.equal(users.length,0);
+  assert.equal((await call('admin/overview','GET',undefined,admin.cookie)).status,200);
+  assert.equal((await call('staff/overview','GET',undefined,second.cookie)).status,403);
+  assert.equal((await call('staff/me','GET',undefined,first.cookie)).data.permissions.length,0);
+  const audit=db.prepare("SELECT COUNT(*) AS n FROM moderation_actions WHERE action LIKE 'staff_assignment_%'").first();
+  assert.equal(audit.n,5);
+ }finally{db.close();}
+});
+
+test('Assignment changes reject duplicate, inactive, administrative and unverified recipients without modifying records',async()=>{
+ const {db,call,create}=setup();
+ try{
+  const admin=await create('allocation-guard-admin@example.org');
+  const target=await create('allocation-guard-user@example.org');
+  const inactive=await create('allocation-guard-inactive@example.org');
+  db.prepare("UPDATE users SET role='admin' WHERE id=?").bind(admin.data.user.id).run();
+  db.prepare("UPDATE users SET account_status='suspended' WHERE id=?").bind(inactive.data.user.id).run();
+  const reason='إجراء إداري مبرر لاعتماد صلاحيات الإشراف';
+  const apiPath='staff/assignments';
+  assert.equal((await call(apiPath,'PATCH',{mode:'replace_scope',permission:'needs_review',user_ids:[target.data.user.id,target.data.user.id],reason},admin.cookie)).status,400);
+  assert.equal((await call(apiPath,'PATCH',{mode:'replace_scope',permission:'needs_review',user_ids:[admin.data.user.id],reason},admin.cookie)).status,403);
+  assert.equal((await call(apiPath,'PATCH',{mode:'consolidate',target_user_id:inactive.data.user.id,reason},admin.cookie)).status,403);
+  assert.equal((await call(apiPath,'PATCH',{mode:'replace_scope',permission:'made_up',user_ids:[target.data.user.id],reason},admin.cookie)).status,400);
+  assert.equal((await call(apiPath,'PATCH',{mode:'clear_all',reason:'قصير'},admin.cookie)).status,400);
+  assert.deepEqual((await call('staff/me','GET',undefined,target.cookie)).data.permissions,[]);
+  assert.equal((await call('staff/overview','GET',undefined,admin.cookie)).data.scopes.needs_review.length,0);
+ }finally{db.close();}
+});
