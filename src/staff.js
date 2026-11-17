@@ -27,6 +27,48 @@ export async function staffRoute(request,db,user,{json,parseBody,ApiError,enforc
   for(const u of results)users.push({...u,permissions:await staffCapabilities(db,u)});
   return json({users});
  }
+ if(path==='/api/staff/overview'&&method==='GET'){
+  const {results}=await db.prepare(`SELECT p.user_id,p.permission,u.name,u.email,u.account_status
+   FROM staff_permissions p JOIN users u ON u.id=p.user_id
+   WHERE u.role!='admin' ORDER BY p.permission,u.name,p.user_id LIMIT 2000`).all();
+  const scopes=Object.fromEntries(PERMISSIONS.map(permission=>[permission,results.filter(r=>r.permission===permission).map(r=>({id:r.user_id,name:r.name,email:r.email,active:r.account_status==='active'}))]));
+  return json({scopes,permission_count:PERMISSIONS.length});
+ }
+ if(path==='/api/staff/assignments'&&method==='PATCH'){
+  await enforceLimit(db,'staff-reassign',user.id,30,3600);
+  const d=await parseBody(request);
+  if(!['replace_scope','consolidate','clear_all'].includes(d.mode))throw new ApiError(400,'اختر إجراءً معتمداً لتوزيع صلاحيات الإشراف.');
+  const reason=typeof d.reason==='string'?d.reason.trim().slice(0,500):'';
+  if(reason.length<12)throw new ApiError(400,'دوّن سبباً واضحاً للتوزيع أو سحب الصلاحيات.');
+  let permission=null,targets=[];
+  if(d.mode==='replace_scope'){
+   permission=d.permission;
+   if(!PERMISSIONS.includes(permission))throw new ApiError(400,'هذه الصلاحية غير معتمدة.');
+   if(!Array.isArray(d.user_ids)||d.user_ids.length>150||new Set(d.user_ids).size!==d.user_ids.length||d.user_ids.some(id=>!Number.isSafeInteger(id)||id<1))throw new ApiError(400,'اختر قائمة مشرفين صالحة دون تكرار.');
+   targets=d.user_ids;
+  }else if(d.mode==='consolidate'){
+   if(!Number.isSafeInteger(d.target_user_id)||d.target_user_id<1)throw new ApiError(400,'اختر مشرفاً واحداً لتجميع الصلاحيات.');
+   targets=[d.target_user_id];
+  }
+  if(targets.length){
+   const checked=await db.prepare(`SELECT id,role,account_status FROM users WHERE id IN (${targets.map(()=>'?').join(',')}) AND password_hash IS NOT NULL`).bind(...targets).all();
+   if(checked.results.length!==targets.length||checked.results.some(t=>t.role==='admin'||t.account_status!=='active'||t.id===user.id))throw new ApiError(403,'لا يمكن إسناد المهمة إلا إلى حساب عضو نشط وغير إداري.');
+  }
+  const previous=await db.prepare('SELECT user_id,permission FROM staff_permissions ORDER BY user_id,permission').all();
+  const statements=[];
+  if(d.mode==='replace_scope'){
+   statements.push(db.prepare('DELETE FROM staff_permissions WHERE permission=?').bind(permission));
+   for(const id of targets)statements.push(db.prepare('INSERT INTO staff_permissions(user_id,permission,granted_by) VALUES(?,?,?)').bind(id,permission,user.id));
+  }else{
+   statements.push(db.prepare('DELETE FROM staff_permissions'));
+   if(d.mode==='consolidate')for(const p of PERMISSIONS)statements.push(db.prepare('INSERT INTO staff_permissions(user_id,permission,granted_by) VALUES(?,?,?)').bind(targets[0],p,user.id));
+  }
+  statements.push(db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason,details) VALUES(?,?,?,?,?,?)').bind(
+   user.id,'user',targets[0]||user.id,'staff_assignment_'+d.mode,reason,JSON.stringify({permission,targets,previous:previous.results})
+  ));
+  await db.batch(statements);
+  return json({ok:true,mode:d.mode,permission,assigned_users:targets});
+ }
  const m=path.match(/^\/api\/staff\/users\/(\d+)\/permissions$/);
  if(m&&method==='PATCH'){
   await enforceLimit(db,'staff-permissions',user.id,45,3600);
