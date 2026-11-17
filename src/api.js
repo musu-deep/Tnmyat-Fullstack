@@ -137,8 +137,6 @@ async function passwordRecoveryRoute(request,db,user){
    db.prepare('DELETE FROM temporary_password_challenges WHERE user_id=?').bind(account.id),
    db.prepare('INSERT INTO temporary_passwords(user_id,password_hash,salt,issued_by,expires_at) VALUES(?,?,?,?,unixepoch()+1800) ON CONFLICT(user_id) DO UPDATE SET password_hash=excluded.password_hash,salt=excluded.salt,issued_by=excluded.issued_by,expires_at=excluded.expires_at').bind(account.id,hashed,salt,user.id),
    db.prepare('DELETE FROM password_reset_tokens WHERE user_id=?').bind(account.id),
-   db.prepare('DELETE FROM temporary_password_challenges WHERE user_id=?').bind(account.id),
-   db.prepare('DELETE FROM temporary_passwords WHERE user_id=?').bind(account.id),
    db.prepare('INSERT INTO moderation_actions(actor_id,target_type,target_id,action,reason) VALUES(?,?,?,?,?)').bind(user.id,'user',account.id,'temporary_password_issued',reason)
   ]);
   return json({temporary_password:password,expires_minutes:30,account_name:account.name});
@@ -156,7 +154,8 @@ async function passwordRecoveryRoute(request,db,user){
   if(!challenge)throw new ApiError(400,'انتهت صلاحية جلسة التغيير المؤقت. أعد تسجيل الدخول بالكلمة المؤقتة.');
   const salt=randomHex(16),hashed=await passwordHash(password,salt);
   const results=await db.batch([
-   db.prepare("UPDATE users SET password_hash=?,salt=? WHERE id=? AND account_status='active' AND EXISTS (SELECT 1 FROM temporary_password_challenges WHERE token_hash=? AND user_id=users.id AND expires_at>unixepoch()) RETURNING id").bind(hashed,salt,challenge.user_id,hashedToken),
+   db.prepare("UPDATE users SET password_hash=?,salt=? WHERE id=? AND account_status='active' AND EXISTS (SELECT 1 FROM temporary_password_challenges WHERE token_hash=? AND user_id=users.id AND expires_at>unixepoch())
+   AND EXISTS (SELECT 1 FROM temporary_passwords WHERE user_id=users.id AND expires_at>unixepoch()) RETURNING id").bind(hashed,salt,challenge.user_id,hashedToken),
    db.prepare('DELETE FROM temporary_password_challenges WHERE user_id=?').bind(challenge.user_id),
    db.prepare('DELETE FROM temporary_passwords WHERE user_id=?').bind(challenge.user_id),
    db.prepare('DELETE FROM password_reset_tokens WHERE user_id=?').bind(challenge.user_id),
