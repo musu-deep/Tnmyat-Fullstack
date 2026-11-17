@@ -104,7 +104,7 @@ test('Temporary recovery UI offers dual admin methods and forced password change
  assert.match(app,/password_change_required/);
  assert.match(app,/temporaryPasswordChangeForm/);
  assert.match(app,/password-recovery\/temporary-complete/);
- assert.match(app,/new FormData\(form,e\.submitter\)/);
+ assert.match(app,/new FormData\(form,e\.submitter\|\|undefined\)/);
  assert.doesNotThrow(()=>new Function(app));
  assert.doesNotThrow(()=>new Function(staff));
 });
