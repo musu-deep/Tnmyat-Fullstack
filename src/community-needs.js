@@ -1,3 +1,4 @@
+import {canReview} from './staff.js';
 // Moderated development needs and consent-based cooperation across public communities.
 const trim=(v,n)=>typeof v==='string'?v.trim().slice(0,n):'';
 const dateValid=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&!Number.isNaN(Date.parse(x+'T12:00:00Z'))&&new Date(x+'T12:00:00Z').toISOString().startsWith(x);
@@ -39,14 +40,14 @@ export async function communityNeedsRoute(request,db,user,{json,parseBody,requir
   await log('need',id,'close');return json({ok:true});
  }
  if(path==='/api/needs/admin/queue'&&method==='GET'){
-  if(user.role!=='admin')deny('هذه المهمة للإدارة.');
+  if(!await canReview(db,user,'needs_review'))deny('هذه المهمة لمن مُنحت له صلاحية مراجعة الاحتياجات فقط.');
   const {results}=await db.prepare(`SELECT n.id,n.title,n.description,n.category,n.country,n.urgency,u.name AS owner
   FROM development_needs n JOIN users u ON u.id=n.owner_id WHERE n.status='pending' ORDER BY n.id LIMIT 100`).all();
   return json({needs:results});
  }
  const review=path.match(/^\/api\/needs\/admin\/(\d+)$/);
  if(review&&method==='PATCH'){
-  if(user.role!=='admin')deny('هذه المهمة للإدارة.');
+  if(!await canReview(db,user,'needs_review'))deny('هذه المهمة لمن مُنحت له صلاحية مراجعة الاحتياجات فقط.');
   await enforceLimit(db,'needs-review',uid,75,3600);
   const id=Number(review[1]),d=await parseBody(request),note=trim(d.note,500);
   if(!['published','rejected'].includes(d.status)||note.length<12)bad('أدخل قراراً مبرراً.');
