@@ -3,7 +3,8 @@ const STAFF_REVIEW_ITEMS=[
  {permission:'needs_review',title:'مراجعة الاحتياجات',description:'الاحتياجات المقدمة للنشر',href:'/needs-admin',icon:'◇'},
  {permission:'opportunities_review',title:'مراجعة الفرص',description:'الفرص والمشاركات الجديدة',href:'/work-admin',icon:'▦'},
  {permission:'organizations_review',title:'مراجعة الجهات',description:'الجهات التي تنتظر التحقق',href:'/work-admin',icon:'♧'},
- {permission:'outcomes_review',title:'مراجعة النتائج',description:'الأدلة والمؤشرات المسجلة',href:'/work-admin',icon:'◎'}
+ {permission:'outcomes_review',title:'مراجعة النتائج',description:'الأدلة والمؤشرات المسجلة',href:'/work-admin',icon:'◎'},
+ {permission:'content_moderation',title:'إشراف المحتوى',description:'مراجعة المنشورات والمجموعات والبلاغات',href:'/admin',icon:'⚑'}
 ];
 const staffAllowed=key=>Boolean(user&&(user.role==='admin'||(user.permissions||[]).includes(key)));
 async function renderStaff(token){
