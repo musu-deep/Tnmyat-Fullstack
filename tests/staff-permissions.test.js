@@ -150,3 +150,34 @@ test('Assignment changes reject duplicate, inactive, administrative and unverifi
   assert.equal((await call('staff/overview','GET',undefined,admin.cookie)).data.scopes.needs_review.length,0);
  }finally{db.close();}
 });
+
+
+test('Director may delegate assignment administration without giving general supervisor the director role',async()=>{
+ const {db,call,create}=setup();
+ try{
+  const director=await create('delegate-director@example.org');
+  const general=await create('delegate-general@example.org');
+  const peer=await create('delegate-peer@example.org');
+  const member=await create('delegate-member@example.org');
+  db.prepare("UPDATE users SET role='admin' WHERE id=?").bind(director.data.user.id).run();
+  const reason='تخويل رسمي لإدارة توزيع مهام المشرفين في المجتمع';
+  assert.equal((await call('staff/managers/'+general.data.user.id,'PATCH',{enabled:true,reason},general.cookie)).status,403);
+  assert.equal((await call('staff/managers/'+general.data.user.id,'PATCH',{enabled:true,reason},director.cookie)).status,200);
+  const generalPermissions=(await call('me','GET',undefined,general.cookie)).data.user.permissions;
+  assert.deepEqual(generalPermissions,['staff_manage']);
+  assert.equal((await call('admin/users','GET',undefined,general.cookie)).status,403);
+  assert.equal((await call('staff/users?q=delegate','GET',undefined,general.cookie)).status,200);
+  assert.equal((await call('staff/users/'+member.data.user.id+'/permissions','PATCH',{permissions:['needs_review','content_moderation']},general.cookie)).status,200);
+  assert.equal((await call('needs/admin/queue','GET',undefined,member.cookie)).status,200);
+  assert.equal((await call('admin/posts','GET',undefined,member.cookie)).status,200);
+  assert.equal((await call('staff/managers/'+peer.data.user.id,'PATCH',{enabled:true,reason},general.cookie)).status,403);
+  assert.equal((await call('staff/managers/'+peer.data.user.id,'PATCH',{enabled:true,reason},director.cookie)).status,200);
+  assert.equal((await call('staff/users/'+peer.data.user.id+'/permissions','PATCH',{permissions:['needs_review']},general.cookie)).status,403);
+  assert.equal((await call('staff/users/'+peer.data.user.id+'/permissions','PATCH',{permissions:['needs_review']},director.cookie)).status,200);
+  assert.equal((await call('staff/assignments','PATCH',{mode:'clear_all',reason},general.cookie)).status,403);
+  assert.equal((await call('staff/managers/'+general.data.user.id,'PATCH',{enabled:false,reason},director.cookie)).status,200);
+  assert.equal((await call('staff/users/'+member.data.user.id+'/permissions','PATCH',{permissions:[]},general.cookie)).status,403);
+  assert.deepEqual((await call('me','GET',undefined,general.cookie)).data.user.permissions,[]);
+  assert.equal((await call('staff/users/'+member.data.user.id+'/permissions','PATCH',{permissions:[]},director.cookie)).status,200);
+ }finally{db.close();}
+});
