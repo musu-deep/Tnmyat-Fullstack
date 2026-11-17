@@ -1,3 +1,4 @@
+import {canReview} from './staff.js';
 // Moderated opportunities, verified organization affiliations, group consent and project outcomes.
 const clip=(x,n)=>typeof x==='string'?x.trim().slice(0,n):'';
 const dateOK=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&!Number.isNaN(Date.parse(x+'T12:00:00Z'))&&new Date(x+'T12:00:00Z').toISOString().startsWith(x);
@@ -8,7 +9,9 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
  if(!path.startsWith('/api/work/'))return null;
  const bad=x=>{throw new ApiError(400,x)},forbidden=x=>{throw new ApiError(403,x)};
  const idFrom=regex=>{const m=path.match(regex);if(!m)return null;const n=Number(m[1]);if(!Number.isSafeInteger(n)||n<1)bad('معرف غير صالح');return n};
- const requireAdmin=()=>{if(user?.role!=='admin')forbidden('هذه المهمة للإدارة فقط')};
+ const requireReview=async(permission)=>{if(!await canReview(db,user,permission))forbidden('لا تملك صلاحية مراجعة هذا القسم.')};
+ const workScopes=['organizations_review','opportunities_review','outcomes_review'];
+ const canAnyWork=async()=>{for(const scope of workScopes)if(await canReview(db,user,scope))return true;return false;};
  const audit=async(action,type,id,detail='')=>db.prepare('INSERT INTO development_work_audit(actor_id,action,item_type,item_id,detail) VALUES(?,?,?,?,?)').bind(user.id,action,type,id,clip(detail,500)).run();
  if(path==='/api/work/opportunities'&&method==='GET'){
   const topic=clip(url.searchParams.get('category'),40),mode=clip(url.searchParams.get('mode'),20);
@@ -192,18 +195,20 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
   await audit('create','outcome',row.id);return json({id:row.id,verification:'self_reported'},201);
  }
  if(path==='/api/work/admin/queue'&&method==='GET'){
-  requireAdmin();
+  if(!await canAnyWork())forbidden('لا تملك صلاحية مراجعة هذا القسم.');
+  const allowed=await Promise.all(workScopes.map(s=>canReview(db,user,s)));
   const [orgs,opps,outcomes]=await Promise.all([
    db.prepare("SELECT o.id,o.name,o.country,o.description,o.website,u.name AS owner FROM development_organizations o JOIN users u ON u.id=o.owner_id WHERE o.status='unverified' ORDER BY o.id LIMIT 80").all(),
    db.prepare("SELECT o.id,o.title,o.description,o.requirements,o.category,o.country,o.mode,o.arrangement,o.capacity,o.deadline,u.name AS owner FROM development_opportunities o JOIN users u ON u.id=o.owner_id WHERE o.status='pending' ORDER BY o.id LIMIT 80").all(),
    db.prepare(`SELECT o.id,o.metric,o.baseline,o.observed,o.unit,o.context,o.evidence_url,o.measured_on,p.title AS project_title FROM project_outcomes o JOIN development_projects p ON p.id=o.project_id
     WHERE o.verification='self_reported' ORDER BY o.id LIMIT 80`).all()
-  ]);return json({organizations:orgs.results,opportunities:opps.results,outcomes:outcomes.results});
+  ]);return json({organizations:allowed[0]?orgs.results:[],opportunities:allowed[1]?opps.results:[],outcomes:allowed[2]?outcomes.results:[]});
  }
  const decision=path.match(/^\/api\/work\/admin\/(organizations|opportunities|outcomes)\/(\d+)$/);
  if(decision&&method==='PATCH'){
-  requireAdmin();await enforceLimit(db,'work-admin',uid,100,3600);
   const kind=decision[1],id=Number(decision[2]),d=await parseBody(request),note=clip(d.note,600);
+  await requireReview(({organizations:'organizations_review',opportunities:'opportunities_review',outcomes:'outcomes_review'})[kind]);
+  await enforceLimit(db,'work-admin',uid,100,3600);
   if(note.length<12)bad('يرجى كتابة مبرر المراجعة.');
   let changed;
   if(kind==='organizations'){
@@ -222,15 +227,16 @@ export async function developmentWorkRoute(request,db,user,{json,parseBody,requi
   await audit(d.status,'admin_'+kind,id,note);return json({ok:true});
  }
  if(path==='/api/work/metrics'&&method==='GET'){
-  requireAdmin();
+  if(!await canAnyWork())forbidden('لا تملك صلاحية قراءة هذه المؤشرات.');
+  const allowed=await Promise.all(workScopes.map(s=>canReview(db,user,s)));
   const [opps,apps,results,orgs]=await Promise.all([
    db.prepare("SELECT COUNT(*) AS n FROM development_opportunities WHERE status='published'").first(),
    db.prepare(`SELECT COUNT(*) AS n,SUM(status='accepted') AS accepted,SUM(status='completed') AS completed FROM opportunity_applications`).first(),
    db.prepare("SELECT COUNT(*) AS n,SUM(verification='reviewed') AS reviewed FROM project_outcomes").first(),
    db.prepare("SELECT COUNT(*) AS n FROM development_organizations WHERE status='verified'").first()
   ]);
-  return json({opportunities:opps.n,applications:apps.n,accepted:apps.accepted||0,completed:apps.completed||0,
-    outcomes:results.n,reviewed_outcomes:results.reviewed||0,verified_organizations:orgs.n,
+  return json({opportunities:allowed[1]?opps.n:0,applications:allowed[1]?apps.n:0,accepted:allowed[1]?(apps.accepted||0):0,completed:allowed[1]?(apps.completed||0):0,
+    outcomes:allowed[2]?results.n:0,reviewed_outcomes:allowed[2]?(results.reviewed||0):0,verified_organizations:allowed[0]?orgs.n:0,
     note:'إكمال مشاركة بتأكيد الطرفين ومراجعة الأدلة لا يساوي إثبات أثر مستقل.'});
  }
  return null;
