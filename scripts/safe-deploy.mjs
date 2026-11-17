@@ -1,13 +1,14 @@
 // One-command, fail-closed production deployment with mandatory off-repository D1 export.
 // Usage: npm run deploy:safe
 import { readFileSync, mkdirSync, statSync, openSync, readSync, closeSync, existsSync, writeFileSync } from 'node:fs';
-import { resolve, dirname, basename } from 'node:path';
+import { resolve, basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 
-const root=resolve(new URL('..',import.meta.url).pathname);
+const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 process.chdir(root);
 const fail=(message)=>{ console.error('\nBLOCKED: '+message);process.exit(1); };
 const config=JSON.parse(readFileSync('wrangler.jsonc','utf8').replace(/^\s*\/\/.*$/gm,''));
