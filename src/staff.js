@@ -1,4 +1,4 @@
-const PERMISSIONS=['needs_review','opportunities_review','organizations_review','outcomes_review'];
+const PERMISSIONS=['needs_review','opportunities_review','organizations_review','outcomes_review','content_moderation'];
 export const staffPermissionKeys=PERMISSIONS;
 export async function staffCapabilities(db,user){
  if(!user)return [];
