@@ -8,6 +8,17 @@ export async function marketCommerceRoute(request,db,user,{json,parseBody,textFi
  const positive=value=>{const n=Number(value);if(!Number.isSafeInteger(n)||n<1||n>1000000)throw new ApiError(400,'الكمية غير صحيحة.');return n;};
  const storeOwner=async(storeId)=>{member();const store=await db.prepare('SELECT id,owner_id,status FROM market_stores WHERE id=?').bind(storeId).first();if(!store||store.owner_id!==user.id)throw new ApiError(403,'لا تملك هذه المساحة.');if(store.status!=='approved')throw new ApiError(403,'المساحة لم تُعتمد.');return store;};
  const listingOwner=async(listingId)=>{member();const r=await db.prepare('SELECT l.id,l.store_id,s.owner_id,s.status FROM market_listings l JOIN market_stores s ON s.id=l.store_id WHERE l.id=?').bind(listingId).first();if(!r||r.owner_id!==user.id)throw new ApiError(403,'لا تملك هذا العرض.');if(r.status!=='approved')throw new ApiError(403,'المساحة غير معتمدة.');return r;};
+ const storefront=p.match(/^\/api\/market\/storefront\/(\d+)$/);
+ if(storefront&&m==='GET'){
+  const id=validateId(storefront[1]);
+  const store=await db.prepare(`SELECT s.id,s.name,s.description,s.kind,u.name owner_name
+    FROM market_stores s JOIN users u ON u.id=s.owner_id
+    WHERE s.id=? AND s.status='approved'`).bind(id).first();
+  if(!store)throw new ApiError(404,'هذه المساحة غير متاحة.');
+  const listings=await db.prepare(`SELECT id,title,description,type,price_minor,currency,category,image_url,stock_qty,min_order_qty,sku
+    FROM market_listings WHERE store_id=? AND status='published' ORDER BY id DESC LIMIT 200`).bind(id).all();
+  return json({store,listings:listings.results});
+ }
  if(p==='/api/market/categories'&&m==='GET')return json({categories:['مواد البناء','التقنية','الصناعة','الزراعة','الأغذية','التعليم','الخدمات المهنية','التجهيزات','النقل واللوجستيات','عام']});
  if(p==='/api/market/dashboard'&&m==='GET'){
   member();
