@@ -249,11 +249,12 @@ async function route(request,db) {
   }
   const user = await currentUser(request,db);
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
-  const staff=await staffRoute(request,db,user,helpers);
-  if(staff)return staff;
   const governance=await governanceRoute(request,db,user,helpers);
   if(governance)return governance;
   if(user&&(user.account_status==='banned'||(user.account_status==='suspended'&&(!user.status_until||user.status_until>Math.floor(Date.now()/1000)))))throw new ApiError(403,'الحساب موقوف؛ تواصل مع إدارة المجتمع.');
+  const staff=await staffRoute(request,db,user,helpers);
+  if(staff)return staff;
+
   const hub=await developmentHubRoute(request,db,user,helpers);
   if(hub)return hub;
   const journey=await memberJourneyRoute(request,db,user,helpers);
