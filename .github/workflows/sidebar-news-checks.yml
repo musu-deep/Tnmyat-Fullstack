@@ -1,0 +1,30 @@
+name: Sidebar news palette and dock checks
+on:
+  push:
+    branches:
+      - fix/ticker-sidebar-bottom-brand
+      - fix/ticker-seamless-compact
+      - fix/ticker-inline-category-separators
+  pull_request:
+    branches:
+      - feature/tnmyat-services-core
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check JavaScript
+        run: |
+          node --check public/app.js
+          node --check public/hub.js
+          node --check tests/embedded-tools-ticker.test.js
+          node --check tests/ticker-seamless.test.js
+          node --check tests/news-inline-separators.test.js
+      - name: Run full community tests
+        run: npm test

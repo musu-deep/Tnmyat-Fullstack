@@ -1,0 +1,77 @@
+.tnServicesPage{max-width:1180px;margin:20px auto 55px;padding:0 18px;direction:rtl}
+.tnServicesHero{border-radius:22px;padding:clamp(24px,4vw,55px);background:radial-gradient(circle at 12% 16%,#3b6c83,transparent 42%),linear-gradient(120deg,#122a48,#294f6c);color:#fff}
+.tnServicesHero a{color:#bcdce6;font-weight:700}
+.tnServicesHero h1{font-size:clamp(30px,4vw,48px);margin:12px 0}.tnServicesHero p{line-height:2;color:#deedf7;max-width:760px}
+.tnServiceTabs{display:flex;gap:8px;overflow-x:auto;padding:16px 0;scrollbar-width:thin}
+.tnServiceTab{flex:0 0 auto;border:1px solid #d5e1e9;border-radius:999px;background:#fff;color:#234964;font:inherit;font-size:.88rem;font-weight:800;padding:10px 16px;cursor:pointer}
+.tnServiceTab.active{color:#fff;background:#214d69;border-color:#214d69}
+.tnServiceContent{background:var(--panel,#fff);border:1px solid #d8e3eb;border-radius:18px;padding:clamp(16px,3vw,30px);min-height:320px}
+.tnServiceContent>header{margin-bottom:24px;border-bottom:1px solid #e0e9ef;padding-bottom:15px}
+.tnServiceContent>header h2{color:#193d57;margin:0 0 7px;font-size:1.5rem}
+.tnServiceContent>header p{color:#627a8a;line-height:1.9;margin:0}
+.tnServiceForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:end;margin-bottom:24px}
+.tnServiceForm label{display:grid;gap:6px;font-size:.82rem;color:#3e5b70;font-weight:700}
+.tnServiceForm input,.tnServiceForm textarea,.tnServiceForm select{min-width:0;width:100%;border:1px solid #cbdce7;border-radius:10px;padding:11px 12px;background:#fff;color:#1b3d53;font:inherit}
+.tnServiceForm textarea{min-height:83px}
+.tnServiceForm .error{grid-column:1/-1;color:#a13434}
+.tnServiceForm button{justify-self:start}
+.tnServiceList{display:grid;gap:9px;margin:15px 0}
+.tnServiceRow{padding:15px;border:1px solid #dfe8ee;border-radius:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:#f9fbfd;text-align:start;font:inherit}
+.tnServiceRow strong{color:#24475d;font-size:.93rem}
+.tnServiceRow small{color:#647a8b;font-size:.75rem}
+.tnServiceMessages{max-height:330px;overflow:auto;border:1px solid #dfe8ee;padding:14px;border-radius:12px;margin:14px 0;line-height:1.85}
+.tnServiceMessages p{background:#f1f6fa;border-radius:10px;padding:10px;overflow-wrap:anywhere}
+.tnServiceNote{margin:19px 0 0;background:#f0f5f8;border-radius:11px;padding:14px;font-size:.83rem;line-height:1.9;color:#617c8c}
+@media(max-width:620px){.tnServiceForm{grid-template-columns:1fr}.tnServicesPage{padding:0 10px}.tnServicesHero{padding:25px}.tnServiceContent{padding:16px}}
+
+.tnMediaTest{display:grid;gap:13px;justify-items:center}.tnMediaTest video{width:min(100%,600px);max-height:55vh;object-fit:contain;background:#112536;border-radius:12px}.tnMediaTest p{font-size:.83rem;color:#4d6878;line-height:1.8}
+
+.tnRtcStage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tnRtcStage>div{display:grid;gap:7px;min-width:0}.tnRtcStage video{width:100%;max-height:230px;object-fit:contain;background:#13293f;border-radius:10px}.tnRtcStage .tnServiceNote{grid-column:1/-1}.tnRtcStage>button{justify-self:start}@media(max-width:620px){.tnRtcStage{grid-template-columns:1fr}}
+.tnReelFeed{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:14px}.tnReelTile{border:1px solid #d9e5ea;border-radius:14px;overflow:hidden;background:#f7fbfe}.tnReelTile video{display:block;width:100%;aspect-ratio:9/16;max-height:390px;background:#102638;object-fit:contain}.tnReelTile>div{padding:12px}.tnReelTile strong{color:#27495f}.tnReelTile p{font-size:.78rem;color:#536f80}.tnReelTile small{color:#7c91a0}
+
+/* Native community tools, not a second portal. */
+.tnAiFloating{position:fixed;left:23px;bottom:25px;z-index:27;border:1px solid #9bb5c5;border-radius:999px;background:linear-gradient(120deg,#163754,#306b7f);color:#fff;box-shadow:0 12px 28px #102a4870;padding:12px 20px;font:inherit;font-weight:800;display:flex;align-items:center;gap:9px}
+.tnAiFloating:hover,.tnHeaderAi:hover{filter:brightness(1.12)}
+.tnHeaderAi{border:1px solid #ffffff3b;background:#ffffff15;color:#fff;border-radius:12px;min-width:44px;height:46px;font-size:1.25rem;display:grid;place-items:center;cursor:pointer}
+dialog.tnAiDialog{width:min(970px,calc(100vw - 30px));max-width:970px;max-height:min(90dvh,860px);padding:0;overflow:auto;border-radius:19px}
+dialog.tnToolDialog{width:min(670px,calc(100vw - 24px));max-width:670px;max-height:88dvh;overflow:auto}
+dialog.tnAiDialog .modalhead{position:sticky;top:0;z-index:2;background:#fff;margin:0;padding:15px 21px;border-bottom:1px solid #dce7ed}
+dialog.tnAiDialog .tnEmbeddedTool{padding:0}
+.tnEmbeddedTool .tnToolIntro{font-size:.8rem;color:#637e8d;line-height:1.8}
+dialog.tnAiDialog .tnToolIntro{padding:9px 20px;margin:0;background:#f4f8fb}
+.tnAiColumns{display:grid;grid-template-columns:minmax(180px,270px) minmax(0,1fr);min-height:460px;direction:rtl}
+.tnAiHistory{background:#f2f6fa;border-left:1px solid #dde8ef;padding:16px;min-width:0}
+.tnAiHistory h3{font-size:1rem;color:#1b4662;margin-bottom:14px}
+.tnAiHistory .tnServiceForm{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:12px}
+.tnAiHistory .tnServiceForm .btn{width:100%}
+.tnAiHistory .tnServiceList{max-height:45vh;overflow:auto}
+.tnAiHistory .tnServiceRow{border-radius:10px;font-size:.84rem;justify-content:flex-start}
+.tnAiConversation{min-width:0;display:flex;flex-direction:column;padding:18px;background:#fff}
+.tnAgentStrip{display:grid;gap:3px;padding:12px 14px;margin-bottom:14px;background:#edf4f6;border:1px solid #d7e6e8;border-radius:12px}
+.tnAgentStrip strong{font-size:1rem;color:#214e60}.tnAgentStrip small{font-size:.73rem;color:#607c87;line-height:1.7}
+#tnAiThread{flex:1;display:flex;flex-direction:column;min-width:0}
+#tnAiThread>p{margin:auto;text-align:center;color:#5a7283;font-size:.95rem}
+#tnAiThread .tnServiceMessages{flex:1;min-height:160px;max-height:340px;overflow-y:auto;background:#fcfdff;margin:0 0 14px}
+#tnAiMessage{grid-template-columns:1fr;gap:9px;margin:0}
+#tnAiMessage label{width:100%}
+#tnAiMessage textarea{min-height:86px;resize:vertical}
+#tnAiMessage .btn{justify-self:end}
+.tnSidebarTools{background:#fff;border:1px solid #d7e5ed;border-radius:13px;padding:12px;margin-bottom:13px;display:flex;gap:7px;flex-wrap:wrap}
+.tnSidebarTools h2{font-size:.9rem;width:100%;margin:0 0 5px;color:#244962}
+.tnToolSmall{font-size:.73rem;font-weight:750;border:1px solid #d6e5ed;border-radius:9px;background:#eef5f8;color:#23516b;padding:8px 9px;flex:1}
+.tnGroupQuickTools{display:flex;flex-wrap:wrap;gap:9px;margin:13px 0 0}
+.tnMarketPayments{margin-inline-start:8px}
+.tnShortsViewer{display:grid;gap:13px;justify-items:center}
+.tnShortsViewer video{max-height:min(74dvh,720px);width:auto;max-width:100%;aspect-ratio:9/16;object-fit:contain;border-radius:12px;background:#0e2238}
+.tnReelOpen{border:0;cursor:pointer;padding:0;text-align:inherit;font:inherit}
+.tnReelRail .tnReelOpen{flex:0 0 145px}
+@media(max-width:700px){
+ .tnAiColumns{grid-template-columns:1fr}
+ .tnAiHistory{border-left:0;border-bottom:1px solid #dde8ef;padding:12px}
+ .tnAiHistory .tnServiceList{display:flex;gap:8px;max-height:85px;overflow-x:auto;overflow-y:hidden}
+ .tnAiHistory .tnServiceRow{flex:0 0 150px}
+ .tnAiConversation{min-height:270px;padding:12px}
+ .tnAiFloating{bottom:calc(67px + env(safe-area-inset-bottom));left:12px;padding:11px 12px}
+ .tnAiFloating span{display:none}
+ dialog.tnAiDialog{max-height:89dvh}
+}

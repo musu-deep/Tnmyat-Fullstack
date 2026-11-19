@@ -1,5 +1,7 @@
 import { governanceRoute } from './governance.js';
+import { platformServicesRoute } from './platform-services.js';
 import { marketImpactRoute } from './market-impact.js';
+import { marketV3Route } from './market-v3.js';
 import { developmentHubRoute } from './development-hub.js';
 import { memberJourneyRoute } from './member-journey.js';
 import { networkRoute } from './network-engine.js';
@@ -384,6 +386,10 @@ async function route(request,db) {
   const recovery=await passwordRecoveryRoute(request,db,user);
   if(recovery)return recovery;
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
+  const serviceRoute=await platformServicesRoute(request,db,user,helpers);
+  if(serviceRoute)return serviceRoute;
+  const marketV3=await marketV3Route(request,db,user,helpers);
+  if(marketV3)return marketV3;
   const marketImpact=await marketImpactRoute(request,db,user,helpers);
   if(marketImpact)return marketImpact;
   const governance=await governanceRoute(request,db,user,helpers);
@@ -457,7 +463,12 @@ async function route(request,db) {
     return json({tags:[...counts].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'ar')).slice(0,8).map(([tag,count])=>({tag,count}))});
   }
   if(path==='/api/discover' && method==='GET') {
-    const {results:members}=await db.prepare(`SELECT u.id,u.name,u.bio,
+    const {results:members}=await db.prepare(`SELECT u.id,u.name,
+      CASE WHEN COALESCE((SELECT bio_scope FROM tn_profile_privacy WHERE user_id=u.id),'public')='public'
+        OR (? > 0 AND (SELECT bio_scope FROM tn_profile_privacy WHERE user_id=u.id)='members')
+        OR EXISTS(SELECT 1 FROM friendships f WHERE f.low_id=min(u.id,?) AND f.high_id=max(u.id,?) AND f.accepted=1
+          AND (SELECT bio_scope FROM tn_profile_privacy WHERE user_id=u.id)='friends')
+        THEN u.bio ELSE '' END AS bio,
       CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar,
       CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS cover,
       u.cover_position,
@@ -465,7 +476,7 @@ async function route(request,db) {
       (SELECT count(*) FROM follows f WHERE f.followed=u.id) AS followers_count
       FROM users u WHERE u.id<>? AND u.password_hash IS NOT NULL AND u.account_status='active'
       AND NOT EXISTS(SELECT 1 FROM follows f WHERE f.follower=? AND f.followed=u.id)
-      ORDER BY (SELECT COUNT(*) FROM posts p WHERE p.author_id=u.id AND p.moderation_status='visible') DESC,u.id DESC LIMIT 4`).bind(user?.id??0,user?.id??0).all();
+      ORDER BY (SELECT COUNT(*) FROM posts p WHERE p.author_id=u.id AND p.moderation_status='visible') DESC,u.id DESC LIMIT 4`).bind(user?.id??0,user?.id??0,user?.id??0,user?.id??0,user?.id??0).all();
     const {results:groups}=await db.prepare(`SELECT g.id,g.name,g.description,
       (SELECT COUNT(*) FROM group_members m WHERE m.group_id=g.id AND m.status!='blocked')+1 AS members
       FROM community_groups g WHERE g.moderation_status='visible' ORDER BY members DESC,g.id DESC LIMIT 4`).all();

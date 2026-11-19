@@ -61,13 +61,24 @@ export async function memberJourneyRoute(request,db,user,h){
   const row=await db.prepare(`SELECT p.user_id,u.name,p.professional_role,p.organization,p.city,p.country,p.skills,p.participation,p.sectors,p.profile_visibility
     FROM member_preferences p JOIN users u ON u.id=p.user_id WHERE p.user_id=? AND u.account_status='active'`).bind(id).first();
   if(!row)return response(json,{profile:null});
-  if(id!==uid && row.profile_visibility!=='members')return response(json,{profile:null});
+  if(id!==uid){
+    const rule=await db.prepare('SELECT professional_scope FROM tn_profile_privacy WHERE user_id=?').bind(id).first();
+    const scope=rule?.professional_scope||'members';
+    const legacy=row.profile_visibility==='members';
+    let allowed=legacy&&scope==='members';
+    if(legacy&&scope==='friends'){
+      const friend=await db.prepare('SELECT accepted FROM friendships WHERE low_id=? AND high_id=? AND accepted=1')
+       .bind(Math.min(id,uid),Math.max(id,uid)).first();
+      allowed=Boolean(friend);
+    }
+    if(!allowed)return response(json,{profile:null});
+  }
   return response(json,{profile:{...row,skills:JSON.parse(row.skills),participation:JSON.parse(row.participation),sectors:JSON.parse(row.sectors)}});
  }
  if(path==='/api/journey/people'&&method==='GET'){
   const pref=await prefs(),{results}=await db.prepare(`SELECT u.id,u.name,p.professional_role,p.organization,p.country,p.city,p.skills,p.sectors
     FROM member_preferences p JOIN users u ON u.id=p.user_id
-    WHERE p.user_id<>? AND p.profile_visibility='members' AND u.account_status='active'
+    WHERE p.user_id<>? AND p.profile_visibility='members' AND u.account_status='active' AND COALESCE((SELECT professional_scope FROM tn_profile_privacy WHERE user_id=p.user_id),'members')='members'
     ORDER BY p.updated_at DESC LIMIT 100`).bind(uid).all();
   const q=clamp(url.searchParams.get('q'),100).toLowerCase();
   const ranked=results.map(x=>{

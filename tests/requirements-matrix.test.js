@@ -15,7 +15,7 @@ test('Functional requirements phase one uses existing post and friendship workfl
  assert.ok(app.includes('tnExtraAction(action,el)'));
  assert.ok(app.includes('tn-compose-image'));
  assert.ok(app.includes('tn-compose-video'));
- assert.ok(app.includes('tn-live-info'));
+ assert.ok(app.includes('data-service="live"'),'live preparation stays in contextual publishing tools');
  assert.ok(app.includes('بماذا تفكر؟'));
  assert.ok(extras.includes('/post/')||extras.includes("'/post/'"));
  assert.ok(extras.includes('TN_STORY_TAG'));
