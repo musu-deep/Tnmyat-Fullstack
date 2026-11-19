@@ -93,3 +93,65 @@
 .tmGallery button{display:block;flex:0 0 75px;height:70px;border:2px solid transparent;border-radius:10px;padding:0;background:#edf3f6;cursor:pointer;overflow:hidden}
 .tmGallery button:hover,.tmGallery button:focus-visible{border-color:#2d6c8b;outline:none}
 .tmGallery img{display:block;width:100%;height:100%;object-fit:contain}
+
+
+/* Cinematic full-width market hero */
+.tmMarket .tmHero.tmHeroCinematic{
+ position:relative;isolation:isolate;display:flex;align-items:center;min-height:clamp(390px,46vw,570px);
+ width:100%;box-sizing:border-box;padding:clamp(34px,6vw,82px);
+ margin:0 0 18px;border:1px solid #ffffff20;border-radius:24px;overflow:hidden;
+ background:#102c45;color:#fff;
+}
+.tmHeroCinematic>.tmHeroBackground{
+ position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 43%;
+ opacity:.88;transform:scale(1.015);animation:tmHeroDrift 24s ease-in-out infinite alternate;
+}
+.tmHeroCinematic:before{
+ content:"";position:absolute;z-index:-1;inset:0;
+ background:linear-gradient(90deg,rgba(7,25,43,.88) 0%,rgba(10,39,62,.76) 43%,rgba(13,48,70,.34) 100%),
+ linear-gradient(0deg,rgba(7,24,40,.55),transparent 55%);
+}
+.tmHeroCinematic .tmHeroContent{position:relative;z-index:1;max-width:780px}
+.tmHeroCinematic .tmEyebrow{
+ display:inline-flex;align-items:center;gap:9px;color:#d1eafa;font-size:.78rem;
+ letter-spacing:.12em;font-weight:800;text-transform:uppercase
+}
+.tmHeroCinematic .tmEyebrow:before{content:"";width:28px;height:2px;background:#8bc6dc}
+.tmHeroCinematic h1{
+ color:#fff;font-size:clamp(42px,6.3vw,76px);line-height:1.12;
+ margin:18px 0 8px;text-shadow:0 3px 22px #071c2d80
+}
+.tmHeroCinematic h2{
+ color:#e8f5fb;font-size:clamp(19px,2.5vw,29px);font-weight:650;
+ margin:0 0 13px;line-height:1.55
+}
+.tmHeroCinematic .tmHeroContent>p{
+ max-width:650px;color:#e2edf5;font-size:clamp(.9rem,1.25vw,1.03rem);
+ line-height:2;margin:0;text-shadow:0 1px 12px #061a2b
+}
+.tmHeroCinematic .tmHeroActions{margin-top:26px;gap:12px}
+.tmHeroCinematic .tmBtn{min-height:47px;padding:11px 22px;box-shadow:0 8px 25px #061a2b26}
+.tmHeroCinematic .tmBtnGhost{background:#ffffff12;border-color:#ffffffa6;color:#fff;backdrop-filter:blur(8px)}
+.tmHeroCinematic .tmBtnGhost:hover{background:#ffffff26}
+.tmHeroSignature{
+ position:absolute;z-index:1;left:clamp(20px,4vw,48px);bottom:clamp(20px,3vw,34px);
+ display:grid;gap:3px;text-align:left;color:#ffffffd9;text-shadow:0 2px 12px #071c2d
+}
+.tmHeroSignature strong{font-size:1.2rem;letter-spacing:.08em}
+.tmHeroSignature span{font-size:.68rem;color:#d5e7f0;letter-spacing:.06em}
+@keyframes tmHeroDrift{from{transform:scale(1.015) translate3d(0,0,0)}to{transform:scale(1.075) translate3d(-.5%,.3%,0)}}
+@media(max-width:720px){
+ .tmMarket .tmHero.tmHeroCinematic{min-height:430px;padding:30px 23px;border-radius:18px}
+ .tmHeroCinematic>.tmHeroBackground{object-position:57% center}
+ .tmHeroCinematic:before{background:linear-gradient(90deg,rgba(7,25,43,.84),rgba(10,39,62,.52)),linear-gradient(0deg,rgba(7,24,40,.56),transparent 65%)}
+ .tmHeroCinematic h1{font-size:clamp(39px,11vw,54px)}
+ .tmHeroCinematic .tmHeroActions{flex-direction:row}
+ .tmHeroCinematic .tmHeroActions .tmBtn{width:auto;flex:1;padding:10px 12px;font-size:.77rem}
+ .tmHeroSignature{left:20px;bottom:17px}
+}
+@media(max-width:390px){
+ .tmMarket .tmHero.tmHeroCinematic{min-height:455px;padding:25px 18px}
+ .tmHeroCinematic .tmHeroActions{flex-direction:column}
+ .tmHeroCinematic .tmHeroActions .tmBtn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){.tmHeroCinematic>.tmHeroBackground{animation:none;transform:none}}
