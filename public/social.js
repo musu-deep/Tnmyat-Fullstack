@@ -83,8 +83,8 @@ function card(p,detail=false){
  const repost=p.repost_by?'<div class="originNote">↻ أعاد <a href="/profile/'+encodeURIComponent(p.repost_by.id)+'">'+esc(p.repost_by.name)+'</a> نشر هذه المشاركة</div>':'';
  const kind=kindNames[p.post_kind]||'منشور';
  const heading=p.title?(detail?'<h1>'+esc(p.title)+'</h1>':'<h3><a href="'+href+'">'+esc(p.title)+'</a></h3>'):'';
- return '<article class="card feedCard">'+repost+meta(p)+'<div class="feedBadges"><span class="kindBadge">'+esc(kindIcons[p.post_kind]||'✍')+' '+esc(kind)+'</span>'+(p.gold_featured?'<span class="goldFeatureBadge" title="إشادة تحريرية من إدارة تنميات">★ إشادة ذهبية</span>':'')+(p.pinned?'<span class="pinnedBadge">⌁ مثبّت</span>':'')+'</div>'+heading+(p.body?'<p class="'+(detail?'bodycopy':'snippet')+'">'+esc(p.body)+'</p>':'')+
- postMedia(p)+postTags(p)+
+ return '<article class="card feedCard">'+repost+meta(p)+'<div class="feedBadges"><span class="kindBadge">'+esc(kindIcons[p.post_kind]||'✍')+' '+esc(kind)+'</span>'+(p.gold_featured?'<span class="goldFeatureBadge" title="إشادة تحريرية من إدارة تنميات">★ إشادة ذهبية</span>':'')+(p.pinned?'<span class="pinnedBadge">⌁ مثبّت</span>':'')+'</div>'+heading+(p.body?(detail?'<p class="bodycopy">'+esc(p.body)+'</p>':'<p class="snippet"><a class="postTextPreview" href="'+href+'" aria-label="قراءة المنشور كاملاً">'+esc(p.body)+'</a></p>'):'')+
+ postMedia(p,detail)+postTags(p)+
  '<div class="actions"><button class="action" data-act="like" data-id="'+id+'" data-liked="'+Boolean(p.liked)+'" aria-pressed="'+Boolean(p.liked)+'" aria-label="إعجاب">'+icon('heart')+' '+esc(p.likes||0)+'</button><a class="action" href="'+href+'#comments" aria-label="التعليقات">'+icon('chat')+' '+esc(p.comments_count||0)+'</a>'+
  '<button class="action" data-act="repost" '+(user&&p.author_id===user.id?'disabled title="منشورك الأصلي"':'')+' data-id="'+id+'" data-on="'+Boolean(p.reposted)+'" aria-pressed="'+Boolean(p.reposted)+'">↻ '+(p.reposted?'أُعيد نشره':'إعادة نشر')+' '+Number(p.reposts_count||0)+'</button>'+
  (user&&String(user.id)===String(p.author_id)?'<button class="action editPost" data-act="editpost" data-id="'+id+'">تعديل</button>':'')+
@@ -109,18 +109,24 @@ function mediaMarkup(item, src, preview=false) {
   const name=esc(item.name || 'مرفق');
   if (item.mime.startsWith('image/')) {
     const picture='<img src="'+src+'" alt="'+name+'" loading="lazy">';
-    return preview ? picture : '<a target="_blank" rel="noopener" href="'+src+'">'+picture+'</a>';
+    return preview ? picture : '<a target="_blank" rel="noopener" href="'+src+'" aria-label="عرض الصورة كاملة">'+picture+'</a>';
   }
   if (item.mime==='audio/mpeg') return '<audio controls preload="none" aria-label="'+name+'" src="'+src+'"></audio>';
   if (item.mime==='video/mp4') return '<video controls playsinline preload="'+(preview?'metadata':'none')+'" aria-label="'+name+'" src="'+src+'"></video>';
   return '<a class="fileLink" target="_blank" rel="noopener" href="'+src+'"><b>PDF</b><span>'+name+'</span></a>';
 }
-function postMedia(post) {
+function postMedia(post,detail=false) {
   const attachments=attachmentsOf(post);
   if (!attachments.length) return '';
-  return '<div class="publishedMedia">'+attachments.map(item =>
-    '<figure>'+mediaMarkup(item,asset(item.url))+'</figure>'
-  ).join('')+'</div>';
+  const href='/post/'+encodeURIComponent(post.id);
+  return '<div class="publishedMedia'+(detail?' publishedMediaDetail':' publishedMediaPreview')+'">'+attachments.map(item => {
+    const src=asset(item.url);
+    if(!src)return '';
+    if(!detail&&item.mime?.startsWith('image/')){
+      return '<figure><a class="postImagePreview" href="'+href+'" aria-label="فتح المنشور والتفاصيل: '+esc(postLabel(post))+'"><img src="'+src+'" alt="'+esc(item.name||'صورة المنشور')+'" loading="lazy"></a></figure>';
+    }
+    return '<figure>'+mediaMarkup(item,src)+'</figure>';
+  }).join('')+'</div>';
 }
 
 function composer(post) {
