@@ -33,7 +33,7 @@ async function tnLoadService(k){
   area.innerHTML='<form id="tnLiveNew" class="tnServiceForm"><label>عنوان البث<input name="title" minlength="5" maxlength="160" required></label><label>وصف البث<textarea name="description" maxlength="1000"></textarea></label><button class="btn primary">إعداد جلسة بث</button><div class="error"></div></form><button class="btn" type="button" data-act="tn-media-test" data-video="yes">فحص الكاميرا والميكروفون قبل البث</button><h3>جلسات البث</h3><div class="tnServiceList">'+r.sessions.map(x=>'<article class="tnServiceRow"><strong>'+tnSafe(x.title)+'</strong><small>'+tnSafe(x.state)+'</small>'+(x.state==='draft'?'<button class="btn" data-act="tn-live-cancel" data-id="'+tnSafe(x.id)+'">إلغاء</button>':'')+'</article>').join('')+'</div><p class="tnServiceNote">بدء البث الحقيقي مشروط بتوصيل خدمة بث تدعم إصدار مفاتيح البث ومعالجة الفيديو والتحكم بالوصول.</p>';
  }else if(k==='calls'){
   const r=await api('platform/calls');
-  area.innerHTML='<form id="tnCallNew" class="tnServiceForm"><label>رقم العضو (صديق)<input name="callee_id" type="number" required min="1"></label><label>نوع المكالمة<select name="kind"><option value="audio">صوتية</option><option value="video">مرئية</option></select></label><button class="btn primary">إنشاء دعوة اتصال</button><div class="error"></div></form><button class="btn" type="button" data-act="tn-media-test" data-video="yes">اختبار الكاميرا والميكروفون</button><h3>دعوات الاتصال</h3><div class="tnServiceList">'+r.calls.map(c=>'<article class="tnServiceRow"><strong>اتصال '+(c.kind==='audio'?'صوتي':'مرئي')+'</strong><small>'+tnSafe(c.status)+'</small>'+(c.status==='invited'&&c.callee_id===user.id?'<button data-act="tn-call-accept" data-id="'+tnSafe(c.id)+'" class="btn primary">قبول</button><button data-act="tn-call-decline" data-id="'+tnSafe(c.id)+'" class="btn">رفض</button>':'')+(c.status==='accepted'?'<button data-act="tn-call-end" data-id="'+tnSafe(c.id)+'" class="btn">إنهاء</button>':'')+'</article>').join('')+'</div><p class="tnServiceNote">الدعوات والإشارات محفوظة؛ لا يمكن إجراء محادثة صوتية أو مرئية حتى تجهيز WebRTC/STUN/TURN والواجهة الآمنة لطلب صلاحية الكاميرا والميكروفون.</p>';
+  area.innerHTML='<form id="tnCallNew" class="tnServiceForm"><label>رقم العضو (صديق)<input name="callee_id" type="number" required min="1"></label><label>نوع المكالمة<select name="kind"><option value="audio">صوتية</option><option value="video">مرئية</option></select></label><button class="btn primary">إنشاء دعوة اتصال</button><div class="error"></div></form><button class="btn" type="button" data-act="tn-media-test" data-video="yes">اختبار الكاميرا والميكروفون</button><h3>دعوات الاتصال</h3><div class="tnServiceList">'+r.calls.map(c=>'<article class="tnServiceRow"><strong>اتصال '+(c.kind==='audio'?'صوتي':'مرئي')+'</strong><small>'+tnSafe(c.status)+'</small>'+(c.status==='invited'&&c.callee_id===user.id?'<button data-act="tn-call-accept" data-id="'+tnSafe(c.id)+'" class="btn primary">قبول</button><button data-act="tn-call-decline" data-id="'+tnSafe(c.id)+'" class="btn">رفض</button>':'')+(c.status==='accepted'?'<button data-act="tn-call-connect" data-kind="'+tnSafe(c.kind)+'" data-initiator="'+(c.caller_id===user.id?'yes':'no')+'" data-id="'+tnSafe(c.id)+'" class="btn primary">فتح الاتصال</button><button data-act="tn-call-end" data-id="'+tnSafe(c.id)+'" class="btn">إنهاء</button>':'')+'</article>').join('')+'</div><p class="tnServiceNote">الدعوات والإشارات محفوظة؛ لا يمكن إجراء محادثة صوتية أو مرئية حتى تجهيز WebRTC/STUN/TURN والواجهة الآمنة لطلب صلاحية الكاميرا والميكروفون.</p>';
  }else if(k==='reels'){
   const [mine,posts,publicFeed]=await Promise.all([api('platform/reels/mine'),api('posts?user='+user.id),api('platform/reels')]);
   const videos=(posts.posts||[]).flatMap(p=>(p.attachments||[]).filter(f=>f.mime==='video/mp4'&&/^\/api\/files\/[0-9a-f-]{36}$/.test(f.url||'')).map(f=>({key:f.url,title:p.title||f.name||'مقطع فيديو'})));
@@ -49,6 +49,7 @@ async function tnLoadService(k){
  }catch(e){area.innerHTML='<p class="error">'+tnSafe(e.message)+'</p>';}
 }
 async function tnServicesClick(action,el){
+ if(action==='tn-call-connect'){await tnWebRtcConnect(el.dataset.id,el.dataset.initiator==='yes',el.dataset.kind==='video');return true;}
  if(action==='tn-media-test'){
   if(!navigator.mediaDevices?.getUserMedia){notify('لا يدعم المتصفح الوصول إلى الكاميرا والميكروفون.');return true;}
   try{
@@ -96,4 +97,67 @@ async function tnServicesForm(form,data){
   await tnLoadService(tnActiveService);
  }catch(e){if(error)error.textContent=e.message;else notify(e.message);}finally{if(button)button.disabled=false;}
  return true;
+}
+
+let tnRtcCurrent=null;
+async function tnWebRtcConnect(sessionId,initiator,withVideo){
+ if(!navigator.mediaDevices?.getUserMedia||typeof RTCPeerConnection==='undefined'){notify('المتصفح لا يدعم اتصال WebRTC.');return;}
+ if(tnRtcCurrent){notify('أنه اتصالك الحالي أولاً.');return;}
+ let local,peer,interval,latest=0,remoteReady=false;
+ const pending=[];
+ const close=()=>{
+  if(interval)clearInterval(interval);
+  if(peer)peer.close();
+  if(local)local.getTracks().forEach(t=>t.stop());
+  tnRtcCurrent=null;
+ };
+ try{
+  local=await navigator.mediaDevices.getUserMedia({audio:true,video:withVideo});
+  // A TURN/STUN server should be supplied after provider integration; host candidates alone
+  // generally work only for peers on networks with a direct route.
+  peer=new RTCPeerConnection({iceServers:[]});
+  tnRtcCurrent={close,sessionId};
+  showModal('اتصال تنميات','<div class="tnRtcStage"><div><strong>كاميرتك</strong><video class="tnRtcLocal" autoplay muted playsinline></video></div><div><strong>الطرف الآخر</strong><video class="tnRtcRemote" autoplay playsinline></video></div><p class="tnServiceNote">الاتصال التجريبي يعمل عند إمكان الاتصال المباشر بالشبكة. تحتاج الاتصالات عبر الإنترنت عادة إلى مزود STUN/TURN. لا تُسجّل الوسائط في قاعدة البيانات.</p><button type="button" class="btn" data-act="close">إغلاق الاتصال</button></div>');
+  const localVideo=document.querySelector('.tnRtcLocal'),remoteVideo=document.querySelector('.tnRtcRemote');
+  if(localVideo){localVideo.srcObject=local;localVideo.play().catch(()=>{});}
+  const output=new MediaStream();
+  if(remoteVideo)remoteVideo.srcObject=output;
+  local.getTracks().forEach(t=>peer.addTrack(t,local));
+  peer.addEventListener('track',e=>{
+    e.streams[0]?.getTracks().forEach(t=>{if(!output.getTracks().some(x=>x.id===t.id))output.addTrack(t);});
+    remoteVideo?.play().catch(()=>{});
+  });
+  const send=async(signal_kind,value)=>api('platform/calls/'+sessionId+'/signals','POST',{signal_kind,payload:JSON.stringify(value)});
+  peer.addEventListener('icecandidate',e=>{if(e.candidate)send('candidate',e.candidate.toJSON()).catch(()=>{});});
+  dialog.addEventListener('close',close,{once:true});
+  const poll=async()=>{
+   if(!tnRtcCurrent||tnRtcCurrent.sessionId!==sessionId)return;
+   try{
+    const r=await api('platform/calls/'+sessionId+'/signals?after='+latest);
+    for(const signal of r.signals){
+     latest=Math.max(latest,signal.id);
+     if(signal.sender_id===user.id)continue;
+     let payload;try{payload=JSON.parse(signal.payload);}catch{continue;}
+     if(signal.signal_kind==='offer'&&!initiator&&payload.type==='offer'){
+      await peer.setRemoteDescription(payload);remoteReady=true;
+      for(const c of pending.splice(0))await peer.addIceCandidate(c).catch(()=>{});
+      const answer=await peer.createAnswer();await peer.setLocalDescription(answer);
+      await send('answer',peer.localDescription.toJSON());
+     }else if(signal.signal_kind==='answer'&&initiator&&payload.type==='answer'&&!peer.currentRemoteDescription){
+      await peer.setRemoteDescription(payload);remoteReady=true;
+      for(const c of pending.splice(0))await peer.addIceCandidate(c).catch(()=>{});
+     }else if(signal.signal_kind==='candidate'){
+      if(remoteReady)await peer.addIceCandidate(payload).catch(()=>{});
+      else pending.push(payload);
+     }else if(signal.signal_kind==='bye'){dialog.close();}
+    }
+   }catch(e){notify('تعذر جلب إشارات الاتصال.');}
+  };
+  interval=setInterval(poll,1800);
+  if(initiator){
+   const offer=await peer.createOffer();await peer.setLocalDescription(offer);
+   await send('offer',peer.localDescription.toJSON());
+  }
+  await poll();
+ }catch(e){close();if(dialog.open)dialog.close();notify('تعذر بدء الاتصال أو الحصول على إذن الأجهزة.');}
 }
