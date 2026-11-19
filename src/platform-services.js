@@ -88,12 +88,12 @@ export async function platformServicesRoute(request,db,user,{json,parseBody,text
    if(b.status==='accepted'&&(user.id!==call.callee_id||call.status!=='invited'))throw new ApiError(403,'لا يمكن قبول هذه الدعوة.');
    if(b.status==='declined'&&(user.id!==call.callee_id||call.status!=='invited'))throw new ApiError(403,'لا يمكن رفض هذه الدعوة.');
    if(b.status==='ended'&&!['accepted','invited'].includes(call.status))throw new ApiError(409,'المكالمة مغلقة.');
-   await db.prepare('UPDATE tn_call_sessions SET status=? WHERE id=?').bind(b.status,call.id).run();return json({ok:true});
+   await db.prepare("UPDATE tn_call_sessions SET status=?,expires_at=CASE WHEN ?='accepted' THEN unixepoch()+3600 ELSE expires_at END WHERE id=?").bind(b.status,b.status,call.id).run();return json({ok:true});
   }
  }
  // Independent reels catalog: media can only reference a video attached to a post owned by the member.
  if(path==='/api/platform/reels'&&method==='GET'){
-  const rows=await db.prepare("SELECT r.id,r.title,r.caption,r.media_key,r.created_at,u.name author FROM tn_reels r JOIN users u ON u.id=r.owner_id WHERE r.status='published' AND r.visibility='public' ORDER BY r.id DESC LIMIT 40").all();
+  const rows=await db.prepare("SELECT r.id,r.title,r.caption,r.media_key,r.created_at,u.name author FROM tn_reels r JOIN users u ON u.id=r.owner_id WHERE r.status='published' AND r.visibility='public' AND EXISTS(SELECT 1 FROM post_files f JOIN posts p ON p.id=f.post_id WHERE r.media_key='/api/files/'||f.id AND f.mime='video/mp4' AND p.author_id=r.owner_id AND p.moderation_status='visible') ORDER BY r.id DESC LIMIT 40").all();
   return json({reels:rows.results});
  }
  if(path==='/api/platform/reels/mine'&&method==='GET'){
@@ -104,7 +104,7 @@ export async function platformServicesRoute(request,db,user,{json,parseBody,text
   const key=String(b.media_key||'');
   if(!/^\/api\/files\/[0-9a-f-]{36}$/.test(key))throw new ApiError(400,'اختر فيديو محفوظاً ضمن منشوراتك.');
   const fileId=key.split('/').pop();
-  const owned=await db.prepare("SELECT f.id FROM post_files f JOIN posts p ON p.id=f.post_id WHERE f.id=? AND f.mime='video/mp4' AND p.author_id=?").bind(fileId,user.id).first();
+  const owned=await db.prepare("SELECT f.id FROM post_files f JOIN posts p ON p.id=f.post_id WHERE f.id=? AND f.mime='video/mp4' AND p.author_id=? AND p.moderation_status='visible'").bind(fileId,user.id).first();
   if(!owned)throw new ApiError(403,'الفيديو غير متاح في منشوراتك.');
   const visibility=['public','followers','private'].includes(b.visibility)?b.visibility:'private';
   const result=await db.prepare("INSERT INTO tn_reels(owner_id,title,caption,media_key,visibility,status) VALUES(?,?,?,?,?,'draft') RETURNING id").bind(user.id,title,caption,key,visibility).first();
