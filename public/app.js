@@ -114,6 +114,7 @@ async function route(){const token=++version;let target=main;
  if(marketItemPath){await renderMarketProduct(marketItemPath[1]);return;}
  const marketShopPath=location.pathname.match(/^\/shop\/([a-z][a-z0-9-]{2,39})\/?$/);
  if(marketShopPath){await renderMarketShop(marketShopPath[1]);return;}
+ if(location.pathname==='/market/cart'){await renderMarketCart();return;}
  if(location.pathname==='/market/stores'){await tnMyStores();return;}
  const marketConsolePath=location.pathname.match(/^\/market\/console\/(\d+)\/?$/);
  if(marketConsolePath){await tnOpenStoreConsole(Number(marketConsolePath[1]));return;}
