@@ -13,6 +13,7 @@ test('Tnmyat Encyclopedia stays independent and publishes six extended foundatio
  assert.match(worker,/url\.pathname = '\/wiki\.html'/);
  assert.match(home,/href="\/wiki"/);
  assert.match(app,/href="\/wiki"/);
+ assert.ok(app.includes("url.pathname==='/wiki'||url.pathname==='/wiki/'"));
  const js=page.match(/<script>([\s\S]*?)<\/script>/)?.[1];
  assert.ok(js,'encyclopedia inline script exists');
  new vm.Script(js);
