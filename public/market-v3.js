@@ -57,9 +57,13 @@ async function renderMarketProduct(id){
  document.title=item.title+' | سوق تنميات';
  const demo=isDemo;
  const image=demo?tnMarketIllustration(item):tnRealImg(item);
+ let gallery=[];
+ if(!demo){try{gallery=JSON.parse(item.gallery_json||'[]');if(!Array.isArray(gallery))gallery=[];}catch{}}
+ const thumbs=gallery.length?'<div class="tmGallery">'+gallery.filter(x=>typeof x==='string'&&x.startsWith('https://')).slice(0,6).map(x=>'<button type="button" data-act="tm-view-photo" data-src="'+esc(x)+'"><img src="'+esc(x)+'" alt="صورة إضافية" loading="lazy"></button>').join('')+'</div>':'';
+
  const cost=demo?tnDemoPrice(item.price):item.price_minor===null?'السعر عند الطلب':tnDemoPrice(item.price_minor/100);
  main.innerHTML='<section class="tmMarket tmDetail"><nav class="tmBreadcrumb"><a href="/market">سوق تنميات</a> / '+esc(tnTag(item))+' / '+esc(item.title)+'</nav>'+
- '<div class="tmProductDetail"><div class="tmDetailArt">'+image+'</div><div class="tmDetailText"><span class="tmDemoPill">'+(demo?'نموذج توضيحي غير قابل للشراء':'عرض عضو معتمد للنشر')+'</span><h1>'+esc(item.title)+'</h1><div class="tmStarsRow">'+(demo?tnStars(0,0):tnStars(item.avg_stars,item.reviews_count))+'</div>'+
+ '<div class="tmProductDetail"><div class="tmDetailArt">'+image+thumbs+'</div><div class="tmDetailText"><span class="tmDemoPill">'+(demo?'نموذج توضيحي غير قابل للشراء':'عرض عضو معتمد للنشر')+'</span><h1>'+esc(item.title)+'</h1><div class="tmStarsRow">'+(demo?tnStars(0,0):tnStars(item.avg_stars,item.reviews_count))+'</div>'+
  '<p class="tmDetailLead">'+esc(item.marketing||item.marketing_text||item.description||'')+'</p><strong class="tmDetailPrice">'+cost+'</strong><p>'+esc(item.delivery||'يتم تأكيد التسليم والمواصفات عبر البائع قبل أي تعاقد.')+'</p>'+
  '<div class="tmProductActions">'+(demo?'<span class="tmDemoInfo">هذا نموذج للعرض فقط؛ لا يوجد بائع حقيقي أو مخزون فعلي.</span>':
  '<label>الكمية<input id="tmQuantity" type="number" min="'+Number(item.min_order_qty||1)+'" value="'+Number(item.min_order_qty||1)+'"></label><button type="button" data-act="tm-add-cart" data-id="'+item.id+'" class="tmBtn tmBtnDark">＋ أضف للسلة</button><button type="button" data-act="tm-order" data-id="'+item.id+'" class="tmBtn tmBtnOutline">طلب مباشر</button><button type="button" data-act="tm-favorite" data-id="'+item.id+'" class="tmBtn tmBtnOutline">'+(isFav?'♥ محفوظ':'♡ المفضلة')+'</button>')+
@@ -106,6 +110,7 @@ async function tnOpenStoreConsole(storeId){
  '<div class="tmSectionHeader"><h2>الكتالوج الخاص بك</h2></div><div class="tmManageGrid">'+r.listings.map(x=>'<article class="tmManageCard"><strong>'+esc(x.title)+'</strong><small>الحالة: '+esc(x.status)+' | '+esc(x.category||'عام')+'</small><span>'+esc(x.price_minor===null?'يحدد السعر لاحقاً':tnDemoPrice(x.price_minor/100))+'</span><button data-act="tm-edit-item" data-store="'+s.id+'" data-id="'+x.id+'" data-title="'+esc(x.title)+'" data-desc="'+esc(x.description)+'" data-marketing="'+esc(x.marketing_text||'')+'" data-status="'+esc(x.status)+'" data-image="'+esc(x.image_url||'')+'" class="tmBtn tmBtnOutline">تعديل</button></article>').join('')+'</div></section>';
 }
 async function tnMarketV3Action(action,el){
+ if(action==='tm-view-photo'){const img=document.querySelector('.tmDetailArt .tmProductArt img');if(img)img.src=el.dataset.src;return true;}
  if(action==='tm-cart'){await renderMarketCart();return true;}
  if(action==='tm-add-cart'){
   if(!user){auth('login');return true;}
@@ -148,11 +153,17 @@ async function tnMarketV3Action(action,el){
  }
  if(action==='tm-create-item'){
   const sid=Number(el.dataset.id);
-  showModal('إضافة عرض جديد','<form id="tmNewItem" class="tmForm" data-id="'+sid+'"><label>اسم المنتج أو الخدمة<input name="title" minlength="3" maxlength="160" required></label><label>التصنيف<select name="type"><option value="product">منتج</option><option value="service">خدمة</option><option value="project">مشروع تنموي</option></select></label><label>الفئة<input name="category" maxlength="60" placeholder="التعليم والمعرفة"></label><label>السعر بالريال<input name="price_sar" type="number" min="0" step="0.01"></label><label>المخزون (اختياري)<input name="stock_qty" type="number" min="0"></label><label>رابط صورة HTTPS<input name="image_url" type="url"></label><label>نبذة عن العرض<textarea name="description" maxlength="2000"></textarea></label><label>وصف تسويقي<textarea name="marketing_text" maxlength="1200"></textarea></label><label>المواصفات<textarea name="specifications" maxlength="1500"></textarea></label><button class="tmBtn tmBtnDark">نشر العرض</button><div class="error"></div></form>');return true;
+  showModal('إضافة عرض جديد','<form id="tmNewItem" class="tmForm" data-id="'+sid+'"><label>اسم المنتج أو الخدمة<input name="title" minlength="3" maxlength="160" required></label><label>التصنيف<select name="type"><option value="product">منتج</option><option value="service">خدمة</option><option value="project">مشروع تنموي</option></select></label><label>الفئة<input name="category" maxlength="60" placeholder="التعليم والمعرفة"></label><label>السعر بالريال<input name="price_sar" type="number" min="0" step="0.01"></label><label>المخزون (اختياري)<input name="stock_qty" type="number" min="0"></label><label>الحد الأدنى للطلب<input name="min_order_qty" type="number" min="1" max="10000" value="1"></label><label>رمز الصنف SKU<input name="sku" maxlength="80"></label><label>رابط صورة HTTPS<input name="image_url" type="url"></label><label>صور إضافية HTTPS (كل رابط في سطر)<textarea name="gallery_urls" placeholder="https://example.com/photo2.jpg"></textarea></label><label>نبذة عن العرض<textarea name="description" maxlength="2000"></textarea></label><label>وصف تسويقي<textarea name="marketing_text" maxlength="1200"></textarea></label><label>المواصفات<textarea name="specifications" maxlength="1500"></textarea></label><button class="tmBtn tmBtnDark">نشر العرض</button><div class="error"></div></form>');return true;
  }
  if(action==='tm-edit-item'){
-  const id=Number(el.dataset.id),sid=Number(el.dataset.store);
-  showModal('تعديل العرض','<form id="tmEditItem" data-store="'+sid+'" data-id="'+id+'" class="tmForm"><label>اسم العرض<input name="title" required minlength="3" maxlength="160" value="'+esc(el.dataset.title)+'"></label><label>الوصف<textarea name="description" maxlength="2000">'+esc(el.dataset.desc)+'</textarea></label><label>نبذة تسويقية<textarea name="marketing_text" maxlength="1200">'+esc(el.dataset.marketing)+'</textarea></label><label>رابط الصورة<input name="image_url" type="url" value="'+esc(el.dataset.image)+'"></label><label>حالة النشر<select name="status">'+['published','draft','archived'].map(x=>'<option '+(x===el.dataset.status?'selected':'')+' value="'+x+'">'+({published:'منشور',draft:'مسودة',archived:'مؤرشف'}[x])+'</option>').join('')+'</select></label><button class="tmBtn tmBtnDark">حفظ التعديلات</button><div class="error"></div></form>');return true;
+  try{
+   const id=Number(el.dataset.id),sid=Number(el.dataset.store);
+   const r=await api('market/store-console/'+sid),item=r.listings.find(x=>x.id===id);
+   if(!item)throw Error('العرض غير موجود.');
+   let gallery=[];try{gallery=JSON.parse(item.gallery_json||'[]');}catch{}
+   showModal('تعديل العرض','<form id="tmEditItem" data-store="'+sid+'" data-id="'+id+'" class="tmForm"><label>اسم العرض<input name="title" required minlength="3" maxlength="160" value="'+esc(item.title)+'"></label><label>الوصف<textarea name="description" maxlength="2000">'+esc(item.description)+'</textarea></label><label>نبذة تسويقية<textarea name="marketing_text" maxlength="1200">'+esc(item.marketing_text||'')+'</textarea></label><label>المواصفات<textarea name="specifications" maxlength="1500">'+esc(item.specifications||'')+'</textarea></label><label>الفئة<input name="category" maxlength="60" value="'+esc(item.category||'عام')+'"></label><label>رمز SKU<input name="sku" maxlength="80" value="'+esc(item.sku||'')+'"></label><label>السعر بالريال<input name="price_sar" type="number" step="0.01" min="0" value="'+(item.price_minor===null?'':Number(item.price_minor)/100)+'"></label><label>المخزون<input name="stock_qty" type="number" min="0" value="'+(item.stock_qty??'')+'"></label><label>الحد الأدنى للطلب<input name="min_order_qty" type="number" min="1" value="'+Number(item.min_order_qty||1)+'"></label><label>الصورة الرئيسية<input name="image_url" type="url" value="'+esc(item.image_url||'')+'"></label><label>صور أخرى HTTPS (كل رابط في سطر)<textarea name="gallery_urls">'+esc(gallery.join('\n'))+'</textarea></label><label>حالة النشر<select name="status">'+['published','draft','archived'].map(x=>'<option '+(x===item.status?'selected':'')+' value="'+x+'">'+({published:'منشور',draft:'مسودة',archived:'مؤرشف'}[x])+'</option>').join('')+'</select></label><button class="tmBtn tmBtnDark">حفظ التعديلات</button><div class="error"></div></form>');
+  }catch(e){notify(e.message);}
+  return true;
  }
  if(action==='tm-store-requests'){
   try{
@@ -190,7 +201,8 @@ async function tnMarketV3Form(form,data){
    await api('market/store-console/'+Number(form.dataset.id)+'/items','POST',{...data,price_minor:price,kind:data.type,category:data.type==='project'?'المشاريع':data.category});
    dialog.close();notify('نُشر العرض في متجرك.');await tnOpenStoreConsole(Number(form.dataset.id));
   }else if(form.id==='tmEditItem'){
-   await api('market/store-console/'+Number(form.dataset.store)+'/items/'+Number(form.dataset.id),'PATCH',data);
+   const price=data.price_sar===''?null:Math.round(Number(data.price_sar)*100);
+   await api('market/store-console/'+Number(form.dataset.store)+'/items/'+Number(form.dataset.id),'PATCH',{...data,price_minor:price});
    dialog.close();notify('تم حفظ التعديل.');await tnOpenStoreConsole(Number(form.dataset.store));
   }else if(form.id==='tmStoreSettings'){
    await api('market/store-console/'+Number(form.dataset.id),'PATCH',data);dialog.close();notify('حُفظت إعدادات المتجر.');await tnOpenStoreConsole(Number(form.dataset.id));
