@@ -70,8 +70,16 @@ test('Market V3: protected vendor store, real product, favorites, review and non
   const order=await call('market/order-request','POST',{listing_id:itemId,quantity:2,notes:'يرجى توضيح الشحن'},buyer.cookie);
   assert.equal(order.status,201,JSON.stringify(order.body));
   assert.equal(order.body.paid,false);
+  assert.equal((await call('market/cart','POST',{listing_id:itemId,quantity:3},buyer.cookie)).status,200);
+  assert.equal((await call('market/cart','GET',undefined,buyer.cookie)).body.items.length,1);
+  assert.equal((await call('market/cart','GET',undefined,seller.cookie)).body.items.length,0);
+  const checkout=await call('market/cart/checkout','POST',{notes:'طلب السلة التجريبي'},buyer.cookie);
+  assert.equal(checkout.status,201,JSON.stringify(checkout.body));
+  assert.equal(checkout.body.requests_created,1);
+  assert.equal(checkout.body.charged,false);
+  assert.equal((await call('market/cart','GET',undefined,buyer.cookie)).body.items.length,0);
   const requests=await call('market/store-console/'+sid+'/requests','GET',undefined,seller.cookie,login.cookie);
-  assert.equal(requests.status,200);assert.equal(requests.body.requests.length,1);
+  assert.equal(requests.status,200);assert.equal(requests.body.requests.length,2);
   const shop=await call('market/shop/store-x');assert.equal(shop.body.listings.length,1);
   const demo=await readFile(new URL('../public/market-v3.js',import.meta.url),'utf8');
   assert.equal((demo.match(/id:'[^']+',title:/g)||[]).length,12,'twelve demonstrative models');
