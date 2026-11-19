@@ -44,7 +44,14 @@ async function tnLoadService(k){
   area.innerHTML='<form id="tnPrivacy" class="tnServiceForm">'+[['bio_scope','النبذة الشخصية'],['birthday_scope','تاريخ الميلاد'],['events_scope','المناسبات الخاصة'],['professional_scope','الملف المهني']].map(([name,label])=>'<label>'+label+select(name,p[name])+'</label>').join('')+'<label>تاريخ الميلاد (اختياري)<input name="date_of_birth" type="date" value="'+tnSafe(p.date_of_birth||'')+'"></label><label>المناسبات الخاصة (كل مناسبة في سطر)<textarea name="events">'+tnSafe(Array.isArray(p.private_events)?p.private_events.join('\n'):JSON.parse(p.private_events||'[]').join('\n'))+'</textarea></label><button class="btn primary">حفظ الخصوصية</button><div class="error"></div></form><p class="tnServiceNote">تُفرض خصوصية النبذة في API الملف الشخصي. بيانات الميلاد والمناسبات تُحفظ بحماية افتراضية ولا تُعرض في ملف العضو العام؛ تفعيل العرض المشروط لهما والملف المهني يتطلب مراجعة جميع نقاط استرجاع هذه البيانات.</p>';
  }else if(k==='payments'){
   const r=await api('platform/payments/orders');
-  area.innerHTML='<form id="tnOrderDraft" class="tnServiceForm"><label>رقم حساب البائع<input type="number" name="seller_id" required min="1"></label><label>القيمة بالريال<input type="number" name="amount_sar" min="0" step="0.01" required></label><label>وصف الطلب<input name="description" maxlength="500"></label><button class="btn primary">حفظ مسودة الطلب</button><div class="error"></div></form><h3>طلباتي</h3><div class="tnServiceList">'+r.orders.map(x=>'<article class="tnServiceRow"><strong>'+tnSafe(x.description||'طلب')+'</strong><small>'+(Number(x.subtotal_minor)/100).toFixed(2)+' ر.س · '+tnSafe(x.status)+'</small></article>').join('')+'</div><p class="tnServiceNote">هذه مسودات وليست طلبات شراء مسددة. العمولة صفر حتى اعتماد سياسة عمولات موثقة. لا تُحصّل المنصة مبالغ، ولا تقبل إشعارات دفع من العميل.</p>';
+  area.innerHTML=(user?.role==='admin'?'<div id="tnPaymentPolicy">جارٍ تحميل سياسة العمولات…</div>':'')+'<form id="tnOrderDraft" class="tnServiceForm"><label>رقم حساب البائع<input type="number" name="seller_id" required min="1"></label><label>القيمة بالريال<input type="number" name="amount_sar" min="0" step="0.01" required></label><label>وصف الطلب<input name="description" maxlength="500"></label><button class="btn primary">حفظ مسودة الطلب</button><div class="error"></div></form><h3>طلباتي</h3><div class="tnServiceList">'+r.orders.map(x=>'<article class="tnServiceRow"><strong>'+tnSafe(x.description||'طلب')+'</strong><small>'+(Number(x.subtotal_minor)/100).toFixed(2)+' ر.س · '+tnSafe(x.status)+'</small></article>').join('')+'</div><p class="tnServiceNote">هذه مسودات وليست طلبات شراء مسددة. العمولة صفر حتى اعتماد سياسة عمولات موثقة. لا تُحصّل المنصة مبالغ، ولا تقبل إشعارات دفع من العميل.</p>';
+  if(user?.role==='admin'){
+   try{
+    const r=await api('platform/payments/policy'),p=r.policy;
+    document.getElementById('tnPaymentPolicy').innerHTML='<form id="tnPolicyForm" class="tnServiceForm"><label>عمولة النسبة (نقطة أساس من 10,000)<input name="commission_basis_points" type="number" min="0" max="5000" value="'+Number(p.commission_basis_points)+'" required></label><label>رسم ثابت (هللات)<input name="fixed_commission_minor" type="number" min="0" max="10000000" value="'+Number(p.fixed_commission_minor)+'" required></label><button class="btn primary">حفظ سياسة العمولات</button><div class="error"></div></form>';
+   }catch(e){document.getElementById('tnPaymentPolicy').textContent=e.message;}
+  }
+
  }
  }catch(e){area.innerHTML='<p class="error">'+tnSafe(e.message)+'</p>';}
 }
@@ -78,7 +85,7 @@ async function tnServicesClick(action,el){
 }
 async function tnServicesForm(form,data){
  const p=form.id;
- if(!['tnAiNew','tnAiMessage','tnLiveNew','tnCallNew','tnReelNew','tnPrivacy','tnOrderDraft'].includes(p))return false;
+ if(!['tnAiNew','tnAiMessage','tnLiveNew','tnCallNew','tnReelNew','tnPrivacy','tnOrderDraft','tnPolicyForm'].includes(p))return false;
  const error=form.querySelector('.error');if(error)error.textContent='';
  const button=form.querySelector('button[type=submit],button:not([type])');if(button)button.disabled=true;
  try{
@@ -88,6 +95,7 @@ async function tnServicesForm(form,data){
   if(p==='tnCallNew')await api('platform/calls','POST',{callee_id:Number(data.callee_id),kind:data.kind});
   if(p==='tnReelNew')await api('platform/reels','POST',data);
   if(p==='tnPrivacy')await api('platform/privacy','PUT',{...data,private_events:String(data.events||'').split('\n').map(s=>s.trim()).filter(Boolean),date_of_birth:data.date_of_birth||null});
+  if(p==='tnPolicyForm')await api('platform/payments/policy','PUT',{commission_basis_points:Number(data.commission_basis_points),fixed_commission_minor:Number(data.fixed_commission_minor)});
   if(p==='tnOrderDraft'){
    const amount=Math.round(Number(data.amount_sar)*100);
    if(!Number.isSafeInteger(amount)||amount<0)throw Error('القيمة غير صحيحة.');
