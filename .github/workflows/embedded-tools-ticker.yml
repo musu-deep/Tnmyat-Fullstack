@@ -1,0 +1,28 @@
+name: Embedded community tools and top ticker
+on:
+  push:
+    branches:
+      - feature/embedded-tools-top-ticker
+  pull_request:
+    branches:
+      - feature/tnmyat-services-core
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax checks
+        run: |
+          node --check public/app.js
+          node --check public/hub.js
+          node --check public/platform-services.js
+          node --check public/community-extras.js
+          node --check tests/embedded-tools-ticker.test.js
+      - name: Regression tests
+        run: npm test

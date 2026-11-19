@@ -40,11 +40,14 @@ async function tnRefreshExtras(){
    }).join('');
    stories.innerHTML='<button type="button" class="tnStoryCreate" data-act="tn-create-story"><span class="tnStoryAdd">＋</span><strong>أنشئ قصتك</strong><small>صورة أو مقطع</small></button>'+
     (cards||'<span class="tnStoryLoading">لا توجد قصص منشورة خلال آخر 24 ساعة.</span>');
-   const videos=posts.map(p=>({post:p,file:tnPlayableMedia(p,'video/')})).filter(x=>x.file).slice(0,8);
-   reels.innerHTML=videos.length?videos.map(({post,file})=>
-    '<a class="tnReelCard" href="/post/'+encodeURIComponent(post.id)+'" aria-label="مشاهدة مقطع: '+esc(postLabel(post))+'">'+
-    '<video src="'+asset(file.url)+'" muted playsinline preload="metadata"></video><span class="tnReelPlay" aria-hidden="true">▶</span>'+
-    '<strong>'+esc(postLabel(post))+'</strong></a>').join(''):'<p class="tnEmptyReels">تظهر هنا المقاطع التي ينشرها أعضاء المجتمع بصيغة MP4.</p>';
+   let published=[];
+   try{const catalog=await api('platform/reels');published=(catalog.reels||[]).map(x=>({title:x.title,file:x.media_key,postId:null}));}catch{}
+   const legacy=posts.map(p=>({title:postLabel(p),postId:p.id,file:tnPlayableMedia(p,'video/')?.url})).filter(x=>x.file);
+   const videos=[...published,...legacy].slice(0,12);
+   reels.innerHTML=videos.length?videos.map(({title,file,postId})=>
+    '<button type="button" class="tnReelCard tnReelOpen" data-act="tn-view-reel" data-source="'+esc(file)+'" data-title="'+esc(title)+'" data-post="'+(postId||'')+'" aria-label="مشاهدة مقطع: '+esc(title)+'">'+
+    '<video src="'+asset(file)+'" muted playsinline preload="metadata"></video><span class="tnReelPlay" aria-hidden="true">▶</span>'+
+    '<strong>'+esc(title)+'</strong></button>').join(''):'<p class="tnEmptyReels">تظهر هنا المقاطع القصيرة المنشورة في المجتمع.</p>';
   }catch(e){stories.innerHTML='<p>تعذر تحميل القصص.</p>';reels.textContent='تعذر تحميل المقاطع.';}
  }
  if(user){
@@ -64,6 +67,16 @@ async function tnRefreshExtras(){
  }
 }
 async function tnExtraAction(action,element){
+ if(action==='tn-view-reel'){
+  const src=element.dataset.source||'',title=element.dataset.title||'مقطع تنميات';
+  if(!/^\/api\/files\/[0-9a-f-]{36}$/.test(src)){notify('ملف الفيديو غير متاح.');return true;}
+  showModal(title,'<div class="tnShortsViewer"><video src="'+esc(src)+'" controls autoplay playsinline preload="metadata" aria-label="'+esc(title)+'"></video>'+
+   (element.dataset.post?'<a href="/post/'+Number(element.dataset.post)+'" class="btn">فتح المنشور والتعليقات</a>':'')+'</div>');
+  const player=document.querySelector('.tnShortsViewer video');
+  dialog.addEventListener('close',()=>{if(player){player.pause();player.removeAttribute('src');player.load();}},{once:true});
+  return true;
+ }
+
  if(action==='tn-create-story'){
   if(!user){auth('login');return true;}
   composer();

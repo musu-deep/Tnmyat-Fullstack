@@ -14,20 +14,28 @@ function tnServiceWelcome(k){return ({
  privacy:'ضبط نطاق ظهور النبذة وبيانات المناسبات والملف المهني، على أساس صلاحيات يطبّقها الخادم.',
  payments:'مسودات طلبات مالية وحسابات تسوية تأسيسية، دون سحب أموال أو منح حالة مدفوعة.'
  }[k]);}
-async function renderTnServices(service='ai'){
- tnActiveService=tnServiceTabs.some(x=>x[0]===service)?service:'ai';
- document.title='خدمات تنميات | مجتمع تنميات';
- const options=tnServiceTabs.map(([id,label])=>'<button type="button" data-act="tn-tab" data-service="'+id+'" class="tnServiceTab'+(id===tnActiveService?' active':'')+'">'+tnSafe(label)+'</button>').join('');
- main.innerHTML='<section class="tnServicesPage"><div class="tnServicesHero"><a href="/wall">← مجتمع تنميات</a><h1>خدمات تنميات</h1><p>البنية التشغيلية للخدمات التفاعلية والمالية والذكاء الاصطناعي. تصبح التكاملات الخارجية متاحة بعد الإعداد والاختبار.</p></div><nav class="tnServiceTabs">'+options+'</nav><section class="tnServiceContent"><header><h2>'+tnSafe(tnServiceTabs.find(x=>x[0]===tnActiveService)[1])+'</h2><p>'+tnSafe(tnServiceWelcome(tnActiveService))+'</p></header><div id="tnServiceBody">جارٍ التحميل…</div></section></section>';
+// Contextual tools: no standalone Services landing page.
+// The same authenticated API flows are reused inside a compact dialog.
+async function tnOpenTool(service='ai'){
+ tnActiveService=tnServiceTabs.some(t=>t[0]===service)?service:'ai';
+ const title=tnServiceTabs.find(t=>t[0]===tnActiveService)[1];
+ const isAi=tnActiveService==='ai';
+ showModal(title,
+  '<div class="tnEmbeddedTool '+(isAi?'tnAiWorkspace':'')+'"><p class="tnToolIntro">'+tnSafe(tnServiceWelcome(tnActiveService))+'</p>'+
+  '<div id="tnServiceBody" class="tnServiceBody">جارٍ التحميل…</div></div>');
+ dialog.classList.toggle('tnAiDialog',isAi);
+ dialog.classList.toggle('tnToolDialog',!isAi);
+ dialog.addEventListener('close',()=>{dialog.classList.remove('tnAiDialog','tnToolDialog');},{once:true});
  await tnLoadService(tnActiveService);
 }
+async function renderTnServices(service='ai'){await tnOpenTool(service);}
 async function tnLoadService(k){
  const area=document.getElementById('tnServiceBody');if(!area)return;
  if(!user){area.innerHTML='<p>سجّل الدخول لفتح خدمات حسابك.</p><button class="btn primary" data-act="login">تسجيل الدخول</button>';return;}
  try{
  if(k==='ai'){
   const r=await api('platform/ai/threads');
-  area.innerHTML='<form class="tnServiceForm" id="tnAiNew"><label>اسم المحادثة<input name="title" required maxlength="120" placeholder="موضوع المحادثة"></label><button class="btn primary">إنشاء محادثة</button><div class="error"></div></form><div class="tnServiceList">'+r.threads.map(x=>'<button type="button" class="tnServiceRow" data-act="tn-ai-open" data-id="'+tnSafe(x.id)+'">'+tnSafe(x.title)+'</button>').join('')+'</div><div id="tnAiThread"><p>اختر محادثة لعرض الرسائل أو إنشاء مسودة جديدة.</p></div>';
+  area.innerHTML='<div class="tnAiColumns"><aside class="tnAiHistory"><h3>محادثاتك</h3><form class="tnServiceForm" id="tnAiNew"><label>اسم المحادثة<input name="title" required maxlength="120" placeholder="محادثة جديدة"></label><button class="btn primary">＋ محادثة</button><div class="error"></div></form><div class="tnServiceList">'+r.threads.map(x=>'<button type="button" class="tnServiceRow" data-act="tn-ai-open" data-id="'+tnSafe(x.id)+'">'+tnSafe(x.title)+'</button>').join('')+'</div></aside><div class="tnAiConversation"><div class="tnAgentStrip"><strong>مساعد تنميات</strong><small>المساعد البحثي · محرر المعرفة · المستشار التنموي — أدوار مخططة لمرحلة ربط النموذج</small></div><div id="tnAiThread"><p>اختر محادثة أو أنشئ محادثة جديدة.</p></div></div></div>';
  }else if(k==='live'){
   const r=await api('platform/live/mine');
   area.innerHTML='<form id="tnLiveNew" class="tnServiceForm"><label>عنوان البث<input name="title" minlength="5" maxlength="160" required></label><label>وصف البث<textarea name="description" maxlength="1000"></textarea></label><button class="btn primary">إعداد جلسة بث</button><div class="error"></div></form><button class="btn" type="button" data-act="tn-media-test" data-video="yes">فحص الكاميرا والميكروفون قبل البث</button><h3>جلسات البث</h3><div class="tnServiceList">'+r.sessions.map(x=>'<article class="tnServiceRow"><strong>'+tnSafe(x.title)+'</strong><small>'+tnSafe(x.state)+'</small>'+(x.state==='draft'?'<button class="btn" data-act="tn-live-cancel" data-id="'+tnSafe(x.id)+'">إلغاء</button>':'')+'</article>').join('')+'</div><p class="tnServiceNote">بدء البث الحقيقي مشروط بتوصيل خدمة بث تدعم إصدار مفاتيح البث ومعالجة الفيديو والتحكم بالوصول.</p>';
@@ -67,7 +75,8 @@ async function tnServicesClick(action,el){
   }catch(e){notify('تعذر فتح أجهزة الوسائط؛ تحقق من أذونات المتصفح.');}
   return true;
  }
- if(action==='tn-tab'){await renderTnServices(el.dataset.service);return true;}
+ if(action==='tn-tool'){if(!user){auth('login');return true;}await tnOpenTool(el.dataset.service);if(el.dataset.peer&&el.dataset.service==='calls'){const field=document.querySelector('#tnCallNew input[name=callee_id]');if(field)field.value=Number(el.dataset.peer);}return true;}
+ if(action==='tn-tab'){await tnOpenTool(el.dataset.service);return true;}
  if(action==='tn-ai-open'){
   const r=await api('platform/ai/threads/'+el.dataset.id);const node=document.getElementById('tnAiThread');if(!node)return true;
   node.innerHTML='<h3>'+tnSafe(r.thread.title)+'</h3><div class="tnServiceMessages">'+r.messages.map(m=>'<p><strong>'+tnSafe(m.role==='user'?'أنت':'المساعد')+': </strong>'+tnSafe(m.body)+'</p>').join('')+'</div><form class="tnServiceForm" id="tnAiMessage"><input type="hidden" name="thread_id" value="'+tnSafe(r.thread.id)+'"><label>اكتب رسالتك<textarea name="body" required maxlength="8000"></textarea></label><button class="btn primary">حفظ الرسالة</button><div class="error"></div></form><p class="tnServiceNote">لن يُنشأ رد توليدي حتى توصيل مزود الذكاء الاصطناعي.</p>';return true;
@@ -89,8 +98,8 @@ async function tnServicesForm(form,data){
  const error=form.querySelector('.error');if(error)error.textContent='';
  const button=form.querySelector('button[type=submit],button:not([type])');if(button)button.disabled=true;
  try{
-  if(p==='tnAiNew')await api('platform/ai/threads','POST',data);
-  if(p==='tnAiMessage')await api('platform/ai/threads/'+data.thread_id+'/messages','POST',{body:data.body});
+  if(p==='tnAiNew'){const created=await api('platform/ai/threads','POST',data);await tnLoadService('ai');await tnServicesClick('tn-ai-open',{dataset:{id:created.id}});return true;}
+  if(p==='tnAiMessage'){await api('platform/ai/threads/'+data.thread_id+'/messages','POST',{body:data.body});await tnServicesClick('tn-ai-open',{dataset:{id:data.thread_id}});return true;}
   if(p==='tnLiveNew')await api('platform/live','POST',data);
   if(p==='tnCallNew')await api('platform/calls','POST',{callee_id:Number(data.callee_id),kind:data.kind});
   if(p==='tnReelNew')await api('platform/reels','POST',data);
