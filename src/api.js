@@ -1,4 +1,5 @@
 import { governanceRoute } from './governance.js';
+import { platformServicesRoute } from './platform-services.js';
 import { marketImpactRoute } from './market-impact.js';
 import { developmentHubRoute } from './development-hub.js';
 import { memberJourneyRoute } from './member-journey.js';
@@ -384,6 +385,8 @@ async function route(request,db) {
   const recovery=await passwordRecoveryRoute(request,db,user);
   if(recovery)return recovery;
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
+  const serviceRoute=await platformServicesRoute(request,db,user,helpers);
+  if(serviceRoute)return serviceRoute;
   const marketImpact=await marketImpactRoute(request,db,user,helpers);
   if(marketImpact)return marketImpact;
   const governance=await governanceRoute(request,db,user,helpers);
