@@ -27,7 +27,7 @@ export async function marketImpactRoute(request, db, user, {json,parseBody,textF
   return json({ok:true,category});
  }
  if(method==='GET'&&path==='/api/market/stores'){
-  const rows=await db.prepare(`SELECT s.id,s.name,s.description,s.kind,u.name owner_name,
+  const rows=await db.prepare(`SELECT s.id,s.name,s.description,s.kind,s.slug,u.name owner_name,
    (SELECT count(*) FROM market_listings l WHERE l.store_id=s.id AND l.status='published') listings
    FROM market_stores s JOIN users u ON u.id=s.owner_id WHERE s.status='approved'
    ORDER BY s.id DESC LIMIT 100`).all();
@@ -47,7 +47,7 @@ export async function marketImpactRoute(request, db, user, {json,parseBody,textF
  }
  if(method==='GET'&&path==='/api/market/my-stores'){
   member();
-  const rows=await db.prepare('SELECT id,name,description,kind,status FROM market_stores WHERE owner_id=? ORDER BY id DESC').bind(user.id).all();
+  const rows=await db.prepare('SELECT id,name,description,kind,status,slug FROM market_stores WHERE owner_id=? ORDER BY id DESC').bind(user.id).all();
   return json({stores:rows.results});
  }
  if(method==='POST'&&path==='/api/market/stores'){
