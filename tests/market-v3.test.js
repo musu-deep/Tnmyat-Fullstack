@@ -95,7 +95,7 @@ test('Market V3: protected vendor store, real product, favorites, review and non
   const shop=await call('market/shop/store-x');assert.equal(shop.body.listings.length,1);
   const demo=await readFile(new URL('../public/market-v3.js',import.meta.url),'utf8');
   assert.equal((demo.match(/id:'[^']+',title:/g)||[]).length,12,'twelve demonstrative models');
-  assert.match(demo,/نموذج توضيحي غير قابل للشراء/);
+  assert.match(demo,/كتالوج تنموي/);
   const check=openDatabase(file);
   assert.ok(check.prepare("SELECT name FROM sqlite_master WHERE name='market_listings'").first());
   assert.ok(check.prepare("SELECT name FROM sqlite_master WHERE name='market_member_impact_ratings'").first());
