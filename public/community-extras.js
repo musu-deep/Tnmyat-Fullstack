@@ -16,6 +16,7 @@ function tnWallExtraMarkup(){
  '</section><section class="tnReelSection"><div class="tnExtrasHeading"><h2>مقاطع تنميات</h2><span>فيديوهات الأعضاء</span></div><div class="tnReelRail" id="tnReels">جارٍ تحميل المقاطع…</div></section>';
 }
 function tnFriendMarkup(){
+ if(!user)return '<section class="tnRequestsPanel latestBox"><div class="tnExtrasHeading"><h2>طلبات الصداقة والتواصل</h2></div><p>سجّل الدخول لمتابعة طلبات الصداقة والتنبيهات.</p><button class="btn" data-act="login">تسجيل الدخول</button></section>';
  return '<section class="tnRequestsPanel latestBox" aria-label="طلبات الصداقة الواردة"><div class="tnExtrasHeading"><h2>طلبات الصداقة</h2><a href="/people?filter=requests">عرض الكل</a></div><div id="tnFriendRequests" class="tnFriendRequests">جارٍ التحقق…</div></section>'+
  '<section class="tnAlertsPanel latestBox" aria-label="إشعارات العضوية"><div class="tnExtrasHeading"><h2>التنبيهات</h2><a href="/my-alerts">تنبيهاتي</a></div><div id="tnNotificationSummary"></div></section>';
 }
