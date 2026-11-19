@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - fix/ticker-sidebar-bottom-brand
+      - fix/ticker-seamless-compact
       - fix/ticker-inline-category-separators
   pull_request:
     branches:
@@ -23,6 +24,7 @@ jobs:
           node --check public/app.js
           node --check public/hub.js
           node --check tests/embedded-tools-ticker.test.js
+          node --check tests/ticker-seamless.test.js
           node --check tests/news-inline-separators.test.js
       - name: Run full community tests
         run: npm test
