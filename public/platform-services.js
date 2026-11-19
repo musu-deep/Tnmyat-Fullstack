@@ -75,7 +75,7 @@ async function tnServicesClick(action,el){
   }catch(e){notify('تعذر فتح أجهزة الوسائط؛ تحقق من أذونات المتصفح.');}
   return true;
  }
- if(action==='tn-tool'){if(!user){auth('login');return true;}await tnOpenTool(el.dataset.service);return true;}
+ if(action==='tn-tool'){if(!user){auth('login');return true;}await tnOpenTool(el.dataset.service);if(el.dataset.peer&&el.dataset.service==='calls'){const field=document.querySelector('#tnCallNew input[name=callee_id]');if(field)field.value=Number(el.dataset.peer);}return true;}
  if(action==='tn-tab'){await tnOpenTool(el.dataset.service);return true;}
  if(action==='tn-ai-open'){
   const r=await api('platform/ai/threads/'+el.dataset.id);const node=document.getElementById('tnAiThread');if(!node)return true;
