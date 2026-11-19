@@ -87,6 +87,15 @@ CREATE TABLE tn_profile_privacy (
  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
+CREATE TABLE tn_payment_policies (
+ id INTEGER PRIMARY KEY CHECK(id=1),
+ commission_basis_points INTEGER NOT NULL DEFAULT 0 CHECK(commission_basis_points BETWEEN 0 AND 5000),
+ fixed_commission_minor INTEGER NOT NULL DEFAULT 0 CHECK(fixed_commission_minor BETWEEN 0 AND 10000000),
+ updated_by INTEGER REFERENCES users(id),
+ updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+INSERT INTO tn_payment_policies(id) VALUES (1);
+
 CREATE TABLE tn_checkout_orders (
  id TEXT PRIMARY KEY,
  buyer_id INTEGER NOT NULL REFERENCES users(id),
