@@ -63,3 +63,13 @@ CREATE TABLE market_purchase_requests (
  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX market_purchase_requests_store ON market_purchase_requests(store_id,status);
+
+-- Persistent member shopping cart. Checkout sends requests, not payments.
+CREATE TABLE market_cart_items (
+ user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ listing_id INTEGER NOT NULL REFERENCES market_listings(id) ON DELETE CASCADE,
+ quantity INTEGER NOT NULL DEFAULT 1 CHECK(quantity BETWEEN 1 AND 10000),
+ added_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+ PRIMARY KEY(user_id,listing_id)
+);
+CREATE INDEX market_cart_items_user ON market_cart_items(user_id);
