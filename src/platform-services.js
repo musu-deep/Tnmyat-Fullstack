@@ -138,6 +138,21 @@ export async function platformServicesRoute(request,db,user,{json,parseBody,text
   return json({ok:true});
  }
  // Orders are internal drafts; money is never charged or marked paid by a client request.
+ if(path==='/api/platform/payments/policy'){
+  signed();
+  if(user.role!=='admin')throw new ApiError(403,'سياسة العمولات من اختصاص الإدارة.');
+  if(method==='GET'){
+   const p=await db.prepare('SELECT commission_basis_points,fixed_commission_minor,updated_at FROM tn_payment_policies WHERE id=1').first();
+   return json({policy:p});
+  }
+  if(method==='PUT'){
+   const b=await write('commission-policy',10);
+   const basis=Number(b.commission_basis_points),fixed=Number(b.fixed_commission_minor);
+   if(!Number.isSafeInteger(basis)||basis<0||basis>5000||!Number.isSafeInteger(fixed)||fixed<0||fixed>10000000)throw new ApiError(400,'سياسة العمولة غير صحيحة.');
+   await db.prepare("UPDATE tn_payment_policies SET commission_basis_points=?,fixed_commission_minor=?,updated_by=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=1").bind(basis,fixed,user.id).run();
+   return json({ok:true,policy:{commission_basis_points:basis,fixed_commission_minor:fixed}});
+  }
+ }
  if(path==='/api/platform/payments/orders'&&method==='GET'){
   signed();const rows=await db.prepare('SELECT id,buyer_id,seller_id,subtotal_minor,commission_minor,currency,status,description,created_at FROM tn_checkout_orders WHERE buyer_id=? OR seller_id=? ORDER BY created_at DESC LIMIT 100').bind(user.id,user.id).all();
   return json({orders:rows.results});
@@ -148,9 +163,12 @@ export async function platformServicesRoute(request,db,user,{json,parseBody,text
   if(!Number.isSafeInteger(amount)||amount<0||amount>100000000000)throw new ApiError(400,'القيمة غير صحيحة.');
   const valid=await db.prepare("SELECT id FROM users WHERE id=? AND password_hash IS NOT NULL AND account_status='active'").bind(seller).first();
   if(!valid)throw new ApiError(404,'البائع غير متاح.');
+  const policy=await db.prepare('SELECT commission_basis_points,fixed_commission_minor FROM tn_payment_policies WHERE id=1').first();
+  const commission=Math.min(amount,Math.floor(amount*policy.commission_basis_points/10000)+policy.fixed_commission_minor);
   const key=id();
-  await db.prepare("INSERT INTO tn_checkout_orders(id,buyer_id,seller_id,subtotal_minor,description,status) VALUES(?,?,?,?,?,'draft')").bind(key,user.id,seller,amount,description).run();
-  return json({id:key,status:'draft',charged:false,commission_minor:0},201);
+  await db.prepare("INSERT INTO tn_checkout_orders(id,buyer_id,seller_id,subtotal_minor,commission_minor,description,status) VALUES(?,?,?,?,?,?,'draft')")
+   .bind(key,user.id,seller,amount,commission,description).run();
+  return json({id:key,status:'draft',charged:false,commission_minor:commission},201);
  }
  return null;
 }
