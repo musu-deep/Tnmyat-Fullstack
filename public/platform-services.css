@@ -23,3 +23,5 @@
 .tnServiceMessages p{background:#f1f6fa;border-radius:10px;padding:10px;overflow-wrap:anywhere}
 .tnServiceNote{margin:19px 0 0;background:#f0f5f8;border-radius:11px;padding:14px;font-size:.83rem;line-height:1.9;color:#617c8c}
 @media(max-width:620px){.tnServiceForm{grid-template-columns:1fr}.tnServicesPage{padding:0 10px}.tnServicesHero{padding:25px}.tnServiceContent{padding:16px}}
+
+.tnMediaTest{display:grid;gap:13px;justify-items:center}.tnMediaTest video{width:min(100%,600px);max-height:55vh;object-fit:contain;background:#112536;border-radius:12px}.tnMediaTest p{font-size:.83rem;color:#4d6878;line-height:1.8}
