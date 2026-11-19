@@ -26,12 +26,12 @@ const tnCard=(x,demo=false)=>'<article class="tmCard">'+(demo?tnMarketIllustrati
  (demo?'<div class="tmStarsRow"><span class="tmStars">☆☆☆☆☆</span><small>نموذج بلا تقييمات</small></div>':'<div class="tmStarsRow">'+tnStars(x.avg_stars,x.reviews_count)+'</div>')+
  '<div class="tmPriceRow"><strong>'+(demo?tnDemoPrice(x.price):x.price_minor===null?'السعر عند الطلب':tnDemoPrice(x.price_minor/100))+'</strong>'+
  (demo?'<span class="tmDemoPill">سعر استرشادي</span>':'<button type="button" class="tmFavorite" data-act="tm-favorite" data-id="'+x.id+'" aria-label="إضافة إلى المفضلة">♡</button>')+'</div>'+
- '<a class="tmCardAction" href="/market/item/'+(demo?'demo-'+x.id:Number(x.id))+'">عرض التفاصيل</a></div></article>';
+ '<a class="tmCardAction" href="/market/item/'+(demo?'demo-'+x.id:Number(x.id))+'">عرض التفاصيل</a>'+(demo?'':'<button type="button" class="tmCardAction tmCardCart" data-act="tm-add-cart" data-id="'+x.id+'">＋ أضف للسلة</button>')+'</div></article>';
 async function renderMarketV3(){
  document.title='سوق تنميات | مجتمع تنميات';
  main.innerHTML='<section class="tmMarket"><div class="tmHero"><div><span class="tmEyebrow">مجتمع تنميات · الأعمال والتنمية</span><h1>سوق تنميات</h1><p>اكتشف المنتجات والخدمات والمشاريع، وقارن تفاصيلها وتقييماتها، وأنشئ متجرك التنموي المستقل تحت مظلة المجتمع.</p><div class="tmHeroActions"><a href="#tmProducts" class="tmBtn tmBtnLight">تصفح السوق</a><a href="#tmCreate" class="tmBtn tmBtnGhost">افتح متجرك التنموي</a></div></div><div class="tmHeroArt"><span>◈</span><strong>تنميات</strong><small>بيئة أعمال مترابطة</small></div></div>'+
  '<div class="tmBenefits"><span>✦ متاجر الأعضاء</span><span>☆ تقييمات وتفضيلات</span><span>▤ مشاريع وخدمات</span><span>⌑ تفاصيل وأسعار</span></div>'+
- '<div class="tmSectionHeader" id="tmProducts"><div><small>المنتجات والخدمات والمشاريع</small><h2>اكتشف فرص السوق</h2></div><button class="tmBtn tmBtnOutline" data-act="tm-my-favorites">♡ تفضيلاتي</button></div>'+
+ '<div class="tmSectionHeader" id="tmProducts"><div><small>المنتجات والخدمات والمشاريع</small><h2>اكتشف فرص السوق</h2></div><div class="tmToolbar"><button class="tmBtn tmBtnOutline" data-act="tm-cart">▣ سلة مشترياتي</button><button class="tmBtn tmBtnOutline" data-act="tm-my-favorites">♡ تفضيلاتي</button></div></div>'+
  '<form id="tmSearchForm" class="tmSearch"><label>ابحث<input type="search" name="q" placeholder="منتج، خدمة، مشروع، مؤسسة…"></label><label>النوع<select name="type"><option value="">الكل</option><option value="product">المنتجات</option><option value="service">الخدمات</option><option value="project">المشاريع</option></select></label><label>الترتيب<select name="sort"><option value="newest">الأحدث</option><option value="price-asc">الأقل سعراً</option><option value="price-desc">الأعلى سعراً</option><option value="rated">الأعلى تقييماً</option></select></label><button class="tmBtn tmBtnDark">بحث</button></form>'+
  '<div class="tmSectionHeader"><div><small>عروض فعلية يضيفها الأعضاء</small><h2>منتجات المجتمع</h2></div></div><div id="tmActualProducts" class="tmGrid">جارٍ تحميل العروض…</div>'+
  '<div class="tmSectionHeader"><div><small>عرض استكشافي غير ملزم</small><h2>نماذج جاهزة للاستلهام</h2><p>أمثلة توضيحية بأسعار تقديرية وليست عروض بيع فعلية.</p></div></div>'+
@@ -62,7 +62,7 @@ async function renderMarketProduct(id){
  '<div class="tmProductDetail"><div class="tmDetailArt">'+image+'</div><div class="tmDetailText"><span class="tmDemoPill">'+(demo?'نموذج توضيحي غير قابل للشراء':'عرض عضو معتمد للنشر')+'</span><h1>'+esc(item.title)+'</h1><div class="tmStarsRow">'+(demo?tnStars(0,0):tnStars(item.avg_stars,item.reviews_count))+'</div>'+
  '<p class="tmDetailLead">'+esc(item.marketing||item.marketing_text||item.description||'')+'</p><strong class="tmDetailPrice">'+cost+'</strong><p>'+esc(item.delivery||'يتم تأكيد التسليم والمواصفات عبر البائع قبل أي تعاقد.')+'</p>'+
  '<div class="tmProductActions">'+(demo?'<span class="tmDemoInfo">هذا نموذج للعرض فقط؛ لا يوجد بائع حقيقي أو مخزون فعلي.</span>':
- '<label>الكمية<input id="tmQuantity" type="number" min="'+Number(item.min_order_qty||1)+'" value="'+Number(item.min_order_qty||1)+'"></label><button type="button" data-act="tm-order" data-id="'+item.id+'" class="tmBtn tmBtnDark">إرسال طلب شراء</button><button type="button" data-act="tm-favorite" data-id="'+item.id+'" class="tmBtn tmBtnOutline">'+(isFav?'♥ محفوظ':'♡ المفضلة')+'</button>')+
+ '<label>الكمية<input id="tmQuantity" type="number" min="'+Number(item.min_order_qty||1)+'" value="'+Number(item.min_order_qty||1)+'"></label><button type="button" data-act="tm-add-cart" data-id="'+item.id+'" class="tmBtn tmBtnDark">＋ أضف للسلة</button><button type="button" data-act="tm-order" data-id="'+item.id+'" class="tmBtn tmBtnOutline">طلب مباشر</button><button type="button" data-act="tm-favorite" data-id="'+item.id+'" class="tmBtn tmBtnOutline">'+(isFav?'♥ محفوظ':'♡ المفضلة')+'</button>')+
  '</div>'+(!demo&&item.store_slug?'<a href="/shop/'+esc(item.store_slug)+'" class="tmVendor">زيارة متجر '+esc(item.store_name)+'</a>':'')+'</div></div>'+
  '<div class="tmDetailSections"><article><h2>نبذة تسويقية</h2><p>'+esc(item.marketing||item.marketing_text||item.description||'وصف البائع')+'</p></article><article><h2>المواصفات والتفاصيل</h2><p>'+esc(item.spec||item.specifications||item.description||'لا توجد مواصفات إضافية')+'</p></article><article><h2>التوريد والشراء</h2><p>'+esc(item.delivery||'طلب الشراء هنا طلب مبدئي يُرسل للبائع. لا يتم تحصيل أي مبلغ، ولا يُنشأ عقد أو شحن آلي.')+'</p></article></div>'+
  '<section class="tmReviews"><h2>تقييمات الأعضاء</h2>'+(demo?'<p>لا توجد تقييمات حقيقية لهذه النماذج التوضيحية.</p>':reviews.map(r=>'<div class="tmReview"><div><strong>'+esc(r.author)+'</strong><span class="tmStars">'+('★'.repeat(Number(r.stars)))+'</span></div><p>'+esc(r.comment||'تقييم بلا تعليق')+'</p></div>').join('')+'<form id="tmReviewForm" class="tmForm" data-id="'+item.id+'"><label>تقييمك<select name="stars">'+[5,4,3,2,1].map(n=>'<option value="'+n+'">'+n+' نجوم</option>').join('')+'</select></label><label>رأيك<textarea name="comment" maxlength="1200" placeholder="اكتب ملاحظاتك عن المنتج"></textarea></label><button class="tmBtn tmBtnDark">حفظ التقييم</button><div class="error"></div><small>التقييم يعكس رأي العضو، وليس إثباتاً تلقائياً لعملية شراء.</small></form>')+'</section></section>';
@@ -73,6 +73,18 @@ async function renderMarketShop(slug){
  main.innerHTML='<section class="tmMarket tmShop"><div class="tmShopHero" style="--tm-theme:'+esc(s.theme_color||'#183e60')+'"><div><small>متجر تنموي معتمد</small><h1>'+esc(s.name)+'</h1><p>'+esc(s.description||'مرحباً بكم في متجر تنميات')+'</p><span>بإدارة '+esc(s.owner_name)+'</span></div><div class="tmShopLogo">'+(s.logo_url?'<img src="'+esc(s.logo_url)+'" alt="">':'◈')+'</div></div>'+
  '<div class="tmSectionHeader"><div><small>كتالوج المتجر</small><h2>المنتجات والخدمات</h2></div><a href="/market">جميع السوق</a></div><div class="tmGrid">'+(r.listings.length?r.listings.map(x=>tnCard(x)).join(''):'<div class="tmEmpty">لم ينشر المتجر منتجات بعد.</div>')+'</div>'+
  (s.contact_text?'<section class="tmContact"><h2>التواصل مع المتجر</h2><p>'+esc(s.contact_text)+'</p></section>':'')+'</section>';
+}
+async function renderMarketCart(){
+ document.title='سلة مشترياتي | سوق تنميات';
+ if(!user){auth('login');return;}
+ const res=await api('market/cart'),items=res.items;
+ const total=items.reduce((sum,x)=>sum+(x.price_minor===null?0:x.price_minor*x.quantity),0);
+ const unknown=items.some(x=>x.price_minor===null);
+ main.innerHTML='<section class="tmMarket tmCart"><div class="tmSectionHeader"><div><small>الطلبات والمشتريات</small><h1>سلة مشترياتي</h1></div><a href="/market">← متابعة التسوق</a></div>'+
+ (items.length?'<div class="tmCartLayout"><div class="tmCartItems">'+items.map(x=>'<article class="tmCartLine">'+tnRealImg(x)+'<div class="tmCartInfo"><h3><a href="/market/item/'+x.id+'">'+esc(x.title)+'</a></h3><small>المتجر: '+esc(x.store_name)+'</small><strong>'+esc(x.price_minor===null?'السعر يحدد عند الطلب':tnDemoPrice(x.price_minor/100))+'</strong><label>الكمية<input type="number" min="'+Number(x.min_order_qty||1)+'" max="'+(x.stock_qty===null?10000:Number(x.stock_qty))+'" value="'+Number(x.quantity)+'" data-market-qty="'+x.id+'"></label><div class="tmCartButtons"><button data-act="tm-update-cart" data-id="'+x.id+'" class="tmBtn tmBtnOutline">تحديث</button><button data-act="tm-remove-cart" data-id="'+x.id+'" class="tmBtn tmBtnOutline">إزالة</button></div></div></article>').join('')+'</div>'+
+ '<aside class="tmCartSummary"><h2>ملخص السلة</h2><p>المنتجات: '+items.length+'</p><strong>الإجمالي الاسترشادي: '+tnDemoPrice(total/100)+'</strong>'+(unknown?'<small>توجد عناصر تتطلب تحديد السعر من البائع.</small>':'')+
+ '<p>لا تتضمن الأسعار بالضرورة الشحن أو الضرائب أو التركيب. طلب السلة لا يخصم أي مبلغ.</p><form id="tmCartCheckout" class="tmForm"><label>ملاحظات التوريد والشحن<textarea name="notes" maxlength="1000" placeholder="متطلبات تسليم دون إدخال بيانات حساسة"></textarea></label><button class="tmBtn tmBtnDark">إرسال طلبات السلة</button><div class="error"></div></form></aside></div>':
+ '<div class="tmEmpty">سلتك فارغة. <a href="/market">استعرض منتجات السوق</a>.</div>')+'</section>';
 }
 async function tnMarketV3Onboard(){
  if(!user){auth('login');return;}
@@ -94,6 +106,25 @@ async function tnOpenStoreConsole(storeId){
  '<div class="tmSectionHeader"><h2>الكتالوج الخاص بك</h2></div><div class="tmManageGrid">'+r.listings.map(x=>'<article class="tmManageCard"><strong>'+esc(x.title)+'</strong><small>الحالة: '+esc(x.status)+' | '+esc(x.category||'عام')+'</small><span>'+esc(x.price_minor===null?'يحدد السعر لاحقاً':tnDemoPrice(x.price_minor/100))+'</span><button data-act="tm-edit-item" data-store="'+s.id+'" data-id="'+x.id+'" data-title="'+esc(x.title)+'" data-desc="'+esc(x.description)+'" data-marketing="'+esc(x.marketing_text||'')+'" data-status="'+esc(x.status)+'" data-image="'+esc(x.image_url||'')+'" class="tmBtn tmBtnOutline">تعديل</button></article>').join('')+'</div></section>';
 }
 async function tnMarketV3Action(action,el){
+ if(action==='tm-cart'){await renderMarketCart();return true;}
+ if(action==='tm-add-cart'){
+  if(!user){auth('login');return true;}
+  try{
+   const listingId=Number(el.dataset.id),qty=Number(document.querySelector('#tmQuantity')?.value||1);
+   await api('market/cart','POST',{listing_id:listingId,quantity:qty});
+   notify('أُضيف المنتج إلى السلة.');
+  }catch(e){notify(e.message);}return true;
+ }
+ if(action==='tm-update-cart'){
+  try{
+   const id=Number(el.dataset.id),quantity=Number(document.querySelector('[data-market-qty="'+id+'"]')?.value||1);
+   await api('market/cart','POST',{listing_id:id,quantity});await renderMarketCart();
+  }catch(e){notify(e.message);}return true;
+ }
+ if(action==='tm-remove-cart'){
+  try{await api('market/cart/'+Number(el.dataset.id),'DELETE');await renderMarketCart();}catch(e){notify(e.message);}return true;
+ }
+
  if(action==='tm-onboard'){await tnMarketV3Onboard();return true;}
  if(action==='tm-my-stores'){await tnMyStores();return true;}
  if(action==='tm-my-favorites'){
@@ -139,10 +170,11 @@ async function tnMarketV3Action(action,el){
 }
 async function tnMarketV3Form(form,data){
  if(form.id==='tmSearchForm'){await tnLoadMarketCatalog({q:data.q,type:data.type,sort:data.sort});return true;}
- if(!['tmOnboard','tmStoreLogin','tmNewItem','tmEditItem','tmStoreSettings','tmOrder','tmReviewForm'].includes(form.id))return false;
+ if(!['tmOnboard','tmStoreLogin','tmNewItem','tmEditItem','tmStoreSettings','tmOrder','tmReviewForm','tmCartCheckout'].includes(form.id))return false;
  const error=form.querySelector('.error'),button=form.querySelector('button[type=submit],button:not([type])');
  if(error)error.textContent='';if(button)button.disabled=true;
  try{
+  if(form.id==='tmCartCheckout'){const r=await api('market/cart/checkout','POST',{notes:data.notes});notify('تم إرسال '+r.requests_created+' طلب شراء مبدئي دون دفع.');await renderMarketCart();return true;}
   if(form.id==='tmOnboard'){
    const r=await api('market/shop-onboard','POST',data);dialog.close();notify('أُنشئ طلب المتجر. سيظهر للجمهور بعد اعتماد الإدارة.');await tnMyStores();
   }else if(form.id==='tmStoreLogin'){
