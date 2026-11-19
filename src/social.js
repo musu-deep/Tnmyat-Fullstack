@@ -69,7 +69,19 @@ async function profileFor(db,viewer,id) {
     (SELECT count(*) FROM follows f WHERE f.follower=u.id) AS following_count,
     (SELECT count(*) FROM friendships s WHERE s.accepted=1 AND (s.low_id=u.id OR s.high_id=u.id)) AS friends_count`+
     personFrom+' WHERE u.id=?').bind(viewer,id).first();
-  return person ? personView(person) : null;
+  if(!person)return null;
+  const privacy=await db.prepare('SELECT bio_scope FROM tn_profile_privacy WHERE user_id=?').bind(id).first();
+  if(privacy&&privacy.bio_scope!=='public'&&viewer!==id){
+    let visible=false;
+    if(privacy.bio_scope==='members'&&viewer>0)visible=true;
+    if(privacy.bio_scope==='friends'&&viewer>0){
+      const fr=await db.prepare('SELECT accepted FROM friendships WHERE low_id=? AND high_id=? AND accepted=1')
+       .bind(Math.min(viewer,id),Math.max(viewer,id)).first();
+      visible=Boolean(fr);
+    }
+    if(!visible)person.bio='';
+  }
+  return personView(person);
 }
 const peerFields = `u.id,u.name,u.cover_position,
   CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar,
