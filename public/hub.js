@@ -20,13 +20,20 @@ function hubMonthGrid(year,month,events,scope){
 }
 function hubDayDetails(events,date){const items=hubDateEvents(events,date);return '<div class="hubDayDetailTitle">'+hubEscape(hubDay(date))+' <span>'+items.length+' مناسبة</span></div>'+hubEventList(items,12);}
 function hubUpdateDock(){
- const anchor=document.querySelector('#hubTickers'),bands=anchor?.querySelector('.hubTickers');
- if(!anchor||!bands||location.pathname!=='/wall'){document.body.classList.remove('hubTickerDocked');return;}
- // Anchor remains in normal document flow, even when bands are fixed.
- const topbar=document.querySelector('body > header')?.getBoundingClientRect().height||66;
- const dock=anchor.getBoundingClientRect().bottom<topbar;
- // Preserve the undocked stack height while the compact horizontal dock is fixed.
- // Re-measuring the fixed row would shrink the placeholder and cause scroll jumps.
+ const anchor=document.querySelector('#hubTickers');
+ const bands=anchor?.querySelector('.hubTickers');
+ if(!anchor||!bands||location.pathname!=='/wall'){
+  document.body.classList.remove('hubTickerDocked');
+  if(anchor)anchor.style.minHeight='';
+  return;
+ }
+ const header=document.querySelector('body > header');
+ // Keep the dock directly under the visible top navigation, including on mobile.
+ const rect=header?.getBoundingClientRect();
+ const headerBottom=rect?Math.max(0,Math.round(rect.bottom)):0;
+ document.documentElement.style.setProperty('--tn-ticker-top',headerBottom+'px');
+ const dock=anchor.getBoundingClientRect().bottom<headerBottom;
+ // Only occupy the original column's height while the three bands move to the top.
  if(!bands.classList.contains('hubTickersDocked'))anchor.style.minHeight=bands.offsetHeight+'px';
  bands.classList.toggle('hubTickersDocked',dock);
  document.body.classList.toggle('hubTickerDocked',dock);
