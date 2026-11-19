@@ -123,6 +123,24 @@ export async function marketV3Route(request,db,user,{json,parseBody,textField,re
   await db.prepare('INSERT INTO market_store_access(store_id,password_salt,password_hash,iterations) VALUES(?,?,?,?)').bind(created.id,salt,hash,MARKET_HASH_ROUNDS).run();
   return json({id:created.id,slug,status:'pending',path:'/shop/'+slug,domain_provisioned:false},201);
  }
+ if(p==='/api/market/store-bootstrap'&&m==='POST'){
+  await limited('store-bootstrap',5);const b=await parseBody(request),storeId=idNum(b.store_id);
+  if(!storeId)throw new ApiError(400,'المتجر غير صحيح.');
+  const store=await owner(storeId);
+  const existing=await db.prepare('SELECT store_id FROM market_store_access WHERE store_id=?').bind(storeId).first();
+  if(existing)throw new ApiError(409,'إدارة المتجر محمية بالفعل بكلمة مرور.');
+  const slug=cleanSlug(b.slug||store.slug);
+  if(!slug)throw new ApiError(400,'عنوان المتجر غير صحيح.');
+  const collision=await db.prepare('SELECT id FROM market_stores WHERE slug=? AND id<>?').bind(slug,storeId).first();
+  if(collision)throw new ApiError(409,'عنوان المتجر محجوز.');
+  const password=String(b.store_password||'');
+  if(password.length<12||password.length>128||!/[A-Z]/.test(password)||!/[a-z]/.test(password)||!/[0-9]/.test(password))
+   throw new ApiError(400,'كلمة المرور تحتاج 12 حرفاً وأحرفاً كبيرة وصغيرة وأرقاماً.');
+  const salt=hex(crypto.getRandomValues(new Uint8Array(MARKET_SALT_BYTES))),hash=await vendorHash(password,salt);
+  await db.prepare('INSERT INTO market_store_access(store_id,password_salt,password_hash,iterations) VALUES(?,?,?,?)').bind(storeId,salt,hash,MARKET_HASH_ROUNDS).run();
+  await db.prepare('UPDATE market_stores SET slug=? WHERE id=? AND owner_id=?').bind(slug,storeId,user.id).run();
+  return json({ok:true,slug,path:'/shop/'+slug,domain_provisioned:false});
+ }
  if(p==='/api/market/store-login'&&m==='POST'){
   await limited('store-login',15);const b=await parseBody(request),storeId=idNum(b.store_id);
   if(!storeId)throw new ApiError(400,'اختر متجراً.');
