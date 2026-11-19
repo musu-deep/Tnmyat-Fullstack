@@ -1,0 +1,25 @@
+name: Poster-only release tests
+on:
+  push:
+    branches:
+      - release/poster-preview-only
+  pull_request:
+    branches:
+      - release/market-impact-recovery-tickers
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check poster code syntax
+        run: |
+          node --check public/social.js
+          node --check tests/poster-preview.test.js
+      - name: Test existing project and poster preview
+        run: npm test
