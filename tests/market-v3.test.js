@@ -53,7 +53,7 @@ test('Market V3: protected vendor store, real product, favorites, review and non
    title:'حزمة أدوات تعلّم',description:'مجموعة للتعلم والأنشطة',
    type:'product',category:'التعليم',price_minor:14500,stock_qty:12,
    marketing_text:'تجربة تعليمية عملية',specifications:'12 قطعة',
-   image_url:'https://example.com/product.png'
+   image_url:'https://example.com/product.png',gallery_urls:['https://example.com/gallery-one.jpg'],sku:'EDU-01',min_order_qty:2
   },seller.cookie,login.cookie);
   assert.equal(item.status,201,JSON.stringify(item.body));
   const itemId=item.body.id;
@@ -61,6 +61,18 @@ test('Market V3: protected vendor store, real product, favorites, review and non
   const details=await call('market/item/'+itemId);
   assert.equal(details.status,200,JSON.stringify(details.body));
   assert.equal(details.body.item.stock_qty,12);
+  assert.equal(JSON.parse(details.body.item.gallery_json).length,1);
+  assert.equal(details.body.item.min_order_qty,2);
+  assert.equal((await call('market/order-request','POST',{listing_id:itemId,quantity:1},buyer.cookie)).status,400);
+  const edited=await call('market/store-console/'+sid+'/items/'+itemId,'PATCH',{
+    title:'حزمة تعلم جديدة',description:'محدثة',marketing_text:'نسخة جديدة',
+    price_minor:17900,stock_qty:15,min_order_qty:2,category:'التعليم',
+    specifications:'13 قطعة',sku:'EDU-02',image_url:'https://example.com/product2.png',
+    gallery_urls:'https://example.com/gallery2.jpg'
+  },seller.cookie,login.cookie);
+  assert.equal(edited.status,200,JSON.stringify(edited.body));
+  assert.equal((await call('market/item/'+itemId)).body.item.price_minor,17900);
+
   assert.equal((await call('market/favorites/'+itemId,'POST',{},buyer.cookie)).status,200);
   assert.equal((await call('market/favorites','GET',undefined,buyer.cookie)).body.listings.length,1);
   assert.equal((await call('market/reviews/'+itemId,'POST',{stars:5,comment:'نموذج مناسب'},seller.cookie)).status,403);
