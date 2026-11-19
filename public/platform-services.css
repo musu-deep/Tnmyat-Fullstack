@@ -1,0 +1,25 @@
+.tnServicesPage{max-width:1180px;margin:20px auto 55px;padding:0 18px;direction:rtl}
+.tnServicesHero{border-radius:22px;padding:clamp(24px,4vw,55px);background:radial-gradient(circle at 12% 16%,#3b6c83,transparent 42%),linear-gradient(120deg,#122a48,#294f6c);color:#fff}
+.tnServicesHero a{color:#bcdce6;font-weight:700}
+.tnServicesHero h1{font-size:clamp(30px,4vw,48px);margin:12px 0}.tnServicesHero p{line-height:2;color:#deedf7;max-width:760px}
+.tnServiceTabs{display:flex;gap:8px;overflow-x:auto;padding:16px 0;scrollbar-width:thin}
+.tnServiceTab{flex:0 0 auto;border:1px solid #d5e1e9;border-radius:999px;background:#fff;color:#234964;font:inherit;font-size:.88rem;font-weight:800;padding:10px 16px;cursor:pointer}
+.tnServiceTab.active{color:#fff;background:#214d69;border-color:#214d69}
+.tnServiceContent{background:var(--panel,#fff);border:1px solid #d8e3eb;border-radius:18px;padding:clamp(16px,3vw,30px);min-height:320px}
+.tnServiceContent>header{margin-bottom:24px;border-bottom:1px solid #e0e9ef;padding-bottom:15px}
+.tnServiceContent>header h2{color:#193d57;margin:0 0 7px;font-size:1.5rem}
+.tnServiceContent>header p{color:#627a8a;line-height:1.9;margin:0}
+.tnServiceForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:end;margin-bottom:24px}
+.tnServiceForm label{display:grid;gap:6px;font-size:.82rem;color:#3e5b70;font-weight:700}
+.tnServiceForm input,.tnServiceForm textarea,.tnServiceForm select{min-width:0;width:100%;border:1px solid #cbdce7;border-radius:10px;padding:11px 12px;background:#fff;color:#1b3d53;font:inherit}
+.tnServiceForm textarea{min-height:83px}
+.tnServiceForm .error{grid-column:1/-1;color:#a13434}
+.tnServiceForm button{justify-self:start}
+.tnServiceList{display:grid;gap:9px;margin:15px 0}
+.tnServiceRow{padding:15px;border:1px solid #dfe8ee;border-radius:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:#f9fbfd;text-align:start;font:inherit}
+.tnServiceRow strong{color:#24475d;font-size:.93rem}
+.tnServiceRow small{color:#647a8b;font-size:.75rem}
+.tnServiceMessages{max-height:330px;overflow:auto;border:1px solid #dfe8ee;padding:14px;border-radius:12px;margin:14px 0;line-height:1.85}
+.tnServiceMessages p{background:#f1f6fa;border-radius:10px;padding:10px;overflow-wrap:anywhere}
+.tnServiceNote{margin:19px 0 0;background:#f0f5f8;border-radius:11px;padding:14px;font-size:.83rem;line-height:1.9;color:#617c8c}
+@media(max-width:620px){.tnServiceForm{grid-template-columns:1fr}.tnServicesPage{padding:0 10px}.tnServicesHero{padding:25px}.tnServiceContent{padding:16px}}
