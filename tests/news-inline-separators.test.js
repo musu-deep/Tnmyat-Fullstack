@@ -16,6 +16,6 @@ test('Ticker headings move between news items in all three lanes, with no fixed 
  assert.match(css,/#hubTickers \.hubTickerViewport\{flex:1 1 100%;width:100%/);
  assert.match(css,/#hubTickers \.hubTickersDocked \.hubTickerSeparator\{/);
  const section=js.slice(js.indexOf('function hubTickerMarkup('),js.indexOf('async function hubRefreshTickers('));
- assert.match(section,/sequence\+\(items\.length\?sequence:''\)/);
- assert.match(section,/sequence\+\(personalNews\.length\?sequence:''\)/);
+ assert.match(section,/items\.length\?'<span class="hubTickerSet" aria-hidden="true">'\+sequence/);
+ assert.match(section,/personalNews\.length\?'<span class="hubTickerSet" aria-hidden="true">'\+sequence/);
 });
