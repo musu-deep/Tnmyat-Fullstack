@@ -25,3 +25,6 @@
 @media(max-width:620px){.tnServiceForm{grid-template-columns:1fr}.tnServicesPage{padding:0 10px}.tnServicesHero{padding:25px}.tnServiceContent{padding:16px}}
 
 .tnMediaTest{display:grid;gap:13px;justify-items:center}.tnMediaTest video{width:min(100%,600px);max-height:55vh;object-fit:contain;background:#112536;border-radius:12px}.tnMediaTest p{font-size:.83rem;color:#4d6878;line-height:1.8}
+
+.tnRtcStage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tnRtcStage>div{display:grid;gap:7px;min-width:0}.tnRtcStage video{width:100%;max-height:230px;object-fit:contain;background:#13293f;border-radius:10px}.tnRtcStage .tnServiceNote{grid-column:1/-1}.tnRtcStage>button{justify-self:start}@media(max-width:620px){.tnRtcStage{grid-template-columns:1fr}}
+.tnReelFeed{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:14px}.tnReelTile{border:1px solid #d9e5ea;border-radius:14px;overflow:hidden;background:#f7fbfe}.tnReelTile video{display:block;width:100%;aspect-ratio:9/16;max-height:390px;background:#102638;object-fit:contain}.tnReelTile>div{padding:12px}.tnReelTile strong{color:#27495f}.tnReelTile p{font-size:.78rem;color:#536f80}.tnReelTile small{color:#7c91a0}
