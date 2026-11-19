@@ -1,0 +1,27 @@
+name: Marketplace V3 integration
+on:
+  push:
+    branches:
+      - feature/market-v3-storefronts
+  pull_request:
+    branches:
+      - feature/tnmyat-services-core
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate modules
+        run: |
+          node --check src/market-v3.js
+          node --check public/market-v3.js
+          node --check src/api.js
+          node --check tests/market-v3.test.js
+      - name: Run all regression and commerce integration tests
+        run: npm test

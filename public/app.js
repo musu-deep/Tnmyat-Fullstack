@@ -106,8 +106,18 @@ async function route(){const token=++version;let target=main;
   '<div class="error" role="alert"></div><button class="btn primary">تعيين كلمة المرور</button></form>':'<p>رابط الاستعادة غير صحيح. اطلب رابطاً جديداً من إدارة تنميات.</p>')+
   '</section>';return;
  }
+ const hostedStore=location.hostname.match(/^([a-z][a-z0-9-]{2,39})\.shops\.tnmyat\.com$/);
+ if(hostedStore&&location.pathname==='/'){await renderMarketShop(hostedStore[1]);return;}
  if(location.pathname==='/services'){const selected=new URLSearchParams(location.search).get('tab')||'ai';history.replaceState(null,'','/wall');await route();await tnOpenTool(selected);return;}
- if(location.pathname==='/market'){await renderMarket();return;}
+ if(location.pathname==='/market'){await renderMarketV3();return;}
+ const marketItemPath=location.pathname.match(/^\/market\/item\/((?:demo-)?[a-z0-9-]+)\/?$/);
+ if(marketItemPath){await renderMarketProduct(marketItemPath[1]);return;}
+ const marketShopPath=location.pathname.match(/^\/shop\/([a-z][a-z0-9-]{2,39})\/?$/);
+ if(marketShopPath){await renderMarketShop(marketShopPath[1]);return;}
+ if(location.pathname==='/market/cart'){await renderMarketCart();return;}
+ if(location.pathname==='/market/stores'){await tnMyStores();return;}
+ const marketConsolePath=location.pathname.match(/^\/market\/console\/(\d+)\/?$/);
+ if(marketConsolePath){await tnOpenStoreConsole(Number(marketConsolePath[1]));return;}
  if(location.pathname==='/market-admin'){await renderMarketAdmin();return;}
  if(location.pathname==='/impact-members'){await renderImpactMembers();return;}
  if(location.pathname==='/staff'){await renderStaff(token);return;}
@@ -145,6 +155,7 @@ document.addEventListener('click',async event=>{
  try{
  if(await tnServicesClick(action,el))return;
  if(await tnExtraAction(action,el))return;
+ if(await tnMarketV3Action(action,el))return;
  if(await marketImpactAction(action,el))return;
  if(await hubAction(action,el))return;
  if(await needsAction(el))return;
@@ -199,6 +210,7 @@ document.addEventListener('input',event=>{
 document.addEventListener('submit',async e=>{
  const form=e.target;if(form.hasAttribute('data-group-form'))return;e.preventDefault();const data=Object.fromEntries(new FormData(form,e.submitter||undefined));
  if(await tnServicesForm(form,data))return;
+ if(await tnMarketV3Form(form,data))return;
  if(await marketImpactForm(form,data))return;
  if(await staffAction(form,data))return;
  if(await hubForm(form,data))return;
