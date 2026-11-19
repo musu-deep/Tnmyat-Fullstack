@@ -122,10 +122,14 @@ export async function marketV3Route(request,db,user,{json,parseBody,textField,re
   const count=await db.prepare('SELECT count(*) c FROM market_stores WHERE owner_id=?').bind(user.id).first();
   if(count.c>=5)throw new ApiError(429,'بلغت الحد المسموح للمتاجر.');
   const salt=hex(crypto.getRandomValues(new Uint8Array(MARKET_SALT_BYTES))),hash=await vendorHash(password,salt);
-  let created;
-  try{created=await db.prepare('INSERT INTO market_stores(owner_id,name,description,kind,slug) VALUES(?,?,?,?,?) RETURNING id').bind(user.id,name,description,kind,slug).first();}
-  catch(e){if(String(e.message).includes('UNIQUE'))throw new ApiError(409,'العنوان محجوز.');throw e;}
-  await db.prepare('INSERT INTO market_store_access(store_id,password_salt,password_hash,iterations) VALUES(?,?,?,?)').bind(created.id,salt,hash,MARKET_HASH_ROUNDS).run();
+  try{
+   await db.batch([
+    db.prepare('INSERT INTO market_stores(owner_id,name,description,kind,slug) VALUES(?,?,?,?,?)').bind(user.id,name,description,kind,slug),
+    db.prepare('INSERT INTO market_store_access(store_id,password_salt,password_hash,iterations) SELECT id,?,?,? FROM market_stores WHERE slug=? AND owner_id=?')
+     .bind(salt,hash,MARKET_HASH_ROUNDS,slug,user.id)
+   ]);
+  }catch(e){if(String(e.message).includes('UNIQUE'))throw new ApiError(409,'العنوان محجوز.');throw e;}
+  const created=await db.prepare('SELECT id FROM market_stores WHERE slug=? AND owner_id=?').bind(slug,user.id).first();
   return json({id:created.id,slug,status:'pending',path:'/shop/'+slug,domain_provisioned:false},201);
  }
  if(p==='/api/market/store-bootstrap'&&m==='POST'){
@@ -142,8 +146,12 @@ export async function marketV3Route(request,db,user,{json,parseBody,textField,re
   if(password.length<12||password.length>128||!/[A-Z]/.test(password)||!/[a-z]/.test(password)||!/[0-9]/.test(password))
    throw new ApiError(400,'كلمة المرور تحتاج 12 حرفاً وأحرفاً كبيرة وصغيرة وأرقاماً.');
   const salt=hex(crypto.getRandomValues(new Uint8Array(MARKET_SALT_BYTES))),hash=await vendorHash(password,salt);
-  await db.prepare('INSERT INTO market_store_access(store_id,password_salt,password_hash,iterations) VALUES(?,?,?,?)').bind(storeId,salt,hash,MARKET_HASH_ROUNDS).run();
-  await db.prepare('UPDATE market_stores SET slug=? WHERE id=? AND owner_id=?').bind(slug,storeId,user.id).run();
+  try{
+   await db.batch([
+    db.prepare('UPDATE market_stores SET slug=? WHERE id=? AND owner_id=?').bind(slug,storeId,user.id),
+    db.prepare('INSERT INTO market_store_access(store_id,password_salt,password_hash,iterations) VALUES(?,?,?,?)').bind(storeId,salt,hash,MARKET_HASH_ROUNDS)
+   ]);
+  }catch(e){if(String(e.message).includes('UNIQUE'))throw new ApiError(409,'هذا العنوان أو كلمة المرور الإدارية مفعلة بالفعل.');throw e;}
   return json({ok:true,slug,path:'/shop/'+slug,domain_provisioned:false});
  }
  if(p==='/api/market/store-login'&&m==='POST'){
