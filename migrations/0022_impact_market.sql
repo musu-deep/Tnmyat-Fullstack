@@ -27,6 +27,12 @@ CREATE TABLE market_listings (
  price_minor INTEGER CHECK(price_minor IS NULL OR price_minor >= 0),
  currency TEXT NOT NULL DEFAULT 'SAR',
  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
+ category TEXT NOT NULL DEFAULT 'عام',
+ image_url TEXT NOT NULL DEFAULT '',
+ stock_qty INTEGER,
+ min_order_qty INTEGER NOT NULL DEFAULT 1,
+ sku TEXT NOT NULL DEFAULT '',
+ updated_at TEXT,
  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX market_listings_store ON market_listings(store_id);
