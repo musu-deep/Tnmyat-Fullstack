@@ -217,6 +217,48 @@ export async function marketV3Route(request,db,user,{json,parseBody,textField,re
    return json({ok:true});
   }
  }
+ // Persistent cart for member purchases; money always remains outside the platform.
+ if(p==='/api/market/cart'&&m==='GET'){
+  member();const rows=await db.prepare(publicProductSQL+` AND l.id IN (SELECT listing_id FROM market_cart_items WHERE user_id=?)
+   ORDER BY l.id DESC LIMIT 100`).bind(user.id).all();
+  const amounts=await db.prepare('SELECT listing_id,quantity FROM market_cart_items WHERE user_id=?').bind(user.id).all();
+  const quantities=new Map(amounts.results.map(x=>[x.listing_id,x.quantity]));
+  return json({items:rows.results.map(x=>({...x,quantity:quantities.get(x.id)||1})),payable:false});
+ }
+ if(p==='/api/market/cart'&&m==='POST'){
+  await limited('cart',80);const b=await parseBody(request),item=await product(idNum(b.listing_id));
+  const quantity=Number(b.quantity);
+  if(!Number.isSafeInteger(quantity)||quantity<(item.min_order_qty||1)||quantity>10000)throw new ApiError(400,'الكمية غير صحيحة.');
+  if(item.stock_qty!==null&&quantity>item.stock_qty)throw new ApiError(400,'الكمية المطلوبة تتجاوز المخزون.');
+  await db.prepare(`INSERT INTO market_cart_items(user_id,listing_id,quantity) VALUES(?,?,?)
+    ON CONFLICT(user_id,listing_id) DO UPDATE SET quantity=excluded.quantity`).bind(user.id,item.id,quantity).run();
+  return json({ok:true,quantity});
+ }
+ const cartRemove=p.match(/^\/api\/market\/cart\/(\d+)$/);
+ if(cartRemove&&m==='DELETE'){
+  member();await db.prepare('DELETE FROM market_cart_items WHERE user_id=? AND listing_id=?').bind(user.id,idNum(cartRemove[1])).run();
+  return json({ok:true});
+ }
+ if(p==='/api/market/cart/checkout'&&m==='POST'){
+  await limited('cart-checkout',15);
+  const b=await parseBody(request),notes=textField(b.notes||'',0,1000,'ملاحظات الطلب');
+  const rows=await db.prepare(`SELECT c.listing_id,c.quantity,l.price_minor,l.stock_qty,l.min_order_qty,l.store_id,s.owner_id
+    FROM market_cart_items c JOIN market_listings l ON l.id=c.listing_id
+    JOIN market_stores s ON s.id=l.store_id
+    WHERE c.user_id=? AND s.status='approved' AND l.status='published' ORDER BY c.added_at ASC LIMIT 80`).bind(user.id).all();
+  const items=rows.results;
+  if(!items.length)throw new ApiError(400,'السلة فارغة أو المنتجات لم تعد متاحة.');
+  for(const item of items){
+   if(item.owner_id===user.id)throw new ApiError(403,'لا يمكنك طلب منتجات متجرك.');
+   if(item.quantity<item.min_order_qty||item.stock_qty!==null&&item.quantity>item.stock_qty)
+    throw new ApiError(409,'تغير المخزون أو الحد الأدنى لبعض المنتجات. راجع السلة.');
+  }
+  const statements=items.map(x=>db.prepare('INSERT INTO market_purchase_requests(listing_id,buyer_id,store_id,quantity,unit_price_minor,notes) VALUES(?,?,?,?,?,?)')
+   .bind(x.listing_id,user.id,x.store_id,x.quantity,x.price_minor,notes));
+  statements.push(db.prepare('DELETE FROM market_cart_items WHERE user_id=?').bind(user.id));
+  await db.batch(statements);
+  return json({ok:true,requests_created:items.length,charged:false,inventory_reserved:false,shipping_booked:false},201);
+ }
  if(p==='/api/market/order-request'&&m==='POST'){
   await limited('order-request',25);const b=await parseBody(request),item=await product(idNum(b.listing_id));
   const quantity=Number(b.quantity);
