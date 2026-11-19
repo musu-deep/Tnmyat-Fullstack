@@ -1,0 +1,26 @@
+name: Encyclopedia release checks
+on:
+  push:
+    branches:
+      - feature/wiki-current-release
+  pull_request:
+    branches:
+      - release/poster-preview-only
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax validation
+        run: |
+          node --check src/worker.js
+          node --check public/app.js
+          node --check tests/wiki-foundation.test.js
+      - name: Regression and encyclopedia tests
+        run: npm test
