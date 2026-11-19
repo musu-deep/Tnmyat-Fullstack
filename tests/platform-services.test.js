@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {createInterface} from 'node:readline';
+import {openDatabase} from '../src/database.js';
 
 test('Service cores store owned data, protect privacy and never simulate AI, media or payment settlement',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'tn-services-')),file=join(dir,'db.sqlite');
@@ -67,6 +68,15 @@ test('Service cores store owned data, protect privacy and never simulate AI, med
   assert.equal(p.body.commission_minor,0);
   assert.equal((await call('platform/payments/orders','GET',undefined,b.cookie)).body.orders.length,1);
   assert.equal((await call('platform/reels','POST',{title:'مقطع تجريبي',media_key:'/api/files/00000000-0000-0000-0000-000000000000'},a.cookie)).status,403);
+  assert.equal((await call('platform/payments/policy','GET',undefined,a.cookie)).status,403);
+  const adminDb=openDatabase(file);
+  adminDb.prepare("UPDATE users SET role='admin' WHERE id=?").bind(b.id).run();
+  adminDb.close();
+  assert.equal((await call('platform/payments/policy','PUT',{commission_basis_points:300,fixed_commission_minor:25},b.cookie)).status,200);
+  const price=await call('platform/payments/orders','POST',{seller_id:b.id,subtotal_minor:12300,description:'الطلب الثاني'},a.cookie);
+  assert.equal(price.status,201);
+  assert.equal(price.body.commission_minor,394);
+
  }finally{
   if(child.exitCode===null&&!child.signalCode){const done=once(child,'exit');child.kill();await done;}
   await rm(dir,{recursive:true,force:true});
