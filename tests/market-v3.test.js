@@ -78,7 +78,7 @@ test('Market V3: protected vendor store, real product, favorites, review and non
   assert.equal((await call('market/reviews/'+itemId,'POST',{stars:5,comment:'نموذج مناسب'},seller.cookie)).status,403);
   assert.equal((await call('market/reviews/'+itemId,'POST',{stars:5,comment:'منتج موصوف جيداً'},buyer.cookie)).status,200);
   assert.equal((await call('market/item/'+itemId)).body.item.avg_stars,5);
-  assert.equal((await call('market/order-request','POST',{listing_id:itemId,quantity:13},buyer.cookie)).status,400);
+  assert.equal((await call('market/order-request','POST',{listing_id:itemId,quantity:16},buyer.cookie)).status,400);
   const order=await call('market/order-request','POST',{listing_id:itemId,quantity:2,notes:'يرجى توضيح الشحن'},buyer.cookie);
   assert.equal(order.status,201,JSON.stringify(order.body));
   assert.equal(order.body.paid,false);
