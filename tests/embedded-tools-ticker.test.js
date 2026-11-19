@@ -11,7 +11,11 @@ test('Community tools stay contextual, while tickers begin in left rail and dock
  for(const [name,source] of [['app',app],['hub',hub],['services',services],['extras',extras],['groups',groups],['social',social],['market',market]]){
   assert.doesNotThrow(()=>new vm.Script(source),name+' must parse');
  }
- assert.ok(app.includes("'<aside class=\"latest\"><div id=\"hubTickers\""),'ticker anchor must be in left rail');
+ assert.ok(app.includes('<section class="tnTickerSidePanel"'),'news must be housed in a sidebar footer card');
+ assert.ok(app.indexOf('id="hubTickers"')>app.indexOf('id="discovery"'),'news must follow all sidebar discovery sections');
+ assert.ok(hubCss.includes('#hubTickers .hubTicker-1{background:linear-gradient(110deg,#142f4a'),'first ticker uses navy branding');
+ assert.ok(hubCss.includes('#hubTickers .hubTicker-2{background:linear-gradient(110deg,#1d405d'),'second ticker uses blue branding');
+ assert.ok(hubCss.includes('#hubTickers .hubTicker-3{background:linear-gradient(110deg,#254a68'),'third ticker uses blue branding');
  assert.ok(!app.includes('id="wallIdentity" class="wallBannerSlot" aria-label="غلاف وهوية العضو"></div><div id="hubTickers"'),'ticker must not span above grid');
  assert.ok(hub.includes("setProperty('--tn-ticker-top',headerBottom+'px')"),'dock top derives from header');
  assert.ok(hubCss.includes('top:var(--tn-ticker-top,72px)!important'));
