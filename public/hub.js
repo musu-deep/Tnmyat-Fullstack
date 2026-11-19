@@ -43,13 +43,31 @@ window.addEventListener('resize',hubUpdateDock,{passive:true});
 const hubEscape=v=>esc(v);
 function hubExternalLink(href,label){try{const u=new URL(href);if(u.protocol!=='https:')return '';return '<a href="'+hubEscape(u.href)+'" target="_blank" rel="noopener noreferrer">'+hubEscape(label)+'</a>';}catch{return '';}}
 function hubDay(d){return new Intl.DateTimeFormat('ar',{day:'numeric',month:'short',year:'numeric'}).format(new Date(d+'T12:00:00Z'));}
+// The category travels with the headlines, acting as an editorial separator.
+function hubTickerSeparator(title,url=''){
+ const label=hubEscape(title);
+ return '<span class="hubTickerSeparator" role="separator" aria-label="'+label+'">'+
+  (url?'<a href="'+hubEscape(url)+'" title="عرض '+label+'">'+label+' <span aria-hidden="true">✦</span></a>':'<strong>'+label+'</strong>')+'</span>';
+}
+function hubTickerSequence(items,render,title,url=''){
+ const separator=hubTickerSeparator(title,url);
+ if(!items.length)return '<span class="hubNewsEmpty">'+(url?'<a href="'+hubEscape(url)+'">حدد اهتماماتك لتخصيص الأخبار</a>':'لا توجد أخبار منشورة حالياً')+'</span>'+separator;
+ return items.map(item=>render(item)+separator).join('');
+}
 function hubTickerMarkup(news,personalNews=[],showPersonal=false){
+ const renderPublic=n=>'<span class="hubNewsItem"><span class="hubNewsTag">'+hubEscape(n.category)+'</span><a href="'+hubEscape(n.source_url)+'" target="_blank" rel="noopener noreferrer" title="'+hubEscape(n.source_name)+'">'+hubEscape(n.headline)+'</a><small>'+hubEscape(n.source_name)+' · '+hubEscape(hubDay(n.published_at))+'</small></span>';
+ const renderPersonal=n=>'<span class="hubNewsItem"><span class="hubNewsTag">'+hubEscape(n.category)+'</span><a href="'+hubEscape(n.source_url)+'" '+(n.source_url.startsWith('/')?'':'target="_blank" rel="noopener noreferrer"')+'>'+hubEscape(n.headline)+'</a></span>';
  const lanes=[1,2].map(lane=>{
-   const items=news.filter(n=>n.lane===lane);
-   const content=items.length?items.map(n=>'<span class="hubNewsItem"><span class="hubNewsTag">'+hubEscape(n.category)+'</span><a href="'+hubEscape(n.source_url)+'" target="_blank" rel="noopener noreferrer" title="'+hubEscape(n.source_name)+'">'+hubEscape(n.headline)+'</a><small>'+hubEscape(n.source_name)+' · '+hubEscape(hubDay(n.published_at))+'</small></span>').join(''):
-   '<span class="hubNewsEmpty">'+(lane===1?'أخبار التنمية الموثقة — بانتظار تحديث التحرير':'المبادرات والفعاليات — تابع التقويم التنموي')+'</span>';
-   return '<div class="hubTicker hubTicker-'+lane+'" aria-label="'+(lane===1?'أخبار التنمية':'المبادرات والفعاليات')+'"><span class="hubTickerLabel">'+(lane===1?'أخبار التنمية':'الفعاليات والمبادرات')+'</span><div class="hubTickerViewport"><div class="hubTickerTrack"'+(items.length?'':' data-empty="true"')+'>'+content+(items.length?content:'')+'</div></div></div>';
- });return '<section class="hubTickers" aria-label="أخبار التنمية والفعاليات">'+lanes.join('')+(showPersonal?'<div class="hubTicker hubTicker-3" aria-label="أخباري وفق اهتماماتي"><span class="hubTickerLabel">أخباري <a href="/my-news" title="عرض أخباري">✦</a></span><div class="hubTickerViewport"><div class="hubTickerTrack"'+(personalNews.length?'':' data-empty="true"')+'>'+(personalNews.length?personalNews.map(n=>'<span class="hubNewsItem"><span class="hubNewsTag">'+hubEscape(n.category)+'</span><a href="'+hubEscape(n.source_url)+'" '+(n.source_url.startsWith('/')?'':'target="_blank" rel="noopener noreferrer"')+'>'+hubEscape(n.headline)+'</a></span>').join(''):'<a href="/onboarding">حدد اهتماماتك لتخصيص الأخبار</a>')+'</div></div></div>':'')+'</section>';
+  const items=news.filter(n=>n.lane===lane);
+  const title=lane===1?'أخبار التنمية':'الفعاليات والمبادرات';
+  const sequence=hubTickerSequence(items,renderPublic,title);
+  return '<div class="hubTicker hubTicker-'+lane+'" aria-label="'+title+'"><div class="hubTickerViewport"><div class="hubTickerTrack"'+(items.length?'':' data-empty="true"')+'>'+sequence+(items.length?sequence:'')+'</div></div></div>';
+ });
+ if(showPersonal){
+  const sequence=hubTickerSequence(personalNews,renderPersonal,'أخباري','/my-news');
+  lanes.push('<div class="hubTicker hubTicker-3" aria-label="أخباري وفق اهتماماتي"><div class="hubTickerViewport"><div class="hubTickerTrack"'+(personalNews.length?'':' data-empty="true"')+'>'+sequence+(personalNews.length?sequence:'')+'</div></div></div>');
+ }
+ return '<section class="hubTickers" aria-label="أخبار التنمية والفعاليات">'+lanes.join('')+'</section>';
 }
 async function hubRefreshTickers(token){const node=document.querySelector('#hubTickers');if(!node)return;try{const [r,p]=await Promise.all([api('hub/news'),user?api('journey/news').catch(()=>({news:[],disabled:true})):Promise.resolve({news:[],disabled:true})]);if(token===version&&node.isConnected){node.innerHTML=hubTickerMarkup(r.news,p.news||[],Boolean(user&&!p.disabled));hubUpdateDock();}}catch{node.textContent='تعذّر تحديث شريط الأخبار حالياً.';}}
 function hubEventList(events,limit=8){return events.length?events.slice(0,limit).map(e=>'<article class="hubEventItem"><span class="hubEventDate">'+hubEscape(hubDay(e.event_date))+'</span><strong>'+hubEscape(e.title)+'</strong><small>'+hubEscape(HUB_KINDS[e.category]||e.category)+'</small>'+(e.source_url?hubExternalLink(e.source_url,'المصدر'):'')+(user?.role==='admin'?'<button type="button" data-hub="hide-event" data-id="'+e.id+'" class="hubUnpublish">سحب من التقويم</button>':'')+'</article>').join(''):'<p class="muted">لا توجد فعاليات منشورة لهذه الفترة.</p>';}
