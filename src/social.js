@@ -46,7 +46,12 @@ export function validateImage(value, ApiError, limit=250*1024) {
   return {bytes,mime:'image/'+match[1]};
 }
 
-const personFields = `u.id,u.name,u.bio,u.cover_position,
+const personFields = `u.id,u.name,
+  CASE WHEN viewer.id=u.id OR COALESCE((SELECT bio_scope FROM tn_profile_privacy WHERE user_id=u.id),'public')='public'
+    OR (viewer.id>0 AND (SELECT bio_scope FROM tn_profile_privacy WHERE user_id=u.id)='members')
+    OR (fr.accepted=1 AND (SELECT bio_scope FROM tn_profile_privacy WHERE user_id=u.id)='friends')
+    THEN u.bio ELSE '' END AS bio,
+  u.cover_position,
   CASE WHEN u.cover_version IS NOT NULL THEN '/api/media/cover/'||u.id||'?v='||u.cover_version END AS cover,
   CASE WHEN u.avatar_version IS NOT NULL THEN '/api/media/avatar/'||u.id||'?v='||u.avatar_version END AS avatar,
   COALESCE(u.last_seen>unixepoch()-180,0) AS online,
