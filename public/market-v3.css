@@ -88,3 +88,8 @@
 .tmCartSummary h2{font-size:1.2rem;color:#204a66;margin:0}.tmCartSummary strong{color:#1c657e;font-size:1.4rem}.tmCartSummary p,.tmCartSummary small{color:#667d8e;line-height:1.9;font-size:.81rem}
 @media(max-width:850px){.tmCartLayout{grid-template-columns:1fr}.tmCartSummary{position:static}}
 @media(max-width:490px){.tmCartLine{align-items:flex-start}.tmCartLine .tmIllustration,.tmCartLine .tmProductArt{width:94px;flex-basis:94px;height:105px}.tmCartButtons{flex-direction:column}}
+
+.tmGallery{display:flex;gap:9px;overflow-x:auto;padding:10px 2px;scrollbar-width:thin}
+.tmGallery button{display:block;flex:0 0 75px;height:70px;border:2px solid transparent;border-radius:10px;padding:0;background:#edf3f6;cursor:pointer;overflow:hidden}
+.tmGallery button:hover,.tmGallery button:focus-visible{border-color:#2d6c8b;outline:none}
+.tmGallery img{display:block;width:100%;height:100%;object-fit:contain}
