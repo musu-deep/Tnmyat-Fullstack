@@ -71,3 +71,20 @@
 @media(max-width:720px){.tmMarket{padding:12px 10px 48px}.tmHero{grid-template-columns:1fr;padding:26px}.tmHeroArt{display:none}.tmSearch{grid-template-columns:repeat(2,minmax(0,1fr))}.tmSearch label:first-child{grid-column:1/-1}.tmSearch button{grid-column:1/-1}.tmDetailSections{grid-template-columns:1fr}.tmProductDetail{padding:15px;gap:18px}.tmDetailArt .tmIllustration,.tmDetailArt .tmProductArt{height:270px}.tmShopHero{padding:26px}.tmShopLogo{width:72px;height:72px;flex-basis:72px;font-size:2rem}}
 @media(max-width:470px){.tmBenefits{grid-template-columns:1fr 1fr}.tmBenefits span{font-size:.72rem;padding:10px}.tmHeroActions{flex-direction:column}.tmHeroActions .tmBtn{width:100%}.tmShopHero{align-items:flex-start}.tmSectionHeader h2{font-size:1.26rem}}
 @media(prefers-reduced-motion:reduce){.tmBtn{transition:none}.tmBtn:hover{transform:none}}
+
+/* Saved cart and multi-vendor request checkout */
+.tmToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tmCardCart{font:inherit;cursor:pointer;border:1px solid #b8d2df;color:#174b67;background:#fff}
+.tmCartLayout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.7fr);gap:18px;align-items:start}
+.tmCartItems{display:grid;gap:12px}
+.tmCartLine{background:#fff;border:1px solid #dce5eb;border-radius:15px;padding:14px;display:flex;align-items:center;gap:16px}
+.tmCartLine .tmIllustration,.tmCartLine .tmProductArt{height:130px;flex:0 0 155px;width:155px;border-radius:10px}
+.tmCartLine .tmIllustration>span{font-size:2rem}.tmCartInfo{display:grid;gap:8px;flex:1}
+.tmCartInfo h3{font-size:1rem;color:#1c4d65;margin:0}.tmCartInfo h3 a{color:inherit;text-decoration:none}
+.tmCartInfo small{color:#677f8f}.tmCartInfo strong{color:#1d6682}
+.tmCartInfo label{display:flex;gap:10px;align-items:center;font-size:.8rem;color:#47677b}.tmCartInfo input{width:95px!important;border:1px solid #cbdce6;border-radius:8px;padding:8px}
+.tmCartButtons{display:flex;gap:8px;flex-wrap:wrap}.tmCartButtons .tmBtn{font-size:.75rem;min-height:34px;padding:7px 12px}
+.tmCartSummary{padding:23px;border-radius:16px;border:1px solid #d9e5eb;background:#fff;position:sticky;top:100px;display:grid;gap:13px}
+.tmCartSummary h2{font-size:1.2rem;color:#204a66;margin:0}.tmCartSummary strong{color:#1c657e;font-size:1.4rem}.tmCartSummary p,.tmCartSummary small{color:#667d8e;line-height:1.9;font-size:.81rem}
+@media(max-width:850px){.tmCartLayout{grid-template-columns:1fr}.tmCartSummary{position:static}}
+@media(max-width:490px){.tmCartLine{align-items:flex-start}.tmCartLine .tmIllustration,.tmCartLine .tmProductArt{width:94px;flex-basis:94px;height:105px}.tmCartButtons{flex-direction:column}}
