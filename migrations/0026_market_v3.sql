@@ -7,12 +7,8 @@ ALTER TABLE market_stores ADD COLUMN contact_text TEXT NOT NULL DEFAULT '';
 ALTER TABLE market_stores ADD COLUMN theme_color TEXT NOT NULL DEFAULT '#183e60';
 CREATE UNIQUE INDEX market_stores_slug_unique ON market_stores(slug) WHERE slug IS NOT NULL;
 
-ALTER TABLE market_listings ADD COLUMN category TEXT NOT NULL DEFAULT 'عام';
-ALTER TABLE market_listings ADD COLUMN image_url TEXT;
+-- These fields were already present in the live legacy marketplace schema; do not add them again.
 ALTER TABLE market_listings ADD COLUMN gallery_json TEXT NOT NULL DEFAULT '[]';
-ALTER TABLE market_listings ADD COLUMN sku TEXT;
-ALTER TABLE market_listings ADD COLUMN stock_qty INTEGER CHECK(stock_qty IS NULL OR stock_qty>=0);
-ALTER TABLE market_listings ADD COLUMN min_order_qty INTEGER NOT NULL DEFAULT 1 CHECK(min_order_qty>0);
 ALTER TABLE market_listings ADD COLUMN specifications TEXT NOT NULL DEFAULT '';
 ALTER TABLE market_listings ADD COLUMN marketing_text TEXT NOT NULL DEFAULT '';
 
