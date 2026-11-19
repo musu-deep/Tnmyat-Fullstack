@@ -13,6 +13,11 @@ async function vendorHash(pass,salt,iterations=MARKET_HASH_ROUNDS){
 const cookieValue=request=>{const c=request.headers.get('cookie')||'';const m=c.match(/(?:^|;\s*)tn_store_session=([a-f0-9]{64})(?:;|$)/);return m?.[1]||null;};
 const vendorCookie=(token,age)=>'tn_store_session='+token+'; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age='+age;
 const safePhoto=v=>{if(!v)return null;try{const u=new URL(String(v));return u.protocol==='https:'&&u.username===''&&u.password===''&&String(v).length<=600?u.href:null;}catch{return null;}};
+const marketGallery=v=>{
+ const raw=Array.isArray(v)?v:typeof v==='string'?v.split(/[\n,]/).map(x=>x.trim()).filter(Boolean):[];
+ if(raw.length>6)throw new Error('الحد الأقصى ست صور للعرض.');
+ return raw.map(x=>{const result=safePhoto(x);if(!result)throw new Error('أدخل روابط صور HTTPS صحيحة.');return result;});
+};
 const publicProductSQL=`SELECT l.id,l.store_id,l.title,l.description,l.type,l.price_minor,l.currency,
  l.category,l.image_url,l.gallery_json,l.sku,l.stock_qty,l.min_order_qty,
  l.specifications,l.marketing_text,l.created_at,s.name store_name,s.slug store_slug,s.kind store_kind,
@@ -189,15 +194,18 @@ export async function marketV3Route(request,db,user,{json,parseBody,textField,re
    const description=textField(b.description||'',0,2000,'الوصف'),category=textField(b.category||'عام',1,60,'الفئة');
    const kind=b.kind==='project'?'product':b.type;
    if(!['product','service'].includes(kind))throw new ApiError(400,'نوع العرض غير صحيح.');
-   const price=b.price_minor===null||b.price_minor===''?null:Number(b.price_minor);
+   const price=b.price_minor===null||b.price_minor===''||b.price_minor===undefined?null:Number(b.price_minor);
    if(price!==null&&(!Number.isSafeInteger(price)||price<0||price>100000000000))throw new ApiError(400,'سعر غير صحيح.');
    const stock=b.stock_qty===''||b.stock_qty===null||b.stock_qty===undefined?null:Number(b.stock_qty);
    if(stock!==null&&(!Number.isSafeInteger(stock)||stock<0))throw new ApiError(400,'المخزون غير صحيح.');
-   const image=safePhoto(b.image_url);
-   if(b.image_url&&!image)throw new ApiError(400,'رابط الصورة غير صحيح.');
-   const marketing=textField(b.marketing_text||'',0,1200,'الوصف التسويقي'),spec=textField(b.specifications||'',0,1500,'المواصفات');
-   const inserted=await db.prepare(`INSERT INTO market_listings(store_id,title,description,type,price_minor,status,category,image_url,stock_qty,marketing_text,specifications)
-   VALUES(?,?,?,?,?,'published',?,?,?,?,?) RETURNING id`).bind(storeId,title,description,kind,price,category,image,stock,marketing,spec).first();
+   const min=Number(b.min_order_qty||1);if(!Number.isSafeInteger(min)||min<1||min>10000)throw new ApiError(400,'الحد الأدنى للطلب غير صحيح.');
+   const image=safePhoto(b.image_url);if(b.image_url&&!image)throw new ApiError(400,'رابط الصورة غير صحيح.');
+   let gallery;try{gallery=marketGallery(b.gallery_urls);}catch(e){throw new ApiError(400,e.message);}
+   const marketing=textField(b.marketing_text||'',0,1200,'الوصف التسويقي');
+   const spec=textField(b.specifications||'',0,1500,'المواصفات'),sku=textField(b.sku||'',0,80,'رمز الصنف');
+   const inserted=await db.prepare(`INSERT INTO market_listings(store_id,title,description,type,price_minor,status,category,image_url,gallery_json,sku,stock_qty,min_order_qty,marketing_text,specifications)
+   VALUES(?,?,?,?,?,'published',?,?,?,?,?,?,?,?) RETURNING id`)
+   .bind(storeId,title,description,kind,price,category,image,JSON.stringify(gallery),sku,stock,min,marketing,spec).first();
    return json({id:inserted.id,status:'published'},201);
   }
   if(consoleRoute[2]==='items'&&consoleRoute[3]&&m==='PATCH'){
@@ -212,8 +220,18 @@ export async function marketV3Route(request,db,user,{json,parseBody,textField,re
    const name=textField(b.title??item.title,3,160,'العنوان');
    const desc=textField(b.description??item.description,0,2000,'الوصف');
    const marketing=textField(b.marketing_text??item.marketing_text,0,1200,'الوصف التسويقي');
-   await db.prepare('UPDATE market_listings SET title=?,description=?,marketing_text=?,image_url=?,status=? WHERE id=? AND store_id=?')
-    .bind(name,desc,marketing,image,b.status||item.status,item.id,storeId).run();
+   const spec=textField(b.specifications??item.specifications,0,1500,'المواصفات');
+   const category=textField(b.category??item.category,1,60,'الفئة');
+   const sku=textField(b.sku??item.sku??'',0,80,'رمز الصنف');
+   const price=b.price_minor===undefined?item.price_minor:b.price_minor===null||b.price_minor===''?null:Number(b.price_minor);
+   const stock=b.stock_qty===undefined?item.stock_qty:b.stock_qty===null||b.stock_qty===''?null:Number(b.stock_qty);
+   const min=b.min_order_qty===undefined?item.min_order_qty:Number(b.min_order_qty);
+   if(price!==null&&(!Number.isSafeInteger(price)||price<0||price>100000000000))throw new ApiError(400,'سعر غير صحيح.');
+   if(stock!==null&&(!Number.isSafeInteger(stock)||stock<0)||!Number.isSafeInteger(min)||min<1||min>10000)throw new ApiError(400,'المخزون أو الحد الأدنى غير صحيح.');
+   let gallery;try{gallery=b.gallery_urls===undefined?JSON.parse(item.gallery_json||'[]'):marketGallery(b.gallery_urls);}catch(e){throw new ApiError(400,'روابط الصور الإضافية غير صحيحة.');}
+   await db.prepare(`UPDATE market_listings SET title=?,description=?,marketing_text=?,specifications=?,category=?,sku=?,price_minor=?,
+    stock_qty=?,min_order_qty=?,image_url=?,gallery_json=?,status=? WHERE id=? AND store_id=?`)
+    .bind(name,desc,marketing,spec,category,sku,price,stock,min,image,JSON.stringify(gallery),b.status||item.status,item.id,storeId).run();
    return json({ok:true});
   }
  }
