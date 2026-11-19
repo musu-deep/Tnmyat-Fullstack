@@ -1,6 +1,7 @@
 import { governanceRoute } from './governance.js';
 import { platformServicesRoute } from './platform-services.js';
 import { marketImpactRoute } from './market-impact.js';
+import { marketV3Route } from './market-v3.js';
 import { developmentHubRoute } from './development-hub.js';
 import { memberJourneyRoute } from './member-journey.js';
 import { networkRoute } from './network-engine.js';
@@ -387,6 +388,8 @@ async function route(request,db) {
   const helpers={json,parseBody,textField,requireUser,ApiError,enforceLimit,validateImage,topics};
   const serviceRoute=await platformServicesRoute(request,db,user,helpers);
   if(serviceRoute)return serviceRoute;
+  const marketV3=await marketV3Route(request,db,user,helpers);
+  if(marketV3)return marketV3;
   const marketImpact=await marketImpactRoute(request,db,user,helpers);
   if(marketImpact)return marketImpact;
   const governance=await governanceRoute(request,db,user,helpers);
