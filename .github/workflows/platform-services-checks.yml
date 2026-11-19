@@ -1,0 +1,26 @@
+name: Platform services core checks
+on:
+  push:
+    branches:
+      - feature/tnmyat-services-core
+  pull_request:
+    branches:
+      - release/poster-preview-only
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate service modules
+        run: |
+          node --check src/platform-services.js
+          node --check public/platform-services.js
+          node --check tests/platform-services.test.js
+      - name: Run regression and service integration tests
+        run: npm test
